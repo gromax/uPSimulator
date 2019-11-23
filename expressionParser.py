@@ -46,7 +46,7 @@ class TokenParenthesis(Token):
     regex = "\(|\)"
 
 class ExpressionParser:
-    TokensList = [ TokenVariable, TokenNumber, TokenBinaryOperator, TokenBinaryOperator, TokenParenthesis]
+    TokensList = [ TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]
 
     @classmethod
     def regex(cls):
