@@ -1,10 +1,22 @@
 '''
 Module d'analyse des expressions arithmétiques et logiques
 '''
-
+from errors import *
 import re
 
-class TokenVariable:
+class Token:
+    @classmethod
+    def test(cls, expression):
+        return re.match("^"+cls.regex+"$", expression.strip()) != None
+
+    def __init__(self,expression):
+        self.expression = expression.strip()
+
+    def __str__(self):
+        return self.expression
+
+
+class TokenVariable(Token):
     regex = "[a-zA-Z_][a-zA-Z_0-9]*"
 
     @classmethod
@@ -13,46 +25,16 @@ class TokenVariable:
         expression_stripped = expression.strip()
         if expression_stripped in "and;or;not":
             return False
-        return re.match("^\s*"+cls.regex+"\s*$", expression) != None
+        return super().test(expression_stripped)
 
-    def __init__(self,expression):
-        self.expression = expression.strip()
+class TokenBinaryOperator(Token):
+    regex = "<=|==|>=|[<>+\-*\/%&|]|and|or"
 
-    def __str__(self):
-        return self.expression
-
-class TokenBinaryOperator:
-    regex = "[+\-*\/%&|]|and|or"
-
-    @classmethod
-    def test(cls, expression):
-        return re.match("^\s*"+cls.regex+"\s*$", expression) != None
-
-    def __init__(self,expression):
-        self.expression = expression.strip()
-
-    def __str__(self):
-        return self.expression
-
-class TokenUnaryOperator:
+class TokenUnaryOperator(Token):
     regex = "~|not"
 
-    @classmethod
-    def test(cls, expression):
-        return re.match("^\s*"+cls.regex+"\s*$", expression) != None
-
-    def __init__(self,expression):
-        self.expression = expression.strip()
-
-    def __str__(self):
-        return self.expression
-
-class TokenNumber:
+class TokenNumber(Token):
     regex = "(-\s*)?[0-9]+"
-
-    @classmethod
-    def test(cls, expression):
-        return re.match("^\s*"+cls.regex+"\s*$", expression) != None
 
     def __init__(self,expression):
         self.value = int(expression.strip())
@@ -60,8 +42,11 @@ class TokenNumber:
     def __str__(self):
         return str(self.value)
 
+class TokenParenthesis(Token):
+    regex = "\(|\)"
+
 class ExpressionParser:
-    TokensList = [ TokenVariable, TokenNumber, TokenBinaryOperator, TokenBinaryOperator]
+    TokensList = [ TokenVariable, TokenNumber, TokenBinaryOperator, TokenBinaryOperator, TokenParenthesis]
 
     @classmethod
     def regex(cls):
@@ -75,6 +60,8 @@ class ExpressionParser:
 
     def __init__(self, expression):
         self.expression = expression
+        if not self.test(expression):
+            raise ExpressionError(f"[{self.expression}] => L'expression contient une erreur.'")
         regex = self.regex()
         matchsList = [it[0] for it in re.findall(regex, expression)]
         self.tokens = []
