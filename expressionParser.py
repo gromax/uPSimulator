@@ -12,9 +12,6 @@ class Token:
     def __init__(self,expression):
         self.expression = expression.strip()
 
-    def __str__(self):
-        return self.expression
-
     def isOperand(self):
         return isinstance(self,TokenVariable) or isinstance(self,TokenNumber)
 
@@ -33,28 +30,17 @@ class TokenVariable(Token):
             return False
         return super().test(expression_stripped)
 
+    def getValue(self):
+        return self.expression
+
 class TokenBinaryOperator(Token):
     regex = "<=|==|>=|[<>+\-*\/%&|]|and|or"
-    child1 = None
-    child2 = None
 
     def __init__(self,expression):
         self.operator = expression.strip()
 
     def getOperator(self):
         return self.operator
-
-    def __str__(self):
-        if self.child1 == None:
-            childStr1 = "?"
-        else:
-            childStr1 = str(self.child1)
-        if self.child2 == None:
-            childStr2 = "?"
-        else:
-            childStr2 = str(self.child2)
-
-        return "( "+childStr1+" "+self.operator+" "+childStr2+" )"
 
     def getPriority(self):
         if self.operator == "and":
@@ -71,13 +57,8 @@ class TokenBinaryOperator(Token):
             # cas du or
             return 1
 
-    def setChilds(self, child1, child2):
-        self.child1 = child1
-        self.child2 = child2
-
 class TokenUnaryOperator(Token):
     regex = "~|not"
-    child = None
 
     def __init__(self,expression):
         self.operator = expression.strip()
@@ -85,20 +66,10 @@ class TokenUnaryOperator(Token):
     def getOperator(self):
         return self.operator
 
-    def __str__(self):
-        if self.child == None:
-            childStr = "?"
-        else:
-            childStr = str(self.child)
-        return "("+self.operator+" "+childStr+")"
-
     def getPriority(self):
         if self.operator == "not":
             return 2
         return 6
-
-    def setChild(self, token):
-        self.child = token
 
 class TokenNumber(Token):
     regex = "[0-9]+"
@@ -106,12 +77,12 @@ class TokenNumber(Token):
     def __init__(self,expression):
         self.value = int(expression.strip())
 
-    def __str__(self):
-        return str(self.value)
-
     def negate(self):
         self.value *= -1
         return self
+
+    def getValue(self):
+        return self.value
 
 class TokenParenthesis(Token):
     regex = "\(|\)"
@@ -211,21 +182,22 @@ class ExpressionParser:
         operandsList = []
         for token in polishTokensList:
             if token.isOperand():
-                operandsList.append(token)
+                node = token.getValue(),
+                operandsList.append(node)
             elif isinstance(token,TokenUnaryOperator):
                 if len(operandsList) == 0:
                     raise ExpressionError(f"Plus d'opérande pour : {str(token)}.'")
                 operand = operandsList.pop()
-                token.setChild(operand)
-                operandsList.append(token)
+                node = token.getOperator(), operand
+                operandsList.append(node)
             else:
                 # opérateur binaire
                 if len(operandsList) <2:
                     raise ExpressionError(f"Pas assez d'opérandes pour : {str(token)}.'")
                 operand2 = operandsList.pop()
                 operand1 = operandsList.pop()
-                token.setChilds(operand1, operand2)
-                operandsList.append(token)
+                node = token.getOperator(), operand1, operand2
+                operandsList.append(node)
         # à la fin, normalement, il n'y a qu'un opérande
         if len(operandsList) != 1:
             raise ExpressionError(f"Pas assez d'opérateurs !'")
@@ -241,53 +213,57 @@ class ExpressionParser:
         regex = cls.regex()
         return re.match(f"^(\s*{regex})+\s*$", expression) != None
 
-    def __init__(self, expression):
-        self.expression = expression
-        if not self.test(expression):
-            raise ExpressionError(f"[{self.expression}] => L'expression contient une erreur.'")
-        regex = self.regex()
+    @classmethod
+    def buildTokensList(cls, expression):
+        if not cls.test(expression):
+            raise ExpressionError(f"[{expression}] => L'expression contient une erreur.'")
+        regex = cls.regex()
         matchsList = [it[0] for it in re.findall(regex, expression)]
-        self.tokens = []
+        tokensList = []
         for item in matchsList:
-            for TokenType in self.TokensList:
+            for TokenType in cls.TokensList:
                 if TokenType.test(item):
                     newToken = TokenType(item)
-                    self.tokens.append(newToken)
+                    tokensList.append(newToken)
                     break;
-        self.consolidAddSub()
-        print([str(it) for it in self.tokens])
+        return cls.__consolidAddSub(tokensList)
 
-    def getTokenByIndice(self, indice):
-        if indice <0 or indice>=len(self.tokens):
-            return None
-        return self.tokens[indice]
-
-    def consolidAddSub(self):
+    @classmethod
+    def __consolidAddSub(cls,tokensList):
         # Certains + et - peuvent recevoir différentes interprétations
         # un + et un donnés après ( ou après début
         indice = 0
-        while indice < len(self.tokens):
-            token = self.tokens[indice]
-            tokenPrecedent = self.getTokenByIndice(indice-1)
+        while indice < len(tokensList):
+            token = tokensList[indice]
+            if indice <= 0:
+                tokenPrecedent = None
+            else:
+                tokenPrecedent = tokensList[indice-1]
+            if indice >= len(tokensList)-1:
+                tokenSuivant = None
+            else:
+                tokenSuivant = tokensList[indice+1]
+
+
             if isinstance(token,TokenBinaryOperator) and token.getOperator() in "+-" and not ExpressionParser.isLegal(tokenPrecedent, token):
                 # Ce + ou - doit être rectifié car il ne devrait pas se trouver à la suite de ce qui précède
                 if token.getOperator() == "+":
                     # Dans le cas d'un +, il suffit de le supprimer
                     del self.tokens[indice]
                     # inutile de passer au suivant
-                elif isinstance(self.getTokenByIndice(indice+1),TokenNumber):
+                elif isinstance(tokenSuivant,TokenNumber):
                     # l'opérateur est - et le suivant est un nombre
-                    self.getTokenByIndice(indice+1).negate()
-                    del self.tokens[indice]
+                    tokenSuivant.negate()
+                    del tokensList[indice]
                     # inutile de passer au suivant
                 elif tokenPrecedent==None or isinstance(tokenPrecedent,TokenParenthesis) and tokenPrecedent.isOpening():
                     # l'opérateur est - mais il ne peut être intégré au suivant.
                     # on l'interprète comme -1 x
                     tokenMinusOne = TokenNumber("-1")
                     tokenMultiply = TokenBinaryOperator("*")
-                    del self.tokens[indice]
-                    self.tokens.insert(indice,tokenMultiply)
-                    self.tokens.insert(indice,tokenMinusOne)
+                    del tokensList[indice]
+                    tokensList.insert(indice,tokenMultiply)
+                    tokensList.insert(indice,tokenMinusOne)
                     # inutile de passer au suivant
                 else:
                     # tout autre cas est une faute et est laissé en l'état
@@ -296,3 +272,4 @@ class ExpressionParser:
             else:
                 # passage au suivant
                 indice += 1
+        return tokensList
