@@ -94,6 +94,18 @@ class ExpressionParser:
     TokensList =  [TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]
 
     @staticmethod
+    def parenthesesEquilibrees(tokensList):
+        nbParentheses = 0
+        for token in tokensList :
+            if isinstance(token, TokenParenthesis):
+                if token.isOpening() : nbParentheses += 1
+                else : nbParentheses -= 1
+            if nbParentheses < 0 : return False
+        if nbParentheses > 0 : return False
+        else : return True
+
+
+    @staticmethod
     def isLegal(precedent, suivant):
         '''
         précédent, suivant : 2 tokens successifs dont on veut savoir si l'enchaînement est valable
