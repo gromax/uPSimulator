@@ -34,7 +34,7 @@ class TokenVariable(Token):
         return self.expression
 
 class TokenBinaryOperator(Token):
-    regex = "<=|==|>=|[<>+\-*\/%&|]|and|or"
+    regex = "<=|==|>=|!=|[<>+\-*\/%&|]|and|or"
 
     def __init__(self,expression):
         self.operator = expression.strip()
@@ -104,6 +104,45 @@ class ExpressionParser:
         if nbParentheses > 0 : return False
         else : return True
 
+    @staticmethod
+    def nodeType(noeud):
+        '''
+        reçoit un noeud de l'arbre
+        Renvoie 'int' si le résultat est de type 'int',
+        'bool' si le résultat est de type 'booléen',
+        None en cas d'erreur
+        '''
+        if len(noeud) == 1:
+            return 'int'
+        if len(noeud) == 2:
+            operator, child = noeud
+            childType = ExpressionParser.nodeType(child)
+            if childType == None or (operator=='~' and childType=='bool'):
+                return None
+            elif operator == "not":
+                return 'bool'
+            else:
+                return 'int'
+        # dernier cas, opérateur binaire
+        operator, child1, child2 = noeud
+        child1Type = ExpressionParser.nodeType(child1)
+        child2Type = ExpressionParser.nodeType(child2)
+        if child1Type != child2Type or child1Type == None or child2Type == None:
+            return None
+        elif child1Type == 'bool' and operator in "+-*/%&|":
+            return None
+        elif child1Type == 'bool' and operator in "and;or":
+            return 'bool'
+        elif child1Type == 'bool':
+            # cas ==, <=...
+            return None
+        elif operator in "and;or":
+            return None
+        elif operator in "+-*/%&|":
+            return 'int'
+        else:
+            # cas == <=...
+            return 'bool'
 
     @staticmethod
     def isLegal(precedent, suivant):
