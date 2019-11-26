@@ -5,13 +5,16 @@ class LineParser: # Définition classe
     """Classe
     """
 
-    def __init__(self, originalLine): # Constructeur
+    def __init__(self, originalLine, lineNumber): # Constructeur
         self.originalLine = originalLine
         self.cleanLine = self.suppCommentsAndEndSpaces(self.originalLine)
         self.indent = self.countIndent(self.cleanLine)
+        self.lineNumber = lineNumber
 
-        if len(line)>0 :
-            self.analyse = self.epurer(line)
+        self.emptyLine = cleanLine == ""
+
+        if len(cleanLine)>0 :
+            self.analyse = self.epurer(cleanLine)
             self.instruc = self.parse(self.analyse)
         else:
             self.analyse = False
