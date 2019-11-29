@@ -1,5 +1,5 @@
 import re
-from expression import *
+from expressionParser import *
 
 class LineParser: # Définition classe
     """Classe
@@ -49,19 +49,3 @@ class LineParser: # Définition classe
             return ('affectation', line)
 
 
-'''
-txt = '    while ( A < B) : #comment'
-#txt = 'if (A==B):'
-#txt = 'print("cou#cou")  #comment'
-#txt = 'A=" mon  texte "'
-#txt = 'A=A+1  #comment'
-
-ligne = LineParser(txt)
-print(ligne.indent)
-print(ligne.analyse)
-result = ligne.instruc
-print(result, type(result))
-print(result[1], type(result[1]))
-result = ExpressionParser.buildTokensList(result[1])
-print(result)
-'''
