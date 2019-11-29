@@ -1,5 +1,5 @@
 import re
-from expressionParser import *
+from expression import *
 
 class LineParser: # Définition classe
     """Classe
