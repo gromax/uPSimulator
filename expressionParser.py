@@ -2,6 +2,7 @@
 Module d'analyse des expressions arithmétiques et logiques
 '''
 from errors import *
+from expression import *
 import re
 
 class Token:
@@ -94,55 +95,19 @@ class ExpressionParser:
     TokensList =  [TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]
 
     @staticmethod
-    def parenthesesEquilibrees(tokensList):
+    def testBrackets(expression):
+        '''
+        Entrée : expression = chaîne de caractères représentant une expression
+        Sortie : True si les parenthèses sont équilibrées
+        '''
         nbParentheses = 0
-        for token in tokensList :
-            if isinstance(token, TokenParenthesis):
-                if token.isOpening() : nbParentheses += 1
-                else : nbParentheses -= 1
+        for caractere in expression :
+            if caractere == '(':
+                nbParentheses += 1
+            elif caractere == ')': nbParentheses -= 1
             if nbParentheses < 0 : return False
         if nbParentheses > 0 : return False
-        else : return True
-
-    @staticmethod
-    def nodeType(noeud):
-        '''
-        reçoit un noeud de l'arbre
-        Renvoie 'int' si le résultat est de type 'int',
-        'bool' si le résultat est de type 'booléen',
-        None en cas d'erreur
-        '''
-        if len(noeud) == 1:
-            return 'int'
-        if len(noeud) == 2:
-            operator, child = noeud
-            childType = ExpressionParser.nodeType(child)
-            if childType == None or (operator=='~' and childType=='bool'):
-                return None
-            elif operator == "not":
-                return 'bool'
-            else:
-                return 'int'
-        # dernier cas, opérateur binaire
-        operator, child1, child2 = noeud
-        child1Type = ExpressionParser.nodeType(child1)
-        child2Type = ExpressionParser.nodeType(child2)
-        if child1Type != child2Type or child1Type == None or child2Type == None:
-            return None
-        elif child1Type == 'bool' and operator in "+-*/%&|":
-            return None
-        elif child1Type == 'bool' and operator in "and;or":
-            return 'bool'
-        elif child1Type == 'bool':
-            # cas ==, <=...
-            return None
-        elif operator in "and;or":
-            return None
-        elif operator in "+-*/%&|":
-            return 'int'
-        else:
-            # cas == <=...
-            return 'bool'
+        return True
 
     @staticmethod
     def isLegal(precedent, suivant):
@@ -201,25 +166,7 @@ class ExpressionParser:
         return False
 
     @staticmethod
-    def tokensListIsLegal(tokensList):
-        '''
-        Entrée : liste de tokens
-        Sortie : True si la succession est valable, c'est à dire s'il n'y a pas de succession telle que (* ou +*
-        '''
-        if len(tokensList) == 0:
-            return True
-        tokenPrecedent = None
-        for tokenCourant in tokensList:
-            if not self.isLegal(tokenPrecedent, tokenCourant):
-                return False
-            tokenPrecedent = tokenCourant
-        # Le dernier Token est il valable en tant que dernier token ?
-        if not self.isLegal(tokenPrecedent, None):
-            return False
-        return True
-
-    @staticmethod
-    def buildReversePolishNotation(tokensList):
+    def __buildReversePolishNotation(tokensList):
         polishStack = []
         waitingStack = []
         for token in tokensList:
@@ -247,7 +194,7 @@ class ExpressionParser:
         return polishStack
 
     @staticmethod
-    def buildTree(polishTokensList):
+    def __buildTree(polishTokensList):
         operandsList = []
         for token in polishTokensList:
             if token.isOperand():
@@ -273,19 +220,58 @@ class ExpressionParser:
         return operandsList.pop()
 
     @classmethod
+    def buildExpression(cls, originalExpression):
+        '''
+        Entrée : chaine de caractères expression
+        Sortie : Objet expression
+        '''
+        expression = originalExpression.strip()
+        if not cls.strIsExpression(expression):
+            raise ExpressionError(f"{originalExpression} : Expression incorrecte.")
+        if not cls.testBrackets(expression):
+            raise ExpressionError(f"{originalExpression} : Les parenthèses ne sont pas équilibrées.")
+        tokensList = cls.__buildTokensList(expression)
+        if not cls.tokensListIsLegal(tokensList):
+            raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
+        reversePolishTokensList = cls.__buildReversePolishNotation(tokensList)
+        tree = ExpressionParser.__buildTree(reversePolishTokensList)
+
+        return Expression(tree)
+
+    @classmethod
+    def tokensListIsLegal(cls, tokensList):
+        '''
+        Entrée : liste de tokens
+        Sortie : True si la succession est valable, c'est à dire s'il n'y a pas de succession telle que (* ou +*
+        '''
+        if len(tokensList) == 0:
+            return True
+        tokenPrecedent = None
+        for tokenCourant in tokensList:
+            if not cls.isLegal(tokenPrecedent, tokenCourant):
+                return False
+            tokenPrecedent = tokenCourant
+        # Le dernier Token est il valable en tant que dernier token ?
+        if not cls.isLegal(tokenPrecedent, None):
+            return False
+        return True
+
+    @classmethod
     def regex(cls):
         regexList = [ "("+Token.regex+")" for Token in cls.TokensList ]
         return "("+"|".join(regexList)+")"
 
     @classmethod
-    def test(cls,expression):
+    def strIsExpression(cls,expression):
+        '''
+        Entrée : expression = chaîne de caractère
+        Sortie : True la chaîne de caractère contient une expression arithmétique ou logique
+        '''
         regex = cls.regex()
         return re.match(f"^(\s*{regex})+\s*$", expression) != None
 
     @classmethod
-    def buildTokensList(cls, expression):
-        if not cls.test(expression):
-            raise ExpressionError(f"[{expression}] => L'expression contient une erreur.'")
+    def __buildTokensList(cls, expression):
         regex = cls.regex()
         matchsList = [it[0] for it in re.findall(regex, expression)]
         tokensList = []
@@ -318,7 +304,7 @@ class ExpressionParser:
                 # Ce + ou - doit être rectifié car il ne devrait pas se trouver à la suite de ce qui précède
                 if token.getOperator() == "+":
                     # Dans le cas d'un +, il suffit de le supprimer
-                    del self.tokens[indice]
+                    del tokensList[indice]
                     # inutile de passer au suivant
                 elif isinstance(tokenSuivant,TokenNumber):
                     # l'opérateur est - et le suivant est un nombre
