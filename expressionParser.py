@@ -201,6 +201,24 @@ class ExpressionParser:
         return False
 
     @staticmethod
+    def tokensListIsLegal(tokensList):
+        '''
+        Entrée : liste de tokens
+        Sortie : True si la succession est valable, c'est à dire s'il n'y a pas de succession telle que (* ou +*
+        '''
+        if len(tokensList) == 0:
+            return True
+        tokenPrecedent = None
+        for tokenCourant in tokensList:
+            if not self.isLegal(tokenPrecedent, tokenCourant):
+                return False
+            tokenPrecedent = tokenCourant
+        # Le dernier Token est il valable en tant que dernier token ?
+        if not self.isLegal(tokenPrecedent, None):
+            return False
+        return True
+
+    @staticmethod
     def buildReversePolishNotation(tokensList):
         polishStack = []
         waitingStack = []
