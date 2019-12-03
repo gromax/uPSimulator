@@ -45,7 +45,7 @@ class Container:
     def __appendItem(self, item):
         '''
         item = dictionnaire permettant de déterminer le type d'objet à ajouter
-        { 'type':'if', 'lineNumber':integer, ifChildren: list, elseChildren: list }
+        { 'type':'if', 'lineNumber':integer, children: list ou tuple deux list }
         { 'type':'while', 'lineNumber':tuple(integer, integer) ou integer, children: list, elseChildren: list }
         { 'type':'affectation', 'lineNumber':integer, 'variable': Variable, 'expression': Expression }
         { 'type':'print', 'lineNumber':integer, 'expression': Expression }
@@ -67,10 +67,22 @@ class Container:
             assert 'condition' in keys
             condition = item['condition']
             elem = IfElement(lineNumber, condition)
+            if 'children' in keys:
+                children = item['children']
+                if isinstance(children,'tuple'):
+                    # c'est un tuple de liste pour if et else
+                    childrenIf, childrenElse = children
+                    elem.appendToIf(childrenIf)
+                    elem.appendToElse(childrenElse)
+                else:
+                    elem.appendToIf(children)
         elif type == 'while':
             assert 'condition' in keys
             condition = item['condition']
             elem = WhileElement(lineNumber, condition)
+            if 'children' in keys:
+                children = item['children']
+                elem.append(children)
         elif type == 'affectation':
             assert 'variable' in keys and 'expression' in keys
             variable = item['variable']
