@@ -1,6 +1,8 @@
 from expressionParser import *
 from errors import *
 
+EP = ExpressionParser()
+
 for strExpression in [
   "3x+ 5 -y",
   "3*x+ 5 -y",
@@ -11,10 +13,9 @@ for strExpression in [
 ]:
     try:
         print("Test de :",strExpression)
-        oExpression = ExpressionParser.buildExpression(strExpression)
+        oExpression = EP.buildExpression(strExpression)
         print(oExpression) # Utilise la conversion to string de Expression
         print(oExpression.getType()) # affichage du type, 'bool' 'int' ou None
-        print(oExpression.getVariablesNames()) # affichage de la liste des variables
     except ExpressionError as e:
         print(e)
     except Exception as e:
@@ -24,3 +25,20 @@ for strExpression in [
     print()
     print("------------")
     print()
+
+
+'''
+Tests pour les structures
+'''
+
+from structureelements import *
+
+VM = VariableManager()
+EP = ExpressionParser(VM)
+
+varX = VM.addVariableByName('x')
+expr = EP.buildExpression('3*x+2')
+condition = EP.buildExpression('3*x+2<4')
+
+elIf = IfElement(8, condition)
+str(elIf)
