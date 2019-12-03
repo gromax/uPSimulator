@@ -3,6 +3,7 @@ Module d'analyse des expressions arithmétiques et logiques
 '''
 from errors import *
 from expression import *
+from variableManager import *
 import re
 
 class Token:
@@ -185,7 +186,7 @@ class ExpressionParser:
                     polishStack.append(waitingStack.pop())
                 waitingStack.append(token)
             else:
-                raise ExpressionError(f"Token inconnu : {str(token)}.'")
+                raise ExpressionError(f"Token inconnu : {str(token)}")
         # arrivé à la fin des tokens, on vide la pile d'attente
         while len(waitingStack)>0:
             token = waitingStack.pop()
@@ -194,52 +195,43 @@ class ExpressionParser:
         return polishStack
 
     @staticmethod
-    def __buildTree(polishTokensList):
+    def __buildTree(polishTokensList, variableManagerObject):
+        '''
+        Entrées :
+           polishTokensList : list de Tokens construite en utilisant la notation polonaise inversée
+           variableManagerObject : objet de gestion des variables
+        Sortie : Noeud racine de l'expression
+        '''
         operandsList = []
         for token in polishTokensList:
-            if token.isOperand():
-                node = token.getValue(),
-                operandsList.append(node)
+            if isinstance(token,TokenVariable):
+                nomVariable = token.getValue()
+                variableObject = variableManagerObject.addVariableByName(nomVariable)
+                node = VariableNode(variableObject)
+            elif isinstance(token, TokenNumber):
+                node = LitteralNode(token.getValue())
             elif isinstance(token,TokenUnaryOperator):
                 if len(operandsList) == 0:
-                    raise ExpressionError(f"Plus d'opérande pour : {str(token)}.'")
+                    raise ExpressionError(f"Plus d'opérande pour : {token.getOperator()}")
                 operand = operandsList.pop()
-                node = token.getOperator(), operand
-                operandsList.append(node)
+                operator = token.getOperator()
+                node = UnaryNode(operator, operand)
             else:
                 # opérateur binaire
                 if len(operandsList) <2:
-                    raise ExpressionError(f"Pas assez d'opérandes pour : {str(token)}.'")
+                    raise ExpressionError(f"Pas assez d'opérandes pour : {token.getOperator()}")
                 operand2 = operandsList.pop()
                 operand1 = operandsList.pop()
-                node = token.getOperator(), operand1, operand2
-                operandsList.append(node)
+                operator = token.getOperator()
+                node = BinaryNode(operator, operand1, operand2)
+            operandsList.append(node)
         # à la fin, normalement, il n'y a qu'un opérande
         if len(operandsList) != 1:
             raise ExpressionError(f"Pas assez d'opérateurs !'")
         return operandsList.pop()
 
     @classmethod
-    def buildExpression(cls, originalExpression):
-        '''
-        Entrée : chaine de caractères expression
-        Sortie : Objet expression
-        '''
-        expression = originalExpression.strip()
-        if not cls.strIsExpression(expression):
-            raise ExpressionError(f"{originalExpression} : Expression incorrecte.")
-        if not cls.testBrackets(expression):
-            raise ExpressionError(f"{originalExpression} : Les parenthèses ne sont pas équilibrées.")
-        tokensList = cls.__buildTokensList(expression)
-        if not cls.tokensListIsLegal(tokensList):
-            raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
-        reversePolishTokensList = cls.__buildReversePolishNotation(tokensList)
-        tree = ExpressionParser.__buildTree(reversePolishTokensList)
-
-        return Expression(tree)
-
-    @classmethod
-    def tokensListIsLegal(cls, tokensList):
+    def __tokensListIsLegal(cls, tokensList):
         '''
         Entrée : liste de tokens
         Sortie : True si la succession est valable, c'est à dire s'il n'y a pas de succession telle que (* ou +*
@@ -260,6 +252,15 @@ class ExpressionParser:
     def regex(cls):
         regexList = [ "("+Token.regex+")" for Token in cls.TokensList ]
         return "("+"|".join(regexList)+")"
+
+    @classmethod
+    def strIsVariableName(cls,nomVariable):
+        '''
+        Entrée : nomVariable = chaine de caractère à tester
+        Sortie : True si c'est un nom de variable valable
+        '''
+        regex = TokenVariable
+        return re.match(f"^(\s*{regex})+\s*$", nomVariable) != None
 
     @classmethod
     def strIsExpression(cls,expression):
@@ -328,3 +329,28 @@ class ExpressionParser:
                 # passage au suivant
                 indice += 1
         return tokensList
+
+    def __init__(self, variableManagerObject=None):
+        if variableManagerObject == None:
+            self.__variableManager = VariableManager()
+        else:
+            assert isinstance(variableManagerObject, VariableManager)
+            self.__variableManager = variableManagerObject
+    def buildExpression(self, originalExpression):
+        '''
+        Entrée : chaine de caractères expression
+        Sortie : Objet expression
+        '''
+        expression = originalExpression.strip()
+        if not self.strIsExpression(expression):
+            raise ExpressionError(f"{originalExpression} : Expression incorrecte.")
+        if not self.testBrackets(expression):
+            raise ExpressionError(f"{originalExpression} : Les parenthèses ne sont pas équilibrées.")
+        tokensList = ExpressionParser.__buildTokensList(expression)
+        if not self.__tokensListIsLegal(tokensList):
+            raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
+        reversePolishTokensList = self.__buildReversePolishNotation(tokensList)
+        rootNodeTree = ExpressionParser.__buildTree(reversePolishTokensList, self.__variableManager)
+
+        return Expression(rootNodeTree)
+
