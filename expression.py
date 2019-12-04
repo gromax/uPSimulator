@@ -52,8 +52,11 @@ class BinaryNode:
         strOperand2 = str(self.__operands[1])
         return "(" + strOperand1 + " " + self.__operator + " " + strOperand2 + ")"
 
-class LitteralNode:
+class ValueNode:
     def __init__(self,value):
+        '''
+        value de type int ou Variable
+        '''
         self.__value = value
 
     def getType(self):
@@ -61,16 +64,6 @@ class LitteralNode:
 
     def __str__(self):
         return str(self.__value)
-
-class VariableNode:
-    def __init__(self, variableObject):
-        self.__variable = variableObject
-
-    def getType(self):
-        return 'int'
-
-    def __str__(self):
-        return str(self.__variable)
 
 class Expression:
     def __init__(self, rootNode):
