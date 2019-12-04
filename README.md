@@ -3,7 +3,7 @@
 **Projet dans le cadre du DU CCIE**
 
 * Chef de projet : Maxence Klein
-* Membres du projet :
+* Membres du projet : Véronique Reynauld, Guillaume Desjouis
 
 ## Objectifs du projet
 
