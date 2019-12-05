@@ -6,6 +6,16 @@ class UnaryNode:
         self.__operator = operator
         self.__operand = operand
 
+    def boolDecompose(self):
+        '''
+        Sortie : tuple avec "not" et operand si c'est not
+        None sinon
+        '''
+        if self.__operator != "not":
+            return None
+        expressionEnfant = Expression(self.__operand)
+        return ("not", expressionEnfant)
+
     def getType(self):
         operandType = self.__operand.getType()
         if operandType == None or (self.__operator == '~' and operandType=='bool'):
@@ -22,6 +32,17 @@ class BinaryNode:
     def __init__(self,operator,operand1, operand2):
         self.__operator = operator
         self.__operands = operand1, operand2
+
+    def boolDecompose(self):
+        '''
+        Sortie : si and, or, tuple avec le nom "and" ou "or", et les deux enfants.
+        None sinon
+        '''
+        if self.__operator != "or" and self.__operator != "and":
+            return None
+        expressionEnfant1 = Expression(self.__operands[0])
+        expressionEnfant2 = Expression(self.__operands[1])
+        return (self.__operator, expressionEnfant1, expressionEnfant2)
 
     def getType(self):
         operand1Type = self.__operands[0].getType()
@@ -72,6 +93,16 @@ class Expression:
         Chaque noeud est un noeud dont le type UnaryNode, BinaryNode, LitteralNode ou VariableNode
         '''
         self.__rootNode = rootNode
+
+    def boolDecompose(self):
+        '''
+        Sortie : Tuple avec type d'opération, et expression enfants
+        si c'est une opération de type not, and, or
+        None sinon
+        '''
+        if not (isinstance(self.__rootNode,UnaryNode) or isinstance(self.__rootNode,BinaryNode)):
+            return None
+        return self.__rootNode.boolDecompose()
 
     def getType(self):
         '''
