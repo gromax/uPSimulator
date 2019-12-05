@@ -128,7 +128,7 @@ class Container:
         for item in self.__itemsList:
             if isinstance(item, IfElement):
                 test, labelIf, linearIf, sautFin, labelElse, linearElse, labelFin = item.getListVersion()
-                linearizedItemsList.append(test)
+                linearizedItemsList += test
                 linearizedItemsList.append(labelIf)
                 linearizedItemsList += linearIf
                 if sautFin != None:
@@ -139,7 +139,7 @@ class Container:
             elif isinstance(item,WhileElement):
                 labelWhile, test, labelDebut, linear, labelFin = item.getListVersion()
                 linearizedItemsList.append(labelWhile)
-                linearizedItemsList.append(test)
+                linearizedItemsList += test
                 linearizedItemsList.append(labelDebut)
                 linearizedItemsList += linear
                 linearizedItemsList.append(labelFin)
@@ -192,11 +192,11 @@ class IfElement:
         if len(linearElse)>0:
             labelElse = LabelElement(self.lineNumber, "bloc else")
             sautFin = JumpElement(self.lineNumber, labelFin)
-            test = TestElement(self.lineNumber, self.__condition, labelIf, labelElse)
+            test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelIf, labelElse)
         else:
             labelElse = None
             sautFin = None
-            test = TestElement(self.lineNumber, self.__condition, labelIf, labelFin)
+            test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelIf, labelFin)
         return test, labelIf, linearIf, sautFin, labelElse, linearElse, labelFin
 
 
@@ -228,7 +228,7 @@ class WhileElement:
         labelWhile = LabelElement(self.lineNumber, "while")
         labelDebut = LabelElement(self.lineNumber, "début")
         labelFin = LabelElement(self.lineNumber, "fin")
-        test = TestElement(self.lineNumber, self.__condition, labelDebut, labelFin)
+        test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelDebut, labelFin)
         return labelWhile, test, labelDebut, linear, labelFin
 
 
@@ -301,6 +301,36 @@ class JumpElement:
         return "Saut "+str(self.__cible)
 
 class TestElement:
+    @staticmethod
+    def decomposeComplexeCondition(lineNumber, condition, cibleOUI, cibleNON):
+        '''
+        lineNumber : numéro de la ligne à l'origine de ce test
+        condition : objet Expression de type bool. Si c'est un and, or, not, décompose en élément plus petit
+          jusqu'à obtenir des tests élémentaires en <, <=, >, >=, ==, !=
+        cibleOUI, cibleNON : cible LabelElement en cas de OUI et en cas de NON
+        Sortie : liste de TestElement et de LabelElement
+        '''
+        assert isinstance(condition, Expression)
+        assert condition.getType() == 'bool'
+        decomposition = condition.boolDecompose()
+        if decomposition == None:
+            # c'est un test élémentaire
+            test = TestElement(lineNumber, condition, cibleOUI, cibleNON)
+            return [test]
+        if decomposition[0] == "not":
+            # c'est un not, il faudra inverser OUI et NON et traiter la condition enfant
+            conditionEnfant = decomposition[1]
+            return TestElement.decomposeComplexeCondition(lineNumber, decompositionEnfant, cibleNON, cibleOUI)
+        # c'est un OR ou AND
+        cibleInter = LabelElement(lineNumber,"")
+        operator, conditionEnfant1, conditionEnfant2 = decomposition
+        if operator == "and":
+            enfant1 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant1, cibleInter, cibleNON)
+            enfant2 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant2, cibleOUI, cibleNON)
+        else:
+            enfant1 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant1, cibleOUI, cibleInter)
+            enfant2 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant2, cibleOUI, cibleNON)
+        return enfant1 + [cibleInter] + enfant2
     def __init__(self, lineNumber, condition, cibleOUI, cibleNON):
         assert isinstance(cibleOUI, LabelElement)
         assert isinstance(cibleNON, LabelElement)
