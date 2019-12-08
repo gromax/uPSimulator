@@ -13,14 +13,14 @@ WhileElement
   .condition = Objet Expression
   .children = liste d'objets (comme ceux donnés ici)
 AffectationElement
-  .lineNumber = numéro de ligne programme où le while apparaît
+  .lineNumber = numéro de ligne programme où l'affectation apparaît
   .nomCible = string nom de la variable affectée
   .expression = objet Expression
 InputElement
-  .lineNumber = numéro de ligne programme où le while apparaît
+  .lineNumber = numéro de ligne programme où le input apparaît
   .nomCible = string nom de la variable cible
 PrintElement
-  .lineNumber = numéro de ligne programme où le while apparaît
+  .lineNumber = numéro de ligne programme où le print apparaît
   .expression = objet Expression
 '''
 
@@ -98,7 +98,7 @@ class Container:
             # cas input
             assert 'variable' in keys
             variable = item['variable']
-            elem = AffectationElement(lineNumber, variable)
+            elem = InputElement(lineNumber, variable)
         self.__itemsList.append(elem)
         return elem
 

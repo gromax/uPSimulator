@@ -40,7 +40,7 @@ class VariableManager:
         if not variableName in self.__listVariablesNames:
             return None
         index = self.__listVariablesNames.index(variableName)
-        variableObject = self.__listVariablesNames[index]
+        variableObject = self.__listVariables[index]
         return variableObject
 
 class Variable:
