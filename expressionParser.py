@@ -336,6 +336,7 @@ class ExpressionParser:
         else:
             assert isinstance(variableManagerObject, VariableManager)
             self.__variableManager = variableManagerObject
+    
     def buildExpression(self, originalExpression):
         '''
         Entrée : chaine de caractères expression
