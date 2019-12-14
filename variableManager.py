@@ -1,7 +1,8 @@
 class VariableManager:
     def __init__(self): # Constructeur
-        self.__list = []
-        self.__listNames = []
+        self.__listVariables = []
+        self.__listVariablesNames = []
+        self.__listLitterals = []
 
     def addVariable(self, variableObject):
         '''
@@ -9,9 +10,9 @@ class VariableManager:
         '''
         assert isinstance(variableObject, Variable)
         name = variableObject.getName()
-        if not name in self.__listNames:
-            self.__list.append(variableObject)
-            self.__listNames.append(name)
+        if not name in self.__listVariablesNames:
+            self.__listVariables.append(variableObject)
+            self.__listVariablesNames.append(name)
 
     def addVariableByName(self, variableName):
         '''
@@ -22,19 +23,24 @@ class VariableManager:
         if variableObjectFound != None:
             return variableObjectFound
         variableObject = Variable(variableName)
-        self.__list.append(variableObject)
-        self.__listNames.append(variableName)
+        self.__listVariables.append(variableObject)
+        self.__listVariablesNames.append(variableName)
         return variableObject
+
+    def addLitteralByValue(self, value):
+        assert isinstance(value, int)
+        if not value in self.__listLitterals:
+            self.__listLitterals.append(value)
 
     def getVariableByName(self, variableName):
         '''
         variableName = chaîne de caractères, nom de variable
         Sortie = objet variable trouvé ou None
         '''
-        if not variableName in self.__listNames:
+        if not variableName in self.__listVariablesNames:
             return None
-        index = self.__listNames.index(variableName)
-        variableObject = self.__listNames[index]
+        index = self.__listVariablesNames.index(variableName)
+        variableObject = self.__listVariables[index]
         return variableObject
 
 class Variable:
@@ -46,5 +52,4 @@ class Variable:
 
     def __str__(self):
         return self.__nom
-
 

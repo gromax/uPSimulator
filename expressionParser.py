@@ -21,6 +21,63 @@ class Token:
         return isinstance(self,TokenBinaryOperator) or isinstance(self,TokenUnaryOperator)
 
 
+class TokenBinaryOperator(Token):
+    regex = "<=|==|>=|!=|[<>+\-*\/%&|]|and|or"
+
+    def __init__(self,expression):
+        self.__operator = expression.strip()
+
+    def getOperator(self):
+        return self.__operator
+
+    def getPriority(self):
+        if self.__operator == "and":
+            return 3
+        elif self.__operator in "<==>":
+            return 4
+        elif self.__operator in "+-":
+            return 5
+        elif self.__operator in "*/&|":
+            return 6
+        elif self.__operator == "%":
+            return 7
+        else:
+            # cas du or
+            return 1
+
+    def toNode(self, operandsList):
+        '''
+        operandsList : liste des opérandes.
+        '''
+        if len(operandsList) <2:
+            raise ExpressionError(f"Pas assez d'opérandes pour : {self.__operator}")
+        operand2 = operandsList.pop()
+        operand1 = operandsList.pop()
+        return BinaryNode(self.__operator, operand1, operand2)
+
+class TokenUnaryOperator(Token):
+    regex = "~|not"
+
+    def __init__(self,expression):
+        self.__operator = expression.strip()
+
+    def getOperator(self):
+        return self.__operator
+
+    def getPriority(self):
+        if self.__operator == "not":
+            return 2
+        return 6
+
+    def toNode(self, operandsList):
+        '''
+        operandsList : liste des opérandes.
+        '''
+        if len(operandsList) == 0:
+            raise ExpressionError(f"Plus d'opérande pour : {self.__operator}")
+        operand = operandsList.pop()
+        return UnaryNode(self.__operator, operand)
+
 class TokenVariable(Token):
     regex = "[a-zA-Z_][a-zA-Z_0-9]*"
 
@@ -35,43 +92,13 @@ class TokenVariable(Token):
     def getValue(self):
         return self.expression
 
-class TokenBinaryOperator(Token):
-    regex = "<=|==|>=|!=|[<>+\-*\/%&|]|and|or"
-
-    def __init__(self,expression):
-        self.operator = expression.strip()
-
-    def getOperator(self):
-        return self.operator
-
-    def getPriority(self):
-        if self.operator == "and":
-            return 3
-        elif self.operator in "<==>":
-            return 4
-        elif self.operator in "+-":
-            return 5
-        elif self.operator in "*/&|":
-            return 6
-        elif self.operator == "%":
-            return 7
-        else:
-            # cas du or
-            return 1
-
-class TokenUnaryOperator(Token):
-    regex = "~|not"
-
-    def __init__(self,expression):
-        self.operator = expression.strip()
-
-    def getOperator(self):
-        return self.operator
-
-    def getPriority(self):
-        if self.operator == "not":
-            return 2
-        return 6
+    def toNode(self, variableManagerObject):
+        '''
+        variableManagerObject : gestionnaire des variables et des littéraux
+        '''
+        nomVariable = self.expression
+        variableObject = variableManagerObject.addVariableByName(nomVariable)
+        return ValueNode(variableObject)
 
 class TokenNumber(Token):
     regex = "[0-9]+"
@@ -85,6 +112,14 @@ class TokenNumber(Token):
 
     def getValue(self):
         return self.value
+
+    def toNode(self, variableManagerObject):
+        '''
+        variableManagerObject : gestionnaire des variables et des littéraux
+        '''
+        variableManagerObject.addLitteralByValue(self.value)
+        return ValueNode(self.value)
+
 
 class TokenParenthesis(Token):
     regex = "\(|\)"
@@ -204,26 +239,10 @@ class ExpressionParser:
         '''
         operandsList = []
         for token in polishTokensList:
-            if isinstance(token,TokenVariable):
-                nomVariable = token.getValue()
-                variableObject = variableManagerObject.addVariableByName(nomVariable)
-                node = VariableNode(variableObject)
-            elif isinstance(token, TokenNumber):
-                node = LitteralNode(token.getValue())
-            elif isinstance(token,TokenUnaryOperator):
-                if len(operandsList) == 0:
-                    raise ExpressionError(f"Plus d'opérande pour : {token.getOperator()}")
-                operand = operandsList.pop()
-                operator = token.getOperator()
-                node = UnaryNode(operator, operand)
+            if token.isOperand():
+                node = token.toNode(variableManagerObject)
             else:
-                # opérateur binaire
-                if len(operandsList) <2:
-                    raise ExpressionError(f"Pas assez d'opérandes pour : {token.getOperator()}")
-                operand2 = operandsList.pop()
-                operand1 = operandsList.pop()
-                operator = token.getOperator()
-                node = BinaryNode(operator, operand1, operand2)
+                node = token.toNode(operandsList)
             operandsList.append(node)
         # à la fin, normalement, il n'y a qu'un opérande
         if len(operandsList) != 1:

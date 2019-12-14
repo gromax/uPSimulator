@@ -13,40 +13,42 @@ WhileElement
   .condition = Objet Expression
   .children = liste d'objets (comme ceux donnés ici)
 AffectationElement
-  .lineNumber = numéro de ligne programme où le while apparaît
+  .lineNumber = numéro de ligne programme où l'affectation apparaît
   .nomCible = string nom de la variable affectée
   .expression = objet Expression
 InputElement
-  .lineNumber = numéro de ligne programme où le while apparaît
+  .lineNumber = numéro de ligne programme où le input apparaît
   .nomCible = string nom de la variable cible
 PrintElement
-  .lineNumber = numéro de ligne programme où le while apparaît
+  .lineNumber = numéro de ligne programme où le print apparaît
   .expression = objet Expression
 '''
 
 from expression import *
+from variableManager import *
 
 class Container:
     def __init__(self, items = None):
-        self.__itemsList = []
         if items != None:
-            self.appendList(items)
-
-    def append(self, item):
-        '''
-        item = item ou liste d'items à ajouter dans le container (voir fonctions Container.__appendItem)
-        '''
-        if isinstance(item, list):
-            for item in items:
-                self.__append(item)
+            self.__itemsList = items
         else:
-            return self.__append(item)
+            self.__itemsList = []
+
+    def append(self, item_s):
+        '''
+        item_s = item ou liste d'items à ajouter dans le container (voir fonctions Container.__appendItem)
+        '''
+        if isinstance(item_s, list):
+            for item in item_s:
+                self.__appendItem(item)
+        else:
+            return self.__appendItem(item_s)
 
     def __appendItem(self, item):
         '''
         item = dictionnaire permettant de déterminer le type d'objet à ajouter
-        { 'type':'if', 'lineNumber':integer, children: list ou tuple deux list }
-        { 'type':'while', 'lineNumber':tuple(integer, integer) ou integer, children: list, elseChildren: list }
+        { 'type':'if', 'lineNumber':tuple(integer, integer) ou integerr, 'condition':Expression, children: list ou tuple deux list }
+        { 'type':'while', 'lineNumber': integer, 'condition':Expression, children: list}
         { 'type':'affectation', 'lineNumber':integer, 'variable': Variable, 'expression': Expression }
         { 'type':'print', 'lineNumber':integer, 'expression': Expression }
         { 'type':'input', 'lineNumber':integer, 'variable': Variable }
@@ -96,12 +98,54 @@ class Container:
             # cas input
             assert 'variable' in keys
             variable = item['variable']
-            elem = AffectationElement(lineNumber, variable)
+            elem = InputElement(lineNumber, variable)
         self.__itemsList.append(elem)
         return elem
 
     def __str__(self):
         return "\n".join([str(item) for item in self.__itemsList])
+
+    def isEmpty(self):
+        return len(self.__itemsList) == 0
+
+    def getLinearized(self):
+        '''
+        Transforme la structure arborescente en une structure linéaire avec sauts et labels
+        '''
+        listLineaire = self.getListVersion()
+        labelRank = 0
+        for item in listLineaire:
+            if isinstance(item, LabelElement):
+                item.assignRank(labelRank)
+                labelRank += 1
+        return Container(listLineaire)
+
+    def getListVersion(self):
+        '''
+        Retourne la liste des items d'une version linéaire
+        '''
+        linearizedItemsList = []
+        for item in self.__itemsList:
+            if isinstance(item, IfElement):
+                test, labelIf, linearIf, sautFin, labelElse, linearElse, labelFin = item.getListVersion()
+                linearizedItemsList += test
+                linearizedItemsList.append(labelIf)
+                linearizedItemsList += linearIf
+                if sautFin != None:
+                    linearizedItemsList.append(sautFin)
+                    linearizedItemsList.append(labelElse)
+                    linearizedItemsList += linearElse
+                    linearizedItemsList.append(labelFin)
+            elif isinstance(item,WhileElement):
+                labelWhile, test, labelDebut, linear, labelFin = item.getListVersion()
+                linearizedItemsList.append(labelWhile)
+                linearizedItemsList += test
+                linearizedItemsList.append(labelDebut)
+                linearizedItemsList += linear
+                linearizedItemsList.append(labelFin)
+            else:
+                linearizedItemsList.append(item)
+        return linearizedItemsList
 
 class IfElement:
     def __init__(self, lineNumber, condition):
@@ -112,10 +156,10 @@ class IfElement:
           condition est un objet Expression
         '''
         assert isinstance(condition, Expression)
-        self.condition = condition
+        self.__condition = condition
         assert condition.getType() == 'bool'
-        self.ifChildren = Container()
-        self.elseChildren = Container()
+        self.__ifChildren = Container()
+        self.__elseChildren = Container()
         if isinstance(lineNumber, tuple):
             self.ifLineNumber, self.elseLineNumber = lineNumber
         else:
@@ -125,16 +169,35 @@ class IfElement:
         '''
         item = item ou liste d'items à ajouter dans le container (voir fonctions Container.append
         '''
-        return self.ifChildren.append(item)
+        return self.__ifChildren.append(item)
 
     def appendToElse(self, item):
         '''
         item = item ou liste d'items à ajouter dans le container (voir fonctions Container.append
         '''
-        return self.elseChildren.append(item)
+        return self.__elseChildren.append(item)
 
     def __str__(self):
-        return "if ("+str(self.condition)+") {\n"+str(self.ifChildren)+"\n}"
+        if self.__elseChildren.isEmpty():
+            return "if ("+str(self.__condition)+") {\n"+str(self.__ifChildren)+"\n}"
+        else:
+            return "if "+str(self.__condition)+" {\n"+str(self.__ifChildren)+"\n}\nelse {\n"+str(self.__elseChildren)+"\n}"
+
+    def getListVersion(self):
+        linearIf = self.__ifChildren.getListVersion()
+        linearElse = self.__elseChildren.getListVersion()
+        labelIf = LabelElement(self.lineNumber, "bloc if")
+        labelFin = LabelElement(self.lineNumber, "fin")
+
+        if len(linearElse)>0:
+            labelElse = LabelElement(self.lineNumber, "bloc else")
+            sautFin = JumpElement(self.lineNumber, labelFin)
+            test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelIf, labelElse)
+        else:
+            labelElse = None
+            sautFin = None
+            test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelIf, labelFin)
+        return test, labelIf, linearIf, sautFin, labelElse, linearElse, labelFin
 
 
 class WhileElement:
@@ -147,18 +210,27 @@ class WhileElement:
         '''
         assert isinstance(condition, Expression)
         self.lineNumber = lineNumber
-        self.condition = condition
+        self.__condition = condition
         assert condition.getType() == 'bool'
-        self.children = Container()
+        self.__children = Container()
 
     def append(self,item):
         '''
         item = item ou liste d'items à ajouter dans le container (voir fonctions Container.append
         '''
-        return self.children.append(item)
+        return self.__children.append(item)
 
     def __str__(self):
-        return "while ("+str(self.confition)+") {\n"+str(self.children)+"\n}"
+        return "while "+str(self.__condition)+" {\n"+str(self.__children)+"\n}"
+
+    def getListVersion(self):
+        linear = self.__children.getListVersion()
+        labelWhile = LabelElement(self.lineNumber, "while")
+        labelDebut = LabelElement(self.lineNumber, "début")
+        labelFin = LabelElement(self.lineNumber, "fin")
+        test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelDebut, labelFin)
+        return labelWhile, test, labelDebut, linear, labelFin
+
 
 class AffectationElement:
     def __init__(self, lineNumber, variableCible, expression):
@@ -171,9 +243,12 @@ class AffectationElement:
         assert isinstance(expression, Expression)
         assert isinstance(variableCible, Variable)
         self.lineNumber = lineNumber
-        self.cible = variableCible
-        assert condition.getType() == 'int'
-        self.expression = expression
+        self.__cible = variableCible
+        assert expression.getType() == 'int'
+        self.__expression = expression
+
+    def __str__(self):
+        return str(self.__cible)+" "+chr(0x2190)+" "+str(self.__expression)
 
 class InputElement:
     def __init__(self, lineNumber, variableCible):
@@ -184,7 +259,10 @@ class InputElement:
         '''
         assert isinstance(variableCible, Variable)
         self.lineNumber = lineNumber
-        self.cible = variableCible
+        self.__cible = variableCible
+
+    def __str__(self):
+        return str(self.__cible)+" "+chr(0x2190)+" Input"
 
 class PrintElement:
     def __init__(self, lineNumber, expression):
@@ -195,5 +273,74 @@ class PrintElement:
         '''
         assert isinstance(expression, Expression)
         self.lineNumber = lineNumber
-        assert condition.getType() == 'int'
-        self.expression = expression
+        assert expression.getType() == 'int'
+        self.__expression = expression
+
+    def __str__(self):
+        return str(self.__expression)+" "+chr(0x2192)+" Affichage"
+
+class LabelElement:
+    def __init__(self, lineNumber, label):
+        self.__label = label
+        self.lineNumber = lineNumber
+        self.__rank = -1
+    def assignRank(self, value):
+        self.__rank = value
+    def __str__(self):
+        if self.__rank < 0:
+            return chr(0x2386)+" "+self.__label
+        else:
+            return chr(0x2386)+" ["+str(self.__rank)+"] "+self.__label
+
+class JumpElement:
+    def __init__(self, lineNumber, cible):
+        assert isinstance(cible, LabelElement)
+        self.lineNumber = lineNumber
+        self.__cible = cible
+    def __str__(self):
+        return "Saut "+str(self.__cible)
+
+class TestElement:
+    @staticmethod
+    def decomposeComplexeCondition(lineNumber, condition, cibleOUI, cibleNON):
+        '''
+        lineNumber : numéro de la ligne à l'origine de ce test
+        condition : objet Expression de type bool. Si c'est un and, or, not, décompose en élément plus petit
+          jusqu'à obtenir des tests élémentaires en <, <=, >, >=, ==, !=
+        cibleOUI, cibleNON : cible LabelElement en cas de OUI et en cas de NON
+        Sortie : liste de TestElement et de LabelElement
+        '''
+        assert isinstance(condition, Expression)
+        assert condition.getType() == 'bool'
+        decomposition = condition.boolDecompose()
+        if decomposition == None:
+            # c'est un test élémentaire
+            test = TestElement(lineNumber, condition, cibleOUI, cibleNON)
+            return [test]
+        if decomposition[0] == "not":
+            # c'est un not, il faudra inverser OUI et NON et traiter la condition enfant
+            conditionEnfant = decomposition[1]
+            return TestElement.decomposeComplexeCondition(lineNumber, decompositionEnfant, cibleNON, cibleOUI)
+        # c'est un OR ou AND
+        cibleInter = LabelElement(lineNumber,"")
+        operator, conditionEnfant1, conditionEnfant2 = decomposition
+        if operator == "and":
+            enfant1 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant1, cibleInter, cibleNON)
+            enfant2 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant2, cibleOUI, cibleNON)
+        else:
+            enfant1 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant1, cibleOUI, cibleInter)
+            enfant2 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant2, cibleOUI, cibleNON)
+        return enfant1 + [cibleInter] + enfant2
+    def __init__(self, lineNumber, condition, cibleOUI, cibleNON):
+        assert isinstance(cibleOUI, LabelElement)
+        assert isinstance(cibleNON, LabelElement)
+        assert isinstance(condition, Expression)
+        assert condition.getType() == 'bool'
+        self.lineNumber = lineNumber
+        self.__condition = condition
+        self.__cibleOUI = cibleOUI
+        self.__cibleNON = cibleNON
+    def __str__(self):
+        return str(self.__condition)+" OUI : "+str(self.__cibleOUI)+", NON : "+str(self.__cibleNON)
+
+

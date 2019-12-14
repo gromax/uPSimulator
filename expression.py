@@ -6,6 +6,16 @@ class UnaryNode:
         self.__operator = operator
         self.__operand = operand
 
+    def boolDecompose(self):
+        '''
+        Sortie : tuple avec "not" et operand si c'est not
+        None sinon
+        '''
+        if self.__operator != "not":
+            return None
+        expressionEnfant = Expression(self.__operand)
+        return ("not", expressionEnfant)
+
     def getType(self):
         operandType = self.__operand.getType()
         if operandType == None or (self.__operator == '~' and operandType=='bool'):
@@ -17,13 +27,13 @@ class UnaryNode:
     def __str__(self):
         strOperand = str(self.__operand)
         return self.__operator+"("+strOperand+")"
-    
+
     def getRegisterCost(self):
         return self.__operand._getRegisterCost()
-    
+
     def nodeNeedUAL(self):
         return True
-    
+
     def calcCompile(self, CompileExpressionManagerObject):
         self.__operands.calcCompile(CompileExpressionManagerObject)
         operation = ('bitwise not', 0)
@@ -33,6 +43,17 @@ class BinaryNode:
     def __init__(self,operator,operand1, operand2):
         self.__operator = operator
         self.__operands = operand1, operand2
+
+    def boolDecompose(self):
+        '''
+        Sortie : si and, or, tuple avec le nom "and" ou "or", et les deux enfants.
+        None sinon
+        '''
+        if self.__operator != "or" and self.__operator != "and":
+            return None
+        expressionEnfant1 = Expression(self.__operands[0])
+        expressionEnfant2 = Expression(self.__operands[1])
+        return (self.__operator, expressionEnfant1, expressionEnfant2)
 
     def getType(self):
         operand1Type = self.__operands[0].getType()
@@ -62,12 +83,12 @@ class BinaryNode:
         strOperand1 = str(self.__operands[0])
         strOperand2 = str(self.__operands[1])
         return "(" + strOperand1 + " " + self.__operator + " " + strOperand2 + ")"
-    
+
     def getRegisterCost(self):
         costOperand1 = self.__operands[0].getRegisterCost()
         costOperand2 = self.__operands[1].getRegisterCost()
         return min(max(costOperand1, costOperand2+1), max(costOperand1+1, costOperand2))
-    
+
     def nodeNeedUAL(self):
         return True
 
@@ -98,8 +119,11 @@ class BinaryNode:
 
 
 
-class LitteralNode:
-    def __init__(self, value):
+class ValueNode:
+    def __init__(self,value):
+        '''
+        value de type int ou Variable
+        '''
         self.__value = value
 
     def getType(self):
@@ -107,35 +131,15 @@ class LitteralNode:
 
     def __str__(self):
         return str(self.__value)
-    
+
     def getRegisterCost(self):
         return 1
 
-    def nodeNeedUAL(self):
-        return False    
-    
-    def calcCompile(self, CompileExpressionManagerObject):
-        operation = ('litteral -> registre', self.__value, CompileExpressionManagerObject.getAvailableRegister())
-        CompileExpressionManagerObject.addNewOperation(operation)
-
-class VariableNode:
-    def __init__(self, variableObject):
-        self.__variable = variableObject
-
-    def getType(self):
-        return 'int'
-
-    def __str__(self):
-        return str(self.__variable)
-    
-    def getRegisterCost(self):
-        return 1
-    
     def nodeNeedUAL(self):
         return False
 
     def calcCompile(self, CompileExpressionManagerObject):
-        operation = ('variable -> registre',self.__value, CompileExpressionManagerObject.getAvailableRegister()) ## Il conviendra de gérer l'adresse mémoire
+        operation = ('litteral ou variable -> registre', self.__value, CompileExpressionManagerObject.getAvailableRegister()) ## Il conviendra de gérer l'adresse mémoire
         CompileExpressionManagerObject.addNewOperation(operation)
 
 class Expression:
@@ -145,6 +149,16 @@ class Expression:
         Chaque noeud est un noeud dont le type UnaryNode, BinaryNode, LitteralNode ou VariableNode
         '''
         self.__rootNode = rootNode
+
+    def boolDecompose(self):
+        '''
+        Sortie : Tuple avec type d'opération, et expression enfants
+        si c'est une opération de type not, and, or
+        None sinon
+        '''
+        if not (isinstance(self.__rootNode,UnaryNode) or isinstance(self.__rootNode,BinaryNode)):
+            return None
+        return self.__rootNode.boolDecompose()
 
     def getType(self):
         '''
@@ -161,7 +175,7 @@ class Expression:
         Fonction de conversion de Expression en string
         '''
         return str(self.__rootNode)
-    
+
     def getRegisterCost(self):
         '''
         Calcul du cout de calcul d'une expression:
@@ -169,7 +183,7 @@ class Expression:
         Sortie: Entier
         '''
         return self.__rootNode.getRegisterCost()
-    
+
     def calcCompile(self, CompileExpressionManagerObject):
         if self.getType() != 'int':
             raise ExpressionError(f"Cette expression n'appelle pas de calcul'")
