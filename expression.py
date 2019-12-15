@@ -1,5 +1,5 @@
 from errors import *
-from expressionconvert import *
+from compileexpressionmanager import *
 
 class UnaryNode:
     def __init__(self,operator,operand):
@@ -198,3 +198,5 @@ class Expression:
         if self.getType() != 'int':
             raise ExpressionError(f"Cette expression n'appelle pas de calcul'")
         return self.__rootNode.calcCompile(CompileExpressionManagerObject)
+
+

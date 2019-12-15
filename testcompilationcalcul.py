@@ -8,7 +8,7 @@ Created on Wed Dec  4 13:58:15 2019
 from expressionparser import *
 from errors import *
 from expression import *
-from expressionconvert import *
+from compileexpressionmanager import *
 
 EP = ExpressionParser()
 
