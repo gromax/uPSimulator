@@ -5,7 +5,7 @@ Created on Wed Dec  4 13:58:15 2019
 
 @author: desjouis_brufau
 """
-from expressionParser import *
+from expressionparser import *
 from errors import *
 from expression import *
 from expressionConvert import *

@@ -1,4 +1,4 @@
-from expressionParser import *
+from expressionparser import *
 from errors import *
 
 EP = ExpressionParser()

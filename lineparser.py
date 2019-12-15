@@ -1,6 +1,6 @@
 import re
 from errors import *
-from expressionParser import *
+from expressionparser import *
 
 class LineParser: # Définition classe
     """Classe LineParser
