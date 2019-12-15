@@ -7,7 +7,6 @@ Created on Wed Dec  4 14:20:18 2019
 """
 
 from errors import *
-from expression import *
 
 class CompileExpressionManager:
 
@@ -50,7 +49,5 @@ class CompileExpressionManager:
         self.__operationList.append(('memoire -> registre', self.__memory, self.getAvailableRegister()))
         self.__memory -= 1
 
-    def compileExpression(self, expression):
-        expression.calcCompile(self)
-        return self.__operationList
+
 
