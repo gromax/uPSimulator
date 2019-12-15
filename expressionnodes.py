@@ -7,7 +7,7 @@ class UnaryNode:
         operator = not, ~, - (moins autant qu'opérateur unaire)
         operand : Node
         '''
-        assert self.operator in "not,-,~"
+        assert operator in "not,-,~"
         self.__operator = operator
         self.__operand = operand
 
@@ -39,17 +39,24 @@ class UnaryNode:
         return True
 
     def calcCompile(self, CompileExpressionManagerObject):
-        self.__operands.calcCompile(CompileExpressionManagerObject)
+        self.__operand.calcCompile(CompileExpressionManagerObject)
         if self.__operator == "not":
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
+        registreOperand = CompileExpressionManagerObject.freeRegister()
+        registreDestination = CompileExpressionManagerObject.getAvailableRegister()
         if self.__operator == "-":
-            operation = ('neg', 0)
+            operationDecription = "neg"
         else:
-            operation = ('bitwise not', 0)
+            operationDecription = "bitwise not"
+        operation = (operationDecription, registreDestination, registreOperand)
         CompileExpressionManagerObject.addNewOperation(operation)
 
 class BinaryNode:
     def __init__(self,operator,operand1, operand2):
+        '''
+        operator : dans +, -, *, /, %, and, or, &, |
+        operand1 et operand2 : objet de type ValueNode, BinaryNode ou UnaryNode
+        '''
         self.__operator = operator
         self.__operands = operand1, operand2
 
@@ -63,6 +70,12 @@ class BinaryNode:
         return self.__operator, self.__operands[0], self.__operands[1]
 
     def getType(self):
+        '''
+        Sortie =
+          'bool' si opération de type booléen
+          'int' si opération de type entier
+          None si construction invalide
+        '''
         operand1Type = self.__operands[0].getType()
         operand2Type = self.__operands[1].getType()
         if operand1Type != operand2Type or operand1Type == None or operand2Type == None:
@@ -100,14 +113,14 @@ class BinaryNode:
         return True
 
     def calcCompile(self, CompileExpressionManagerObject):
-        if self.__operands[0].getRegisterCost()>=self.__operands[1].getRegisterCost():
+        if self.__operands[0].getRegisterCost() >= self.__operands[1].getRegisterCost():
             operand1 = self.__operands[0]
             operand2 = self.__operands[1]
-            TokenDirectCalc = True
+            tokenDirectCalc = True
         else:
             operand2 = self.__operands[0]
             operand1 = self.__operands[1]
-            TokenDirectCalc = False
+            tokenDirectCalc = False
         operand1.calcCompile(CompileExpressionManagerObject)
         memoryUse = CompileExpressionManagerObject.storeToMemory(operand2.getRegisterCost())
         operand2.calcCompile(CompileExpressionManagerObject)
@@ -115,10 +128,11 @@ class BinaryNode:
             CompileExpressionManagerObject.loadFromMemory()
         r1 = CompileExpressionManagerObject.freeRegister()
         r2 = CompileExpressionManagerObject.freeRegister()
-        if TokenDirectCalc:
-            operation = (self.__operator, CompileExpressionManagerObject.getAvailableRegister(), r1, r2 )
+        registreDestination = CompileExpressionManagerObject.getAvailableRegister()
+        if tokenDirectCalc:
+            operation = (self.__operator, registreDestination, r1, r2 )
         else:
-            operation = (self.__operator, CompileExpressionManagerObject.getAvailableRegister(), r2, r1)
+            operation = (self.__operator, registreDestination, r2, r1)
         CompileExpressionManagerObject.addNewOperation(operation)
 
 class ValueNode:
@@ -140,9 +154,28 @@ class ValueNode:
     def nodeNeedUAL(self):
         return False
 
+    def isLitteral(self):
+        return isinstance(self.__value, int)
+
     def calcCompile(self, CompileExpressionManagerObject):
-        operation = ('litteral ou variable -> registre', self.__value, CompileExpressionManagerObject.getAvailableRegister()) ## Il conviendra de gérer l'adresse mémoire
+        if self.isLitteral():
+            operationDescription = "litteral -> registre"
+        else:
+            operationDescription = "variable -> registre"
+        registreDestination = CompileExpressionManagerObject.getAvailableRegister()
+        operation = (operationDescription, self.__value, registreDestination)
         CompileExpressionManagerObject.addNewOperation(operation)
 
 if __name__=="__main__":
-    pass
+    print("Test sur littéral")
+    cem = CompileExpressionManager()
+    node = ValueNode(4)
+    node.calcCompile(cem)
+    print(cem)
+
+    print("Test sur opération unaire")
+    cem = CompileExpressionManager()
+    nodeL = ValueNode(4)
+    nodeOp = UnaryNode("-", nodeL)
+    nodeOp.calcCompile(cem)
+    print(cem)
