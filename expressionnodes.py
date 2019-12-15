@@ -62,11 +62,6 @@ class UnaryNode(Node):
         if self.__operator == "not":
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
         CompileExpressionManagerObject.pushUnaryOperator(self.__operator)
-        registreOperand = CompileExpressionManagerObject.freeRegister()
-        registreDestination = CompileExpressionManagerObject.getAvailableRegister()
-
-        operation = (operationDecription, registreDestination, registreOperand)
-        CompileExpressionManagerObject.addNewOperation(operation)
 
 class BinaryNode(Node):
     __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|')
@@ -189,28 +184,27 @@ class ValueNode(Node):
             operationDescription = "litteral -> registre"
         else:
             operationDescription = "variable -> registre"
-        registreDestination = CompileExpressionManagerObject.getAvailableRegister()
-        operation = (operationDescription, self.__value, registreDestination)
-        CompileExpressionManagerObject.addNewOperation(operation)
+        CompileExpressionManagerObject.pushValue(operationDescription, self.__value)
 
 if __name__=="__main__":
+    from variablemanager import *
     print("Test sur littéral")
     cem = CompileExpressionManager()
-    node = ValueNode(4)
+    node = ValueNode(Litteral(4))
     node.calcCompile(cem)
     print(cem)
 
     print("Test sur opération unaire")
     cem = CompileExpressionManager()
-    nodeL = ValueNode(4)
+    nodeL = ValueNode(Litteral(4))
     nodeOp = UnaryNode("-", nodeL)
     nodeOp.calcCompile(cem)
     print(cem)
 
     print("Test sur opération binaire")
     cem = CompileExpressionManager()
-    nodeChild1 = ValueNode(4)
-    nodeChild2 = ValueNode(3)
+    nodeChild1 = ValueNode(Litteral(4))
+    nodeChild2 = ValueNode(Litteral(3))
     nodeOp = BinaryNode("-", nodeChild1, nodeChild2)
     nodeOp.calcCompile(cem)
     print(cem)
