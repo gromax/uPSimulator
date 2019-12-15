@@ -55,13 +55,14 @@ class Expression:
 
 
 if __name__=="__main__":
-    # construction d'un arbre expression pour 3*17+9-(4+1)*(2+3)
-    n1 = ValueNode(1)
-    n2 = ValueNode(2)
-    n3 = ValueNode(3)
-    n4 = ValueNode(4)
-    n9 = ValueNode(9)
-    n17 = ValueNode(17)
+    from variablemanager import *
+    print("Test pour l'expression 3*17+9-(4+1)*(2+3)")
+    n1 = ValueNode(Litteral(1))
+    n2 = ValueNode(Litteral(2))
+    n3 = ValueNode(Litteral(3))
+    n4 = ValueNode(Litteral(4))
+    n9 = ValueNode(Litteral(9))
+    n17 = ValueNode(Litteral(17))
     mult3_17 = BinaryNode("*",n3,n17)
     add4_1 = BinaryNode("+", n4, n1)
     add2_3 = BinaryNode("+", n2, n3)
@@ -73,3 +74,10 @@ if __name__=="__main__":
     cem = CompileExpressionManager()
     monExpression.calcCompile(cem)
     print(cem)
+
+    print()
+    print("nouvel essai, même expression avec autorisation d'avoir des littéraux dans les commandes")
+    cem = CompileExpressionManager({"litteralInCommand": True})
+    monExpression.calcCompile(cem)
+    print(cem)
+
