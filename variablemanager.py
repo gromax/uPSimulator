@@ -2,6 +2,7 @@ class VariableManager:
     def __init__(self): # Constructeur
         self.__listVariables = []
         self.__listVariablesNames = []
+        self.__listLitteralsValues = []
         self.__listLitterals = []
 
     def addVariable(self, variableObject):
@@ -27,11 +28,6 @@ class VariableManager:
         self.__listVariablesNames.append(variableName)
         return variableObject
 
-    def addLitteralByValue(self, value):
-        assert isinstance(value, int)
-        if not value in self.__listLitterals:
-            self.__listLitterals.append(value)
-
     def getVariableByName(self, variableName):
         '''
         variableName = chaîne de caractères, nom de variable
@@ -43,6 +39,33 @@ class VariableManager:
         variableObject = self.__listVariables[index]
         return variableObject
 
+
+    def addLitteralByValue(self, value):
+        '''
+        value = entier
+        Sortie = objet litteral créé ou récupéré dans la liste
+        '''
+        litteralObjectFound = self.getLitteralByValue(value)
+        if litteralObjectFound != None:
+            return litteralObjectFound
+        self.__listLitteralsValues.append(value)
+        litteralObject = Litteral(value)
+        self.__listLitterals.append(litteralObject)
+        return litteralObject
+
+    def getLitteralByValue(self, value):
+        '''
+        value = entier
+        Sortie = objet litteral trouvé ou None
+        '''
+        if not value in self.__listLitteralsValues:
+            return None
+        index = self.__listLitteralsValues.index(value)
+        litteralObject = self.__listLitterals[index]
+        return litteralObject
+
+
+
 class Variable:
     def __init__(self, nom):
         self.__nom = nom
@@ -51,5 +74,21 @@ class Variable:
         return self.__nom
 
     def __str__(self):
-        return self.__nom
+        return "@"+self.__nom
 
+    def isLitteral(self):
+        return False
+
+class Litteral:
+    def __init__(self, value):
+        assert isinstance(value,int)
+        self.__value = value
+
+    def getValue(self):
+        return self.__value
+
+    def __str__(self):
+        return "#"+str(self.__value)
+
+    def isLitteral(self):
+        return True
