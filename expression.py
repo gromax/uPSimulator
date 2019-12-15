@@ -189,10 +189,11 @@ class Expression:
         '''
         return self.__rootNode.getRegisterCost()
 
-    def calcCompile(self, CompileExpressionManagerObject):
+    def calcCompile(self, compileExpressionManagerObject):
         if self.getType() != 'int':
             raise ExpressionError(f"Cette expression n'appelle pas de calcul'")
-        return self.__rootNode.calcCompile(CompileExpressionManagerObject)
+        self.__rootNode.calcCompile(compileExpressionManagerObject)
+
 
 if __name__=="__main__":
     # construction d'un arbre expression pour 3*17+9-(4+1)*(2+3)
@@ -210,5 +211,6 @@ if __name__=="__main__":
     nFinal = BinaryNode("-", add_3x17p9 ,mult_4p1x2p3)
 
     monExpression = Expression(nFinal)
-    CV = CompileExpressionManager()
-    monExpression.calcCompile(CV)
+    cem = CompileExpressionManager()
+    monExpression.calcCompile(cem)
+    print(cem)

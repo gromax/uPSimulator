@@ -9,7 +9,7 @@ Created on Wed Dec  4 14:20:18 2019
 from errors import *
 
 class CompileExpressionManager:
-    def __init__(self options={}):
+    def __init__(self, options={}):
         if "maxRegisters" in options:
             self.__maxRegisters = options["maxregisters"]
         else:
@@ -54,7 +54,9 @@ class CompileExpressionManager:
         if cost <= len(self.__availableRegisters):
             return False
         self.__memoryStackLastIndex +=1
-        self.__operationList.append(('registre -> memoire', self.freeRegister(), self.__memoryStackLastIndex))
+        sourceRegister = self.freeRegister()
+        operation = ('registre -> memoire', sourceRegister, self.__memoryStackLastIndex)
+        self.__operationList.append(operation)
         if self.__memoryStackLastIndex > self.__memoryStackMaxIndex:
             self.__memoryStackMaxIndex = self.__memoryStackLastIndex
         return True
@@ -67,8 +69,26 @@ class CompileExpressionManager:
         self.__operationList.append(operation)
         self.__memoryStackLastIndex -= 1
 
+    def __str__ (self):
+        if self.__memoryStackLastIndex >=0:
+            output = f"memory stack -> {self.__memoryStackLastIndex}\n"
+        else:
+            output = "no memory stacked\n"
+        if self.availableRegisterExists():
+            strAvailableRegisters = ", ".join(["r"+str(item) for item in self.__availableRegisters])
+            output += f"availables registers : {strAvailableRegisters}\n"
+        else:
+            output += "no available register\n"
+        for item in self.__operationList:
+            strItem = ", ".join([str(subItem) for subItem in item])
+            output += strItem+"\n"
+        return output
+
 if __name__=="__main__":
     cem = CompileExpressionManager()
-    assert cem.getAvailableRegister() == 0
-    assert cem.freeRegister() == 0
+    cem.getAvailableRegister()
+    cem.storeToMemory(5)
+    cem.loadFromMemory()
+    cem.freeRegister()
+    print(cem)
 
