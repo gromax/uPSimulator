@@ -195,3 +195,20 @@ class Expression:
         return self.__rootNode.calcCompile(CompileExpressionManagerObject)
 
 if __name__=="__main__":
+    # construction d'un arbre expression pour 3*17+9-(4+1)*(2+3)
+    n1 = ValueNode(1)
+    n2 = ValueNode(2)
+    n3 = ValueNode(3)
+    n4 = ValueNode(4)
+    n9 = ValueNode(9)
+    n17 = ValueNode(17)
+    mult3_17 = BinaryNode("*",n3,n17)
+    add4_1 = BinaryNode("+", n4, n1)
+    add2_3 = BinaryNode("+", n2, n3)
+    mult_4p1x2p3 = BinaryNode("*", add4_1, add2_3)
+    add_3x17p9 = BinaryNode("+", mult3_17, n9)
+    nFinal = BinaryNode("-", add_3x17p9 ,mult_4p1x2p3)
+
+    monExpression = Expression(nFinal)
+    CV = CompileExpressionManager()
+    monExpression.calcCompile(CV)
