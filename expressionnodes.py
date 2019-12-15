@@ -130,7 +130,7 @@ class BinaryNode:
         r2 = CompileExpressionManagerObject.freeRegister()
         registreDestination = CompileExpressionManagerObject.getAvailableRegister()
         if tokenDirectCalc:
-            operation = (self.__operator, registreDestination, r1, r2 )
+            operation = (self.__operator, registreDestination, r1, r2)
         else:
             operation = (self.__operator, registreDestination, r2, r1)
         CompileExpressionManagerObject.addNewOperation(operation)
@@ -177,5 +177,13 @@ if __name__=="__main__":
     cem = CompileExpressionManager()
     nodeL = ValueNode(4)
     nodeOp = UnaryNode("-", nodeL)
+    nodeOp.calcCompile(cem)
+    print(cem)
+
+    print("Test sur opération binaire")
+    cem = CompileExpressionManager()
+    nodeChild1 = ValueNode(4)
+    nodeChild2 = ValueNode(3)
+    nodeOp = BinaryNode("-", nodeChild1, nodeChild2)
     nodeOp.calcCompile(cem)
     print(cem)
