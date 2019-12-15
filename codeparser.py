@@ -50,7 +50,7 @@ if __name__=="__main__":
                 pass
 
             else:
-                raise ExpressionError(f"Type <{objLine.type}> non traitée !")
+                raise ParseError(f"Type <{objLine.type}> non traitée !")
 
             #Ajout des informations parsées dans le listing
             listingCode.append(objDictLine)

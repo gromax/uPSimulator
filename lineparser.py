@@ -50,23 +50,23 @@ class LineParser: # Définition classe
                 lastGroup = allGroup[len(allGroup.groups())]
                 if motif in ['while','if','elif'] :
                     if lastGroup != ":" :
-                        raise ExpressionError(f"Absence de ':' en fin de ligne <{motif}> condition <{firstGroup}>")
+                        raise ParseError(f"Absence de ':' en fin de ligne <{motif}> condition <{firstGroup}>")
                         return motif, False
                     else:
                         expr = EP.buildExpression(firstGroup)
                         if expr.getType() != 'bool' :
-                            raise ExpressionError(f"L'expression <{expr}> n'est pas une condition")
+                            raise ParseError(f"L'expression <{expr}> n'est pas une condition")
                             return motif, False
                         else:
                             self.condition = expr
                             return motif, True
                 elif motif in ['else'] :
                     if lastGroup != ":" :
-                        raise ExpressionError(f"Absence de ':' en fin de ligne <{motif}>")
+                        raise ParseError(f"Absence de ':' en fin de ligne <{motif}>")
                         return motif, False
                     else:
                         if len(firstGroup) > 0 :
-                            raise ExpressionError(f"La ligne <{motif}:> ne doit contenir rien d'autre")
+                            raise ParseError(f"La ligne <{motif}:> ne doit contenir rien d'autre")
                             return motif, False
                         else:
                             return motif, True
@@ -79,10 +79,10 @@ class LineParser: # Définition classe
                         self.expression = firstGroup
                         return motif, True
                     else:
-                        raise ExpressionError(f"L'expression après le <print> '{firstGroup}' doit être entre paranthèses")
+                        raise ParseError(f"L'expression après le <print> '{firstGroup}' doit être entre paranthèses")
                         return motif, False
                 else:
-                    raise ExpressionError(f"Motif <{motif}> non traité !")
+                    raise ParseError(f"Motif <{motif}> non traité !")
                     return motif, False
 
         #Si ce n'est pas un motif c'est probablement une affectation
@@ -102,7 +102,7 @@ class LineParser: # Définition classe
                     self.expression = firstGroup
                     return "input", True
                 else:
-                    raise ExpressionError(f"L'expression après le <input> '{firstGroup}' doit être entre paranthèses")
+                    raise ParseError(f"L'expression après le <input> '{firstGroup}' doit être entre paranthèses")
                     return 'input', False
             #Sinon affectation, mais il faut que ce soit une expression et non pas un string
             else:
@@ -110,7 +110,7 @@ class LineParser: # Définition classe
                 self.expression = expr
                 return 'affectation', True
         else:
-            raise ExpressionError(f"Struture de ligne incorrecte <{line}>")
+            raise ParseError(f"Struture de ligne incorrecte <{line}>")
             return 'unknow', False
 
 

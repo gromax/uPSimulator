@@ -10,17 +10,17 @@ from errors import *
 from expression import *
 
 class CompileExpressionManager:
-    
+
     def __init__(self):
         self.__maxRegisters = 2
         self.availableRegisters = list(reversed(range(self.__maxRegisters)))
         self.registerStack = []
         self.operationList = []
         self.memory = -1
-        
+
     def getAvailableRegister(self):
         if len(self.availableRegisters) == 0:
-            raise ExpressionError(f"Pas de registre disponible'")
+            raise CompilationError(f"Pas de registre disponible'")
         self.registerStack.append(self.availableRegisters.pop())
         return self.registerStack[-1]
 
