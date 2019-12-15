@@ -319,31 +319,19 @@ class ExpressionParser:
             else:
                 tokenSuivant = tokensList[indice+1]
 
-
             if isinstance(token,TokenBinaryOperator) and token.getOperator() in "+-" and not ExpressionParser.isLegal(tokenPrecedent, token):
                 # Ce + ou - doit être rectifié car il ne devrait pas se trouver à la suite de ce qui précède
                 if token.getOperator() == "+":
                     # Dans le cas d'un +, il suffit de le supprimer
                     del tokensList[indice]
                     # inutile de passer au suivant
-                elif isinstance(tokenSuivant,TokenNumber):
-                    # l'opérateur est - et le suivant est un nombre
-                    tokenSuivant.negate()
-                    del tokensList[indice]
-                    # inutile de passer au suivant
-                elif tokenPrecedent==None or isinstance(tokenPrecedent,TokenParenthesis) and tokenPrecedent.isOpening():
-                    # l'opérateur est - mais il ne peut être intégré au suivant.
-                    # on l'interprète comme -1 x
-                    tokenMinusOne = TokenNumber("-1")
-                    tokenMultiply = TokenBinaryOperator("*")
-                    del tokensList[indice]
-                    tokensList.insert(indice,tokenMultiply)
-                    tokensList.insert(indice,tokenMinusOne)
-                    # inutile de passer au suivant
                 else:
-                    # tout autre cas est une faute et est laissé en l'état
-                    # passage au suivant
-                    indice += 1
+                    # l'opérateur est - et c'est un cas d'opération unaire
+                    # on l'interprète comme neg
+                    tokenNeg = TokenUnaryOperator("-")
+                    del tokensList[indice]
+                    tokensList.insert(indice,tokenNeg)
+                    # inutile de passer au suivant
             else:
                 # passage au suivant
                 indice += 1

@@ -3,6 +3,11 @@ from expressionconvert import *
 
 class UnaryNode:
     def __init__(self,operator,operand):
+        '''
+        operator = not, ~, - (moins autant qu'opérateur unaire)
+        operand : Node
+        '''
+        assert self.operator in "not,-,~"
         self.__operator = operator
         self.__operand = operand
 
@@ -36,7 +41,12 @@ class UnaryNode:
 
     def calcCompile(self, CompileExpressionManagerObject):
         self.__operands.calcCompile(CompileExpressionManagerObject)
-        operation = ('bitwise not', 0)
+        if self.__operator == "not":
+            raise ExpressionError("opérateur not ne peut être compilé en calcul.")
+        if self.__operator == "-":
+            operation = ('neg', 0)
+        else:
+            operation = ('bitwise not', 0)
         CompileExpressionManagerObject.addNewOperation(operation)
 
 class BinaryNode:
