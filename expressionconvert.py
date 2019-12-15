@@ -23,7 +23,7 @@ class CompileExpressionManager:
 
     def getAvailableRegister(self):
         if len(self.__availableRegisters) == 0:
-            raise CompilationError(f"Pas de registre disponible'")
+            raise CompilationError("Pas de registre disponible'")
         self.__registerStack.append(self.__availableRegisters.pop())
         return self.__registerStack[-1]
 
