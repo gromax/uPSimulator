@@ -1,6 +1,6 @@
 import sys
 from errors import *
-from lineParser import *
+from lineparser import *
 
 
 
