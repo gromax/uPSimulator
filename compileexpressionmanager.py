@@ -17,7 +17,7 @@ class CompileExpressionManager:
         if "freeUALOutput" in options:
             self.__freeUALOuptut = options["freeUALOutput"]
         else:
-            self.__freeUALOuptut = False
+            self.__freeUALOuptut = True
         self.__availableRegisters = list(reversed(range(self.__maxRegisters)))
         self.__registerStack = []
         self.__operationList = []
