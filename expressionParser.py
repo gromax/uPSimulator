@@ -3,7 +3,7 @@ Module d'analyse des expressions arithmétiques et logiques
 '''
 from errors import *
 from expression import *
-from variableManager import *
+from variablemanager import *
 import re
 
 class Token:
@@ -355,7 +355,7 @@ class ExpressionParser:
         else:
             assert isinstance(variableManagerObject, VariableManager)
             self.__variableManager = variableManagerObject
-    
+
     def buildExpression(self, originalExpression):
         '''
         Entrée : chaine de caractères expression

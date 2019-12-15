@@ -25,7 +25,7 @@ PrintElement
 '''
 
 from expression import *
-from variableManager import *
+from variablemanager import *
 
 class Container:
     def __init__(self, items = None):
