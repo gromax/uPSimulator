@@ -106,6 +106,11 @@ class CompileExpressionManager:
         operation = (operator, registreDestination, registreOperand)
         self.addNewOperation(operation)
 
+    def pushValue(self, operator, value):
+        registreDestination = self.getAvailableRegister()
+        operation = (operator, value, registreDestination)
+        self.addNewOperation(operation)
+
     def UALoutputIsAvailable(self):
         return self.__freeUALOuptut or 0 in self.__availableRegisters
 
