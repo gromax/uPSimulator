@@ -117,8 +117,8 @@ class TokenNumber(Token):
         '''
         variableManagerObject : gestionnaire des variables et des littéraux
         '''
-        variableManagerObject.addLitteralByValue(self.value)
-        return ValueNode(self.value)
+        litteralObject = variableManagerObject.addLitteralByValue(self.value)
+        return ValueNode(litteralObject)
 
 
 class TokenParenthesis(Token):
