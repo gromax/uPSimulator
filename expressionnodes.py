@@ -1,13 +1,31 @@
 from errors import *
 from compileexpressionmanager import *
 
-class UnaryNode:
+class Node:
+    def isLitteral(self):
+        return False
+
+    def needUAL(self):
+        return True
+
+    def getRegisterCost(self, litteralInCommand):
+        return 1
+
+    def calcCompile(self, CompileExpressionManagerObject):
+        litteralInCommand = CompileExpressionManagerObject.litteralInCommand
+        myCost = self.getRegisterCost(litteralInCommand)
+        needUAL =self.needUAL()
+        CompileExpressionManagerObject.getNeededRegisterSpace(myCost, needUAL)
+
+class UnaryNode(Node):
+    __knownOperators = ('not', '~', '-')
     def __init__(self,operator,operand):
         '''
         operator = not, ~, - (moins autant qu'opérateur unaire)
         operand : Node
         '''
-        assert operator in "not,-,~"
+        assert operator in self.__knownOperators
+        assert isinstance(operand,Node)
         self.__operator = operator
         self.__operand = operand
 
@@ -32,31 +50,35 @@ class UnaryNode:
         strOperand = str(self.__operand)
         return self.__operator+"("+strOperand+")"
 
-    def getRegisterCost(self):
-        return self.__operand._getRegisterCost()
+    def getRegisterCost(self, litteralInCommand):
+        return self.__operand.getRegisterCost(litteralInCommand)
 
-    def nodeNeedUAL(self):
+    def needUAL(self):
         return True
 
     def calcCompile(self, CompileExpressionManagerObject):
+        super(UnaryNode,self).calcCompile(CompileExpressionManagerObject)
         self.__operand.calcCompile(CompileExpressionManagerObject)
         if self.__operator == "not":
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
+        CompileExpressionManagerObject.pushUnaryOperator(self.__operator)
         registreOperand = CompileExpressionManagerObject.freeRegister()
         registreDestination = CompileExpressionManagerObject.getAvailableRegister()
-        if self.__operator == "-":
-            operationDecription = "neg"
-        else:
-            operationDecription = "bitwise not"
+
         operation = (operationDecription, registreDestination, registreOperand)
         CompileExpressionManagerObject.addNewOperation(operation)
 
-class BinaryNode:
+class BinaryNode(Node):
+    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|')
+    __symetricOperators = ('+', '*', '&', '|')
     def __init__(self,operator,operand1, operand2):
         '''
         operator : dans +, -, *, /, %, and, or, &, |
-        operand1 et operand2 : objet de type ValueNode, BinaryNode ou UnaryNode
+        operand1 et operand2 : objet de type Node
         '''
+        assert operator in self.__knownOperators
+        assert isinstance(operand1,Node)
+        assert isinstance(operand2,Node)
         self.__operator = operator
         self.__operands = operand1, operand2
 
@@ -104,38 +126,45 @@ class BinaryNode:
         strOperand2 = str(self.__operands[1])
         return "(" + strOperand1 + " " + self.__operator + " " + strOperand2 + ")"
 
-    def getRegisterCost(self):
-        costOperand1 = self.__operands[0].getRegisterCost()
-        costOperand2 = self.__operands[1].getRegisterCost()
+    def getRegisterCost(self, litteralInCommand):
+        op1, op2 = self.__operands
+        if litteralInCommand and op2.isLitteral():
+            return op1.getRegisterCost(litteralInCommand)
+        if litteralInCommand and self.isSymetric() and op1.isLitteral():
+            return op2.getRegisterCost(litteralInCommand)
+        costOperand1 = op1.getRegisterCost(litteralInCommand)
+        costOperand2 = op2.getRegisterCost(litteralInCommand)
         return min(max(costOperand1, costOperand2+1), max(costOperand1+1, costOperand2))
 
-    def nodeNeedUAL(self):
+    def isSymetric(self):
+        return self.__operator in self.__symetricOperators
+
+    def needUAL(self):
         return True
 
     def calcCompile(self, CompileExpressionManagerObject):
-        if self.__operands[0].getRegisterCost() >= self.__operands[1].getRegisterCost():
-            operand1 = self.__operands[0]
-            operand2 = self.__operands[1]
-            tokenDirectCalc = True
+        super(BinaryNode,self).calcCompile(CompileExpressionManagerObject)
+        litteralInCommand = CompileExpressionManagerObject.litteralInCommand
+        op1, op2 = self.__operands
+        if litteralInCommand and self.isSymetric() and not op2.isLitteral() and op1.isLitteral():
+            op1, op2 = op2, op1
+        if litteralInCommand and op2.isLitteral():
+            firstToCalc = op1
+            secondToCalc = op2
+        elif op1.getRegisterCost(litteralInCommand) >= op2.getRegisterCost(litteralInCommand):
+            firstToCalc = op1
+            secondToCalc = op2
         else:
-            operand2 = self.__operands[0]
-            operand1 = self.__operands[1]
-            tokenDirectCalc = False
-        operand1.calcCompile(CompileExpressionManagerObject)
-        memoryUse = CompileExpressionManagerObject.storeToMemory(operand2.getRegisterCost())
-        operand2.calcCompile(CompileExpressionManagerObject)
-        if memoryUse:
-            CompileExpressionManagerObject.loadFromMemory()
-        r1 = CompileExpressionManagerObject.freeRegister()
-        r2 = CompileExpressionManagerObject.freeRegister()
-        registreDestination = CompileExpressionManagerObject.getAvailableRegister()
-        if tokenDirectCalc:
-            operation = (self.__operator, registreDestination, r1, r2)
+            firstToCalc = op2
+            secondToCalc = op1
+        firstToCalc.calcCompile(CompileExpressionManagerObject)
+        if litteralInCommand and op2.isLitteral():
+            CompileExpressionManagerObject.pushBinaryOperatorWithLitteral(self.__operator, op2.getValue())
         else:
-            operation = (self.__operator, registreDestination, r2, r1)
-        CompileExpressionManagerObject.addNewOperation(operation)
+            secondToCalc.calcCompile(CompileExpressionManagerObject)
+            CompileExpressionManagerObject.pushBinaryOperator(self.__operator, firstToCalc == op1)
 
-class ValueNode:
+class ValueNode(Node):
     def __init__(self,value):
         '''
         value de type int ou Variable
@@ -148,16 +177,14 @@ class ValueNode:
     def __str__(self):
         return str(self.__value)
 
-    def getRegisterCost(self):
-        return 1
-
-    def nodeNeedUAL(self):
-        return False
-
     def isLitteral(self):
-        return isinstance(self.__value, int)
+        return self.__value.isLitteral()
+
+    def getValue(self):
+        return self.__value
 
     def calcCompile(self, CompileExpressionManagerObject):
+        super(ValueNode,self).calcCompile(CompileExpressionManagerObject)
         if self.isLitteral():
             operationDescription = "litteral -> registre"
         else:
