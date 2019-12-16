@@ -48,10 +48,17 @@ class Expression:
         '''
         return self.__rootNode.getRegisterCost()
 
-    def calcCompile(self, compileExpressionManagerObject):
+    def calcCompile(self, **options):
+        if "cem" in options:
+          cem = options["cem"]
+        else:
+          cem = CompileExpressionManager(**options)
         if self.getType() != 'int':
             raise ExpressionError(f"Cette expression n'appelle pas de calcul'")
-        self.__rootNode.calcCompile(compileExpressionManagerObject)
+        self.__rootNode.calcCompile(cem)
+        if "debug" in options and options["debug"] == True:
+            print(cem)
+        return cem.getOperationList()
 
 
 if __name__=="__main__":
@@ -72,12 +79,10 @@ if __name__=="__main__":
 
     monExpression = Expression(nFinal)
     cem = CompileExpressionManager()
-    monExpression.calcCompile(cem)
+    monExpression.calcCompile(cem = cem)
     print(cem)
 
     print()
     print("nouvel essai, même expression avec autorisation d'avoir des littéraux dans les commandes")
-    cem = CompileExpressionManager(litteralInCommand = True)
-    monExpression.calcCompile(cem)
-    print(cem)
+    monExpression.calcCompile(litteralInCommand = True, debug = True)
 
