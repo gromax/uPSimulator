@@ -57,11 +57,16 @@ class UnaryNode(Node):
         return True
 
     def calcCompile(self, CompileExpressionManagerObject):
-        super(UnaryNode,self).calcCompile(CompileExpressionManagerObject)
-        self.__operand.calcCompile(CompileExpressionManagerObject)
         if self.__operator == "not":
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
-        CompileExpressionManagerObject.pushUnaryOperator(self.__operator)
+        super(UnaryNode,self).calcCompile(CompileExpressionManagerObject)
+        litteralInCommand = CompileExpressionManagerObject.litteralInCommand
+        if litteralInCommand and self.__operand.isLitteral():
+            litteral =
+            CompileExpressionManagerObject.pushUnaryOperatorWithLitteral(self.__operator, self.__operand.getValue())
+        else:
+            self.__operand.calcCompile(CompileExpressionManagerObject)
+            CompileExpressionManagerObject.pushUnaryOperator(self.__operator)
 
 class BinaryNode(Node):
     __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|')
@@ -180,11 +185,7 @@ class ValueNode(Node):
 
     def calcCompile(self, CompileExpressionManagerObject):
         super(ValueNode,self).calcCompile(CompileExpressionManagerObject)
-        if self.isLitteral():
-            operationDescription = "litteral -> registre"
-        else:
-            operationDescription = "variable -> registre"
-        CompileExpressionManagerObject.pushValue(operationDescription, self.__value)
+        CompileExpressionManagerObject.pushValue(self.__value)
 
 if __name__=="__main__":
     from variablemanager import *
