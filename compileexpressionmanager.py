@@ -9,19 +9,16 @@ Created on Wed Dec  4 14:20:18 2019
 from errors import *
 
 class CompileExpressionManager:
-    def __init__(self, options={}):
+    __maxRegisters = 2
+    __freeUALOuptut = True
+    litteralInCommand = False
+    def __init__(self, **options):
         if "maxRegisters" in options:
             self.__maxRegisters = options["maxregisters"]
-        else:
-            self.__maxRegisters = 2
         if "freeUALOutput" in options:
             self.__freeUALOuptut = options["freeUALOutput"]
-        else:
-            self.__freeUALOuptut = True
         if "litteralInCommand" in options:
             self.litteralInCommand = options["litteralInCommand"]
-        else:
-            self.litteralInCommand = False
         assert self.__maxRegisters > 1
         self.__availableRegisters = list(reversed(range(self.__maxRegisters)))
         self.__registerStack = []
@@ -29,122 +26,210 @@ class CompileExpressionManager:
         self.__memoryStackLastIndex = -1
         self.__memoryStackMaxIndex = -1
 
-    def availableRegisterExists(self):
+    ### private
+    def __freeRegister(self):
+        '''
+        Libère le dernier registre de la pile des registres
+        Ne doit pas tomber sur un registre mis en mémoire
+        retourne le numéro du registre libéré
+        '''
+        if len(self.__registerStack) == 0:
+            raise CompilationError("Aucun registre à libérer.")
+        register = self.__registerStack.pop()
+        assert register >= 0
+        self.__availableRegisters.append(register)
+        return register
+
+    def __getTopStackRegister(self):
+        '''
+        Retourne numéro registre au sommet de la pile, sans le libérer.
+        Si le numéro est < 0, il s'agit d'une mémoire.
+        Provoque le dépilage d'un item de mémoire et retour du numéro registre ayant accueilli le retour
+        '''
+        if len(self.__registerStack) == 0:
+            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
+        register = self.__registerStack[-1]
+        if register < 0:
+            self.__registerStack.pop()
+            register = self.__moveMemoryToFreeRegister()
+        return register
+
+    def __swapStackRegister(self):
+        '''
+        Intervertit les contenus des deux derniers étage de la pile des registres
+        '''
+        if len(self.__registerStack) < 2:
+            raise CompilationError("Pas assez d'opérande dans la pile pour swap.")
+        op1 = self.__registerStack[-1]
+        op2 = self.__registerStack[-2]
+        self.__registerStack[-1] = op2
+        self.__registerStack[-2] = op1
+
+    def __addNewOperation(self,operation):
+        self.__operationList.append(operation)
+
+    def __availableRegisterExists(self):
         '''
         Sortie : True si au moins un registre est disponible
         '''
         return len(self.__availableRegisters) > 0
 
-    def getAvailableRegister(self):
+    def __getAvailableRegister(self):
         if len(self.__availableRegisters) == 0:
             raise CompilationError("Pas de registre disponible")
         register = self.__availableRegisters.pop()
         self.__registerStack.append(register)
         return register
 
-    def freeRegister(self):
-        if len(self.__registerStack) == 0:
-            raise CompilationError("Aucun registre à libérer.")
-        register = self.__registerStack.pop()
-        if register == -1:
-            self.moveMemoryToFreeRegister()
-            register = self.__registerStack.pop()
-        self.__availableRegisters.append(register)
-        return register
+    def __UALoutputIsAvailable(self):
+        return self.__freeUALOuptut or 0 in self.__availableRegisters
 
-    def freeZeroRegister(self):
+    def __moveMemoryToFreeRegister(self):
+        if self.__memoryStackLastIndex < 0:
+            raise CompilationError("Pas de données en mémoire disponible")
+        destinationRegister = self.__getAvailableRegister()
+        operation = ('memoire -> registre', self.__memoryStackLastIndex, destinationRegister)
+        self.__addNewOperation(operation)
+        self.__memoryStackLastIndex -= 1
+        return destinationRegister
+
+    def __moveTopStackRegisterToMemory(self):
+        '''
+        Libère le registre en haut de la pile des registres
+        le déplace vers la mémoire et ajoute -1 dans la pile des registres
+        '''
+        sourceRegister = self.__getTopStackRegister()
+        assert 0 <= sourceRegister < self.__maxRegisters
+        self.__copyRegisterToMemory(sourceRegister)
+        self.__freeRegister()
+        self.__registerStack.append(-1)
+
+    def __copyRegisterToMemory(self, sourceRegister):
+        '''
+        Ajoute l'opération consistant en le déplacement du registre vers la mémoire
+        modifie le pointeur mémoire en conséquence
+        Ne libère pas le registre
+        '''
+        self.__memoryStackLastIndex +=1
+        operation = ('registre -> memoire', sourceRegister, self.__memoryStackLastIndex)
+        self.__addNewOperation(operation)
+        if self.__memoryStackLastIndex > self.__memoryStackMaxIndex:
+            self.__memoryStackMaxIndex = self.__memoryStackLastIndex
+
+    def __freeZeroRegister(self, toMemory):
+        '''
+        libère spécifiquement le registre 0, même s'il n'est pas au sommet de la pile
+        spécifie s'il faut le déplacer dans la mémoire
+        Aucune opération si registre 0 inoccupé
+        '''
         if not 0 in self.__registerStack:
-            raise CompilationError("Registre 0 n'est pas occupé.")
+            return
         index0 = self.__registerStack.index(0)
-        del self.__registerStack[index0]
+        if toMemory:
+            self.__copyRegisterToMemory(0)
+            self.__registerStack[index0] = -1
+        else:
+            assert len(self.__availableRegisters) > 0
+            destinationRegister = self.__availableRegisters.pop()
+            self.__registerStack[index0] = destinationRegister
+            operation = ('registre -> registre', 0, destinationRegister)
+            self.__addNewOperation(operation)
 
-    def addNewOperation(self,operation):
-        self.__operationList.append(operation)
-
+    ### public
     def pushBinaryOperator(self, operator, directOrder):
-        if len(self.__registerStack) < 2:
-            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
         '''
-         Attention ici !!!
-         On ne doit pas libérer rLastCalc avant d'avoir traiter rFirstCalc.
-         L'opération rLastCalc = freeRegister() ferait comme si rLastCalc était libre pour les éventuelles
-         manipulations de rFirstCalc. Ce n'est pas le cas. Les deux registres ne sont libérés qu'au moment de l'opération.
+        Ajoute une opération binaire.
+        operator = +, -, *, /, %, &, |
+        directOrder = True si le calcul a été fait dans l'ordre,
+        c'est à dire si le top de la pile correspond au 2e opérande.
+        Libère les 2 registres au sommet de la pile, ajoute l'opération,
+        occupe le premier registre libre pour le résultat
         '''
-        rLastCalc = self.__registerStack[-1]
-        if rLastCalc < 0:
-            self.__registerStack.pop()
-            rLastCalc = self.moveMemoryToFreeRegister()
-        rFirstCalc = self.__registerStack[-2]
-        if rFirstCalc < 0:
-            del self.__registerStack[-2]
-            rFirstCalc = self.moveMemoryToFreeRegister()
-            '''
-            rLastCalc et rFirstCalc peuvent se retrouver dans le désordre dans la pile
-            mais c'est sans importance
-            '''
-        self.freeRegister()
-        self.freeRegister()
-        registreDestination = self.getAvailableRegister()
+
+        # Attention ici : ne pas libérer le premier registre tant que les 2e n'a pas été traité
+        # -> il faut les libérer en même temps
+        rLastCalc = self.__getTopStackRegister()
+        self.__swapStackRegister()
+        rFirstCalc = self.__getTopStackRegister()
+        # inutile de remettre la pile dans l'ordre puisque les registres sont libérés
+        self.__freeRegister()
+        self.__freeRegister()
+        registreDestination = self.__getAvailableRegister()
 
         if directOrder:
             operation = (operator, registreDestination, rFirstCalc, rLastCalc)
         else:
             operation = (operator, registreDestination, rLastCalc, rFirstCalc)
-        self.addNewOperation(operation)
+        self.__addNewOperation(operation)
 
     def pushBinaryOperatorWithLitteral(self, operator, litteral):
+        '''
+        Ajoute une opération binaire dont le 2e opérand est un littéral
+        operator = +, -, *, /, %, &, |
+        litteral = objet Litteral
+        Libère le registre au sommet de la pile comme 1er opérande
+        occupe le premier registre libre pour le résultat
+        '''
+
         if len(self.__registerStack) < 1:
             raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
-        registreOperand = self.freeRegister()
-        registreDestination = self.getAvailableRegister()
+        registreOperand = self.__getTopStackRegister()
+        self.__freeRegister()
+        registreDestination = self.__getAvailableRegister()
         operation = (operator, registreDestination, registreOperand, litteral)
-        self.addNewOperation(operation)
+        self.__addNewOperation(operation)
 
     def pushUnaryOperator(self, operator):
-        registreOperand = self.freeRegister()
-        registreDestination = self.getAvailableRegister()
+        '''
+        Ajoute une opération unaire
+        operator = ~, -
+        Libère le registre au sommet de la pile comme opérande
+        occupe le premier registre libre pour le résultat
+        '''
+
+        registreOperand = self.__getTopStackRegister()
+        self.__freeRegister()
+        registreDestination = self.__getAvailableRegister()
         operation = (operator, registreDestination, registreOperand)
-        self.addNewOperation(operation)
+        self.__addNewOperation(operation)
 
-    def pushValue(self, operator, value):
-        registreDestination = self.getAvailableRegister()
-        operation = (operator, value, registreDestination)
-        self.addNewOperation(operation)
+    def pushUnaryOperatorWithLitteral(self, operator, litteral):
+        '''
+        Ajoute une opération unaire dont l'opérande est un littéral
+        operator = ~, -
+        litteral = Litteral
+        occupe le premier registre libre pour le résultat
+        '''
 
-    def UALoutputIsAvailable(self):
-        return self.__freeUALOuptut or 0 in self.__availableRegisters
+        registreDestination = self.__getAvailableRegister()
+        operation = (operator, registreDestination, litteral)
+        self.__addNewOperation(operation)
 
-    def moveRegisterToMemory(self,sourceRegister):
-        assert 0 <= sourceRegister < self.__maxRegisters
-        self.__memoryStackLastIndex +=1
-        operation = ('registre -> memoire', sourceRegister, self.__memoryStackLastIndex)
-        self.__operationList.append(operation)
-        if self.__memoryStackLastIndex > self.__memoryStackMaxIndex:
-            self.__memoryStackMaxIndex = self.__memoryStackLastIndex
-        self.__registerStack.append(-1)
-
-    def moveMemoryToFreeRegister(self):
-        if self.__memoryStackLastIndex < 0:
-            raise CompilationError("Pas de données en mémoire disponible")
-        destinationRegister = self.getAvailableRegister()
-        operation = ('memoire -> registre', self.__memoryStackLastIndex, destinationRegister)
-        self.__operationList.append(operation)
-        self.__memoryStackLastIndex -= 1
-        return destinationRegister
+    def pushValue(self, value):
+        '''
+        Charge une valeur dans un registre
+        value = objet Litteral ou objet Variable
+        '''
+        registreDestination = self.__getAvailableRegister()
+        if value.isLitteral():
+            operationDescription = "litteral -> registre"
+        else:
+            operationDescription = "variable -> registre"
+        operation = (operationDescription, value, registreDestination)
+        self.__addNewOperation(operation)
 
     def getNeededRegisterSpace(self, cost, needUAL):
-        if needUAL and not self.UALoutputIsAvailable():
-            if cost > len(self.__availableRegisters):
-                self.freeZeroRegister()
-                self.moveRegisterToMemory(0)
-            else:
-                registerTemp = self.getAvailableRegister()
-                self.freeZeroRegister()
-                operation = ('registre -> registre', 0, registerTemp)
-                self.__operationList.append(operation)
+        '''
+        déplace des registres au besoin :
+        cost = cout en registre du noeud d'opératio nen cours
+        needUAL = True si l'opération en cours utilisera l'UAL
+        Déplace le registre 0 s'il est nécessaire pour l'UAL
+        déplace les registres vers la mémoire autant que possible ou nécessaire
+        '''
+        if needUAL and not self.__UALoutputIsAvailable():
+            self.__freeZeroRegister()
         while cost > len(self.__availableRegisters) and len(self.__availableRegisters) < self.__maxRegisters:
-            registerToStore = self.freeRegister()
-            self.moveRegisterToMemory(registerToStore)
+            self.__moveTopStackRegisterToMemory()
 
     def stringMemoryUsage(self):
         strAvailableRegisters = ", ".join(["r"+str(it) for it in self.__availableRegisters])
@@ -159,10 +244,15 @@ class CompileExpressionManager:
         return output
 
 if __name__=="__main__":
+    from variablemanager import *
     cem = CompileExpressionManager()
-    cem.getAvailableRegister()
-    cem.storeToMemory(5)
-    cem.loadFromMemory()
-    cem.freeRegister()
+    cem.pushValue(Litteral(3))
+    cem.pushValue(Litteral(5))
+    cem.pushBinaryOperator("+", True)
+    cem.getNeededRegisterSpace(2,True)
+    cem.pushValue(Litteral(3))
+    cem.pushValue(Litteral(5))
+    cem.pushBinaryOperator("*", True)
+    cem.pushBinaryOperator("/", True)
     print(cem)
 
