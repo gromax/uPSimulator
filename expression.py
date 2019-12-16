@@ -77,7 +77,7 @@ if __name__=="__main__":
 
     print()
     print("nouvel essai, même expression avec autorisation d'avoir des littéraux dans les commandes")
-    cem = CompileExpressionManager({"litteralInCommand": True})
+    cem = CompileExpressionManager(litteralInCommand = True)
     monExpression.calcCompile(cem)
     print(cem)
 
