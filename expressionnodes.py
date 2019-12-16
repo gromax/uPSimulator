@@ -62,8 +62,8 @@ class UnaryNode(Node):
         super(UnaryNode,self).calcCompile(CompileExpressionManagerObject)
         litteralInCommand = CompileExpressionManagerObject.litteralInCommand
         if litteralInCommand and self.__operand.isLitteral():
-            litteral =
-            CompileExpressionManagerObject.pushUnaryOperatorWithLitteral(self.__operator, self.__operand.getValue())
+            litteral = self.__operand.getValue()
+            CompileExpressionManagerObject.pushUnaryOperatorWithLitteral(self.__operator, litteral)
         else:
             self.__operand.calcCompile(CompileExpressionManagerObject)
             CompileExpressionManagerObject.pushUnaryOperator(self.__operator)
