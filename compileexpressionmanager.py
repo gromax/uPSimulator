@@ -243,6 +243,9 @@ class CompileExpressionManager:
             output += strItem+"\n"
         return output
 
+    def getOperationList(self):
+        return self.__operationList
+
 if __name__=="__main__":
     from variablemanager import *
     cem = CompileExpressionManager()
