@@ -268,6 +268,14 @@ class ExpressionParser:
         return True
 
     @classmethod
+    def variableRegex(cls):
+        return TokenVariable.regex
+
+    @classmethod
+    def expressionRegex(cls):
+        return f"(\s*{cls.regex()})+"
+
+    @classmethod
     def regex(cls):
         regexList = [ "("+Token.regex+")" for Token in cls.TokensList ]
         return "("+"|".join(regexList)+")"
@@ -278,7 +286,10 @@ class ExpressionParser:
         Entrée : nomVariable = chaine de caractère à tester
         Sortie : True si c'est un nom de variable valable
         '''
-        regex = TokenVariable
+        regex = TokenVariable.regex
+        nomVariable = nomVariable.strip()
+        if nomVariable in ("if", "else", "elif", "else", "while", "print", "input"):
+            return False
         return re.match(f"^(\s*{regex})+\s*$", nomVariable) != None
 
     @classmethod
@@ -366,7 +377,6 @@ if __name__=="__main__":
     EP = ExpressionParser()
     for strExpression in [
       "(x < 10 or y < 100)",
- #     "3x+ 5 -y",
       "3*x+ 5 -y",
       "+ 6 -4*x / 3",
       "x<4 and y>3*x",
