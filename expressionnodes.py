@@ -69,7 +69,7 @@ class UnaryNode(Node):
             CompileExpressionManagerObject.pushUnaryOperator(self.__operator)
 
 class BinaryNode(Node):
-    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|')
+    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '<', '>', '<=', '>=', '==')
     __symetricOperators = ('+', '*', '&', '|')
     def __init__(self,operator,operand1, operand2):
         '''

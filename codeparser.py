@@ -1,86 +1,78 @@
-import sys
-from errors import *
 from lineparser import *
 
+class CodeParser: # Définition classe
+    """Classe CodeParser
+    Parse le contenu d'un fichier passé en paramètre au constructeur
+    Une méthode public parseCode qui construit une liste d'objets LineParser avec organisation des enfants selon indentation
+    La méthode getFinalParse retourne cette liste d'objets LineParser
+    TODO - une méthode de contrôle de cohérence du code
+    ATTENTION - pas de gestion particulière du if, elif, else -> pas de tuple pour le noeud if et else --> voir structureelements
+    """
+
+    #Instanciation VariableManager
+    variableManagerObject = VariableManager()
+
+    def __init__(self, filename=None): # Constructeur
+        self.__listingCode = [] # liste des objets LineParser de chaque ligne du code parsé
+        if filename != None:
+            self.__parseFile(filename)
+
+
+    def __parseFile(self, filename):
+        # Lecture de toutes les lignes du fichier
+        file = open(filename, "r")
+        lines = file.readlines()
+        file.close()
+        self.parseCode(lines)
+        return True
+
+    def parseCode(self, lignesCode):
+        # On boucle sur les lignes de code
+        for num, line in enumerate(lignesCode):
+            objDictLine = {}
+            print(line)
+            objLine = LineParser(line,num,self.variableManagerObject)
+            caract = objLine.getCaracs()
+            # Traitement ligne non vide
+            if not caract['emptyLine'] :
+                # Ajout des informations parsées dans le listing
+                self.__listingCode.append(caract)
+        self.__structureList()
+        return True
+
+    def __structureList(self):
+        #Parcours du listing pour ranger les enfants
+        listProfondeur = [self.__listingCode[index]["indentation"] for index in range(len(self.__listingCode))]
+        # print(listProfondeur)
+        maximun = max(listProfondeur)
+        while maximun > 0:
+            indexMaximun = listProfondeur.index(maximun)
+            self.__listingCode[indexMaximun - 1]['children'] = []
+            while listProfondeur[indexMaximun] == maximun :
+                self.__listingCode[indexMaximun - 1]['children'].append(self.__listingCode.pop(indexMaximun))
+                listProfondeur.pop(indexMaximun)
+            maximun = max(listProfondeur)
+        return True
+
+    def getFinalParse(self):
+        return self.__listingCode
 
 
 if __name__=="__main__":
 
-    if len(sys.argv) > 1:
-        fileName = sys.argv[1]
-    else:
-        fileName = "example.py"
+    code = CodeParser("example.py")
+    codeParsed = code.getFinalParse()
 
-    # Lecture de toutes les lignes du fichier
-    file = open(fileName, "r")
-    lines = file.readlines()
-    file.close()
+    for elem in codeParsed:
+        print(elem)
 
-    #Instanciation VariableManager
-    VM = VariableManager()
-
-    #liste des éléments sous forme d'un dictionnaire post traitement des lignes
-    listingCode = []
-
-    #On boucle sur les lignes
-    for num, line in enumerate(lines):
-
-        objDictLine = {}
-        objLine = LineParser(line,num)
-
-        #Uniquement si ligne parsée correctement
-        if objLine.result :
-
-            #Ajout des éléments communs
-            objDictLine['type'] = objLine.type
-            objDictLine['lineNumber'] = objLine.lineNumber
-            objDictLine['indent'] = objLine.indent
-
-            if objLine.type == 'print':
-                objDictLine['expression'] = objLine.expression
-
-            elif objLine.type == 'input' or objLine.type == 'affectation':
-                objDictLine['variable'] = VM.addVariableByName(objLine.variable)
-                objDictLine['expression'] = objLine.expression #A voir si utile
-
-            elif objLine.type in ['while','if','elif']:
-                objDictLine['condition'] = objLine.condition
-
-            elif objLine.type == 'else':
-                pass
-
-            else:
-                raise ParseError(f"Type <{objLine.type}> non traitée !")
-
-            #Ajout des informations parsées dans le listing
-            listingCode.append(objDictLine)
-
-    #Parcours du listing pour ranger les enfants
-
-
-
-
-
-
-
-
-
-    print(listingCode)
-
-
-# #Exemple pour tester LineParser
-# txt = '    while ( A < B) : #comment'
-# #txt = 'if (A==B):'
-# # txt = 'print("coucou")  #comment'
-# ## txt = 'A=" mon  texte "' #buildExpression ne traite pas les string ""
-# # txt = 'A=A+1  #comment'
-# # txt = 'variable = input("valeur ?")'
-#
-# ligne = LineParser(txt,1)
-# print(f"indent : {ligne.indent}")
-# print(f"lineNumber : {ligne.lineNumber}")
-# print(f"type : {ligne.type}")
-# print(f"result : {ligne.result}")
-# print(f"condition : {ligne.condition}")
-# print(f"variable : {ligne.variable}")
-# print(f"expression : {ligne.expression}")
+    from structureelements import *
+    c = Container()
+    c.append(codeParsed)
+    print()
+    print(c)
+    print()
+    print("Version linéarisée :")
+    print()
+    lC = c.getLinearized()
+    print(lC)
