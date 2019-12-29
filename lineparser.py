@@ -51,7 +51,7 @@ class LineParser: # Définition classe
         if self.__isPrint(line): return True
         if self.__isInput(line): return True
         if self.__isAffectation(line): return True
-        raise LineError(f"Erreur de syntaxe #{self.__lineNumber} : <{line}>")
+        raise ParseError(f"Erreur de syntaxe #{self.__lineNumber} : <{line}>")
         return False
 
     def __isTestStructure(self, testStructureKeyword, line):
@@ -66,7 +66,7 @@ class LineParser: # Définition classe
         firstGroup = allGroup[1] # tout ce qui match après testStructureKeyword et avant les :
         expr = self.__expressionParser.buildExpression(firstGroup)
         if expr.getType() != 'bool' :
-            raise LineError(f"L'expression <{expr}> n'est pas une condition")
+            raise ParseError(f"L'expression <{expr}> n'est pas une condition")
             return False
         self.__caracteristiques["type"] = testStructureKeyword
         self.__caracteristiques["condition"] = expr
@@ -88,7 +88,7 @@ class LineParser: # Définition classe
         firstGroup = allGroup[1] # tout ce qui match dans les ( )
         expr = self.__expressionParser.buildExpression(firstGroup)
         if expr.getType() != 'int' :
-            raise LineError(f"L'expression <{expr}> est incorrecte")
+            raise ParseError(f"L'expression <{expr}> est incorrecte")
             return False
         self.__caracteristiques["type"] = "print"
         self.__caracteristiques["expression"] = expr
@@ -101,7 +101,7 @@ class LineParser: # Définition classe
         allGroup = re.search(regex,line)
         variableName = allGroup[1].strip() # la variable
         if not ExpressionParser.strIsVariableName(variableName):
-            raise LineError(f"La variable <{variableName}> est incorrecte")
+            raise ParseError(f"La variable <{variableName}> est incorrecte")
         self.__caracteristiques["type"] = "input"
         self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(variableName)
         return True
@@ -114,10 +114,10 @@ class LineParser: # Définition classe
         variableName = allGroup[1].strip() # la variable
         expressionStr = allGroup[2] # tout ce qu'il y a dans les ( ) de l'input
         if not ExpressionParser.strIsVariableName(variableName):
-            raise LineError(f"La variable <{variableName}> est incorrecte")
+            raise ParseError(f"La variable <{variableName}> est incorrecte")
         expr = self.__expressionParser.buildExpression(expressionStr)
         if expr.getType() == None :
-            raise LineError(f"L'expression <{expr}> est incorrecte")
+            raise ParseError(f"L'expression <{expr}> est incorrecte")
             return False
         self.__caracteristiques["type"] = "affectation"
         self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(variableName)
