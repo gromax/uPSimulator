@@ -12,11 +12,21 @@ class CodeParser: # Définition classe
     #Instanciation VariableManager
     variableManagerObject = VariableManager()
 
-    def __init__(self, filename=None): # Constructeur
+    def __init__(self, **options): # Constructeur
+        '''
+        options doit contenir l'un des attributs :
+        - filename : nom de fichier contenant le code
+        - code : chaîne de caractère contenant le code
+        '''
         self.__listingCode = [] # liste des objets LineParser de chaque ligne du code parsé
-        if filename != None:
+        if "filename" in options:
+            filename = options["filename"]
             self.__parseFile(filename)
-
+        elif "code" in options:
+            code = options["code"]
+            self.parseCode(code)
+        else:
+            raise ParseError("Il faut doner 'filename' ou 'code'")
 
     def __parseFile(self, filename):
         # Lecture de toutes les lignes du fichier
@@ -24,21 +34,20 @@ class CodeParser: # Définition classe
         lines = file.readlines()
         file.close()
         self.parseCode(lines)
-        return True
+        return
 
     def parseCode(self, lignesCode):
         # On boucle sur les lignes de code
         for num, line in enumerate(lignesCode):
             objDictLine = {}
-            print(line)
-            objLine = LineParser(line,num,self.variableManagerObject)
+            objLine = LineParser(line, num, self.variableManagerObject)
             caract = objLine.getCaracs()
             # Traitement ligne non vide
             if not caract['emptyLine'] :
                 # Ajout des informations parsées dans le listing
                 self.__listingCode.append(caract)
         self.__structureList()
-        return True
+        return
 
     def __structureList(self):
         #Parcours du listing pour ranger les enfants
@@ -54,25 +63,21 @@ class CodeParser: # Définition classe
             maximun = max(listProfondeur)
         return True
 
+    def __recursiveStringifyLine(self, line, tab):
+        strLine = " "*tab + ", ".join([f"{key}:{value}" for key, value in line.items() if key != "children"])
+        if "children" in line:
+            childrens = [self.__recursiveStringifyLine(child, tab+4) for child in line["children"]]
+            strLine += "\n" + "\n".join(childrens)
+        return strLine
+
+    def __str__(self):
+        strLines = [self.__recursiveStringifyLine(line,0) for line in self.__listingCode]
+        return "\n".join(strLines)
+
     def getFinalParse(self):
         return self.__listingCode
 
 
 if __name__=="__main__":
-
-    code = CodeParser("example.py")
-    codeParsed = code.getFinalParse()
-
-    for elem in codeParsed:
-        print(elem)
-
-    from structureelements import *
-    c = Container()
-    c.append(codeParsed)
-    print()
-    print(c)
-    print()
-    print("Version linéarisée :")
-    print()
-    lC = c.getLinearized()
-    print(lC)
+    code = CodeParser(filename = "example.code")
+    print(str(code))
