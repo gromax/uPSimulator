@@ -7,24 +7,29 @@ Created on Wed Dec  4 14:20:18 2019
 """
 
 from errors import *
+from processorengine import *
+from variablemanager import *
 
 class CompileExpressionManager:
-    __maxRegisters = 2
-    __freeUALOuptut = True
-    litteralInCommand = False
     def __init__(self, **options):
-        if "maxRegisters" in options:
-            self.__maxRegisters = options["maxregisters"]
-        if "freeUALOutput" in options:
-            self.__freeUALOuptut = options["freeUALOutput"]
-        if "litteralInCommand" in options:
-            self.litteralInCommand = options["litteralInCommand"]
-        assert self.__maxRegisters > 1
-        self.__availableRegisters = list(reversed(range(self.__maxRegisters)))
+        if "engine" in options:
+            assert isinstance(options["engine"],ProcessorEngine)
+            self.engine = options["engine"]
+        else:
+            # default
+            self.engine = ProcessorEngine(**options)
+        if "variablemanager" in options:
+            assert isinstance(options["variablemanager"], VariableManager)
+            self.__variablemanager = options["variablemanager"]
+        else:
+            # default
+            self.__variablemanager = VariableManager()
+        self.__registersNumber = self.engine.registersNumber()
+        assert self.__registersNumber > 1
+        self.__availableRegisters = list(reversed(range(self.__registersNumber)))
         self.__registerStack = []
         self.__operationList = []
         self.__memoryStackLastIndex = -1
-        self.__memoryStackMaxIndex = -1
 
     ### private
     def __freeRegister(self):
@@ -82,13 +87,15 @@ class CompileExpressionManager:
         return register
 
     def __UALoutputIsAvailable(self):
-        return self.__freeUALOuptut or 0 in self.__availableRegisters
+        return self.engine.ualOutputIsFree() or 0 in self.__availableRegisters
 
     def __moveMemoryToFreeRegister(self):
         if self.__memoryStackLastIndex < 0:
             raise CompilationError("Pas de données en mémoire disponible")
         destinationRegister = self.__getAvailableRegister()
-        operation = ('memoire -> registre', self.__memoryStackLastIndex, destinationRegister)
+        memoryVariable = self.variablemanager.getTempMemory(self.__memoryStackLastIndex)
+        assert memoryVariable != None
+        operation = ('load', destinationRegister, memoryVariable)
         self.__addNewOperation(operation)
         self.__memoryStackLastIndex -= 1
         return destinationRegister
@@ -99,7 +106,7 @@ class CompileExpressionManager:
         le déplace vers la mémoire et ajoute -1 dans la pile des registres
         '''
         sourceRegister = self.__getTopStackRegister()
-        assert 0 <= sourceRegister < self.__maxRegisters
+        assert 0 <= sourceRegister < self.__registersNumber
         self.__copyRegisterToMemory(sourceRegister)
         self.__freeRegister()
         self.__registerStack.append(-1)
@@ -111,10 +118,9 @@ class CompileExpressionManager:
         Ne libère pas le registre
         '''
         self.__memoryStackLastIndex +=1
-        operation = ('registre -> memoire', sourceRegister, self.__memoryStackLastIndex)
+        memoryVariable = self.variablemanager.addTempMemory(self.__memoryStackLastIndex)
+        operation = ('store', sourceRegister, memoryVariable)
         self.__addNewOperation(operation)
-        if self.__memoryStackLastIndex > self.__memoryStackMaxIndex:
-            self.__memoryStackMaxIndex = self.__memoryStackLastIndex
 
     def __freeZeroRegister(self, toMemory):
         '''
@@ -132,7 +138,7 @@ class CompileExpressionManager:
             assert len(self.__availableRegisters) > 0
             destinationRegister = self.__availableRegisters.pop()
             self.__registerStack[index0] = destinationRegister
-            operation = ('registre -> registre', 0, destinationRegister)
+            operation = ('move', destinationRegister, 0)
             self.__addNewOperation(operation)
 
     ### public
@@ -148,18 +154,24 @@ class CompileExpressionManager:
 
         # Attention ici : ne pas libérer le premier registre tant que les 2e n'a pas été traité
         # -> il faut les libérer en même temps
+        if len(self.__registerStack) < 2:
+            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
         rLastCalc = self.__getTopStackRegister()
         self.__swapStackRegister()
         rFirstCalc = self.__getTopStackRegister()
         # inutile de remettre la pile dans l'ordre puisque les registres sont libérés
         self.__freeRegister()
         self.__freeRegister()
-        registreDestination = self.__getAvailableRegister()
 
         if directOrder:
-            operation = (operator, registreDestination, rFirstCalc, rLastCalc)
+            op1, op2 = rFirstCalc, rLastCalc
         else:
-            operation = (operator, registreDestination, rLastCalc, rFirstCalc)
+            op1, op2 = rLastCalc, rFirstCalc
+        if operator == "cmp":
+            operation = ("cmp", op1, op2)
+        else:
+            registreDestination = self.__getAvailableRegister()
+            operation = (operator, registreDestination, op1, op2)
         self.__addNewOperation(operation)
 
     def pushBinaryOperatorWithLitteral(self, operator, litteral):
@@ -170,13 +182,12 @@ class CompileExpressionManager:
         Libère le registre au sommet de la pile comme 1er opérande
         occupe le premier registre libre pour le résultat
         '''
-
         if len(self.__registerStack) < 1:
             raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        operation = (operator, registreDestination, registreOperand, litteral)
+        operation = (operator+"_l", registreDestination, registreOperand, litteral)
         self.__addNewOperation(operation)
 
     def pushUnaryOperator(self, operator):
@@ -186,7 +197,8 @@ class CompileExpressionManager:
         Libère le registre au sommet de la pile comme opérande
         occupe le premier registre libre pour le résultat
         '''
-
+        if len(self.__registerStack) < 1:
+            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
@@ -200,9 +212,8 @@ class CompileExpressionManager:
         litteral = Litteral
         occupe le premier registre libre pour le résultat
         '''
-
         registreDestination = self.__getAvailableRegister()
-        operation = (operator, registreDestination, litteral)
+        operation = (operator+"_l", registreDestination, litteral)
         self.__addNewOperation(operation)
 
     def pushValue(self, value):
@@ -212,10 +223,10 @@ class CompileExpressionManager:
         '''
         registreDestination = self.__getAvailableRegister()
         if value.isLitteral():
-            operationDescription = "litteral -> registre"
+            operationDescription = "move_l"
         else:
-            operationDescription = "variable -> registre"
-        operation = (operationDescription, value, registreDestination)
+            operationDescription = "load"
+        operation = (operationDescription, registreDestination, value)
         self.__addNewOperation(operation)
 
     def getNeededRegisterSpace(self, cost, needUAL):
@@ -228,7 +239,7 @@ class CompileExpressionManager:
         '''
         if needUAL and not self.__UALoutputIsAvailable():
             self.__freeZeroRegister()
-        while cost > len(self.__availableRegisters) and len(self.__availableRegisters) < self.__maxRegisters:
+        while cost > len(self.__availableRegisters) and len(self.__availableRegisters) < self.__registersNumber:
             self.__moveTopStackRegisterToMemory()
 
     def stringMemoryUsage(self):
@@ -243,13 +254,19 @@ class CompileExpressionManager:
             output += strItem+"\n"
         return output
 
+    def getASM(self):
+        listStrAsm = [self.engine.getASM(operator = item[0], ualCible=item[1], operands=item[2:]) for item in self.__operationList]
+        return "\n".join(listStrAsm)
+
     def getOperationList(self):
         return self.__operationList
 
+    def getResultRegister(self):
+        return self.__getTopStackRegister()
+
 if __name__=="__main__":
-    from variablemanager import *
     cem = CompileExpressionManager()
-    cem.pushValue(Litteral(3))
+    cem.pushValue(Variable("x"))
     cem.pushValue(Litteral(5))
     cem.pushBinaryOperator("+", True)
     cem.getNeededRegisterSpace(2,True)
@@ -258,4 +275,5 @@ if __name__=="__main__":
     cem.pushBinaryOperator("*", True)
     cem.pushBinaryOperator("/", True)
     print(cem)
+    print(cem.getASM())
 
