@@ -26,6 +26,7 @@ PrintElement
 
 from expression import *
 from variablemanager import *
+from processorengine import *
 
 class Container:
     def __init__(self, items = None):
@@ -137,15 +138,63 @@ class Container:
                     linearizedItemsList += linearElse
                     linearizedItemsList.append(labelFin)
             elif isinstance(item,WhileElement):
-                labelWhile, test, labelDebut, linear, labelFin = item.getListVersion()
+                labelWhile, test, labelDebut, linear, saut, labelFin = item.getListVersion()
                 linearizedItemsList.append(labelWhile)
                 linearizedItemsList += test
                 linearizedItemsList.append(labelDebut)
                 linearizedItemsList += linear
+                linearizedItemsList.append(saut)
                 linearizedItemsList.append(labelFin)
             else:
                 linearizedItemsList.append(item)
         return linearizedItemsList
+    def isLinearized(self):
+        for item in self.__itemsList:
+            if isinstance(item,IfElement) or isinstance(item,WhileElement):
+                return False
+        return True
+    def clean(self, engine):
+        assert self.isLinearized()
+        # rectification des tests
+        for item in self.__itemsList:
+            if isinstance(item,TestElement):
+                item.adjustCondition(engine)
+        # supprime des goto inutiles
+        if len(self.__itemsList) > 0:
+            lastItem = self.__itemsList[0]
+            for item in self.__itemsList[1:]:
+                if isinstance(lastItem,TestElement) and lastItem.getCibleNon() == item:
+                    lastItem.inhibCibleNon()
+                lastItem = item
+        # supprime les labels inutiles
+        ciblesList = {} # stocké avec les clés
+        testsList = [item for item in self.__itemsList if isinstance(item,TestElement)]
+        for item in testsList:
+            activeCibles = item.getActiveCibles()
+            for c in activeCibles:
+                ciblesList[c] = True
+        jumpsList = [item for item in self.__itemsList if isinstance(item,JumpElement)]
+        for item in jumpsList:
+            c = item.getCible()
+            ciblesList[c] = True
+
+        index = 0
+        while index < len(self.__itemsList):
+            item = self.__itemsList[index]
+            if isinstance(item, LabelElement) and not item in ciblesList:
+                # peut être supprimé
+                self.__itemsList.pop(index)
+            else:
+                index += 1
+
+
+    def getASM(self, **options):
+        if not self.isLinearized():
+            return self.getLinearized().getASM(**options)
+        engine = ProcessorEngine(**options)
+        self.clean(engine)
+        asmList = [item.getASM(engine = engine) for item in self.__itemsList]
+        return "\n".join(asmList)
 
 class IfElement:
     def __init__(self, lineNumber, condition):
@@ -189,14 +238,15 @@ class IfElement:
         labelIf = LabelElement(self.lineNumber, "bloc if")
         labelFin = LabelElement(self.lineNumber, "fin")
 
+        conditionInverse = self.__condition.conditionNegate()
         if len(linearElse)>0:
             labelElse = LabelElement(self.lineNumber, "bloc else")
             sautFin = JumpElement(self.lineNumber, labelFin)
-            test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelIf, labelElse)
+            test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelElse, labelIf)
         else:
             labelElse = None
             sautFin = None
-            test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelIf, labelFin)
+            test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelFin, labelIf)
         return test, labelIf, linearIf, sautFin, labelElse, linearElse, labelFin
 
 
@@ -228,8 +278,10 @@ class WhileElement:
         labelWhile = LabelElement(self.lineNumber, "while")
         labelDebut = LabelElement(self.lineNumber, "début")
         labelFin = LabelElement(self.lineNumber, "fin")
-        test = TestElement.decomposeComplexeCondition(self.lineNumber, self.__condition, labelDebut, labelFin)
-        return labelWhile, test, labelDebut, linear, labelFin
+        conditionInverse = self.__condition.conditionNegate()
+        test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelFin, labelDebut)
+        saut = JumpElement(self.lineNumber, labelWhile)
+        return labelWhile, test, labelDebut, linear, saut, labelFin
 
 
 class AffectationElement:
@@ -250,6 +302,15 @@ class AffectationElement:
     def __str__(self):
         return str(self.__cible)+" "+chr(0x2190)+" "+str(self.__expression)
 
+    def getASM(self, **options):
+        assert "engine" in options
+        engine = options["engine"]
+        cem = self.__expression.calcCompile(**options)
+        expressionASM = cem.getASM()
+        resultRegister = cem.getResultRegister()
+        storeASM = engine.getASM(operator="store", operands=(resultRegister, self.__cible))
+        return expressionASM+"\n"+storeASM
+
 class InputElement:
     def __init__(self, lineNumber, variableCible):
         '''
@@ -263,6 +324,11 @@ class InputElement:
 
     def __str__(self):
         return str(self.__cible)+" "+chr(0x2190)+" Input"
+
+    def getASM(self, **options):
+        assert "engine" in options
+        engine = options["engine"]
+        return engine.getASM(operator="input", operand=self.__cible)
 
 class PrintElement:
     def __init__(self, lineNumber, expression):
@@ -279,28 +345,57 @@ class PrintElement:
     def __str__(self):
         return str(self.__expression)+" "+chr(0x2192)+" Affichage"
 
+    def getASM(self, **options):
+        assert "engine" in options
+        engine = options["engine"]
+        cem = self.__expression.calcCompile(**options)
+        expressionASM = cem.getASM()
+        resultRegister = cem.getResultRegister()
+        printASM = engine.getASM(operator="print", operand=resultRegister)
+        return expressionASM+"\n"+printASM
+
+
 class LabelElement:
     def __init__(self, lineNumber, label):
         self.__label = label
         self.lineNumber = lineNumber
         self.__rank = -1
+
     def assignRank(self, value):
         self.__rank = value
+
     def __str__(self):
         if self.__rank < 0:
             return chr(0x2386)+" "+self.__label
         else:
             return chr(0x2386)+" ["+str(self.__rank)+"] "+self.__label
 
+    def getASM(self, **options):
+        if self.__rank < 0:
+            return self.__label
+        return self.__label+str(self.__rank)
+
 class JumpElement:
     def __init__(self, lineNumber, cible):
         assert isinstance(cible, LabelElement)
         self.lineNumber = lineNumber
         self.__cible = cible
+
     def __str__(self):
         return "Saut "+str(self.__cible)
 
+    def getCible(self):
+        return self.__cible
+
+    def getASM(self, **options):
+        assert "engine" in options
+        engine = options["engine"]
+        cibleASM = self.__cible.getASM()
+        jumpASM = engine.getASM(operator="goto", operand=cibleASM)
+        return jumpASM
+
 class TestElement:
+    __inhibCibleNON = False
     @staticmethod
     def decomposeComplexeCondition(lineNumber, condition, cibleOUI, cibleNON):
         '''
@@ -312,11 +407,11 @@ class TestElement:
         '''
         assert isinstance(condition, Expression)
         assert condition.getType() == 'bool'
-        decomposition = condition.boolDecompose()
-        if decomposition == None:
+        if not condition.isComplexeCondition():
             # c'est un test élémentaire
             test = TestElement(lineNumber, condition, cibleOUI, cibleNON)
             return [test]
+        decomposition = condition.boolDecompose()
         if decomposition[0] == "not":
             # c'est un not, il faudra inverser OUI et NON et traiter la condition enfant
             conditionEnfant = decomposition[1]
@@ -331,20 +426,70 @@ class TestElement:
             enfant1 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant1, cibleOUI, cibleInter)
             enfant2 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant2, cibleOUI, cibleNON)
         return enfant1 + [cibleInter] + enfant2
+
     def __init__(self, lineNumber, condition, cibleOUI, cibleNON):
         assert isinstance(cibleOUI, LabelElement)
         assert isinstance(cibleNON, LabelElement)
         assert isinstance(condition, Expression)
         assert condition.getType() == 'bool'
+        assert not condition.isComplexeCondition()
         self.lineNumber = lineNumber
         self.__condition = condition
         self.__cibleOUI = cibleOUI
         self.__cibleNON = cibleNON
+
     def __str__(self):
+        if self.__inhibCibleNON:
+            return str(self.__condition)+" OUI : "+str(self.__cibleOUI)
         return str(self.__condition)+" OUI : "+str(self.__cibleOUI)+", NON : "+str(self.__cibleNON)
 
+    def __negate(self):
+        self.__inhibCibleNON = False
+        self.__cibleOUI, self.__cibleNON = self.__cibleNON, self.__cibleOUI
+        self.__condition = self.__condition.comparaisonNegate()
+
+    def __swap(self):
+        self.__condition.comparaisonSwap()
+
+    def inhibCibleNon(self):
+        self.__inhibCibleNON = True
+
+    def getCibleNon(self):
+        return self.__cibleNON
+
+    def getActiveCibles(self):
+        if self.__inhibCibleNON:
+            return (self.__cibleOUI,)
+        return (self.__cibleOUI, self.__cibleNON)
+
+    def adjustCondition(self, engine):
+        comparator = self.__condition.getComparaisonSymbol()
+        getModifs = engine.lookForComparaison(comparator)
+        if getModifs == None:
+            raise AttributeError("Aucune instruction de comparaison dans le microprocesseur !")
+        miroir, negation = getModifs
+        if miroir:
+            self.__swap()
+        if negation:
+            self.__negate()
+
+    def getASM(self, **options):
+        assert "engine" in options
+        engine = options["engine"]
+        comparator = self.__condition.getComparaisonSymbol()
+        assert engine.hasOperator(comparator)
+        cem = self.__condition.calcCompile(**options)
+        expressionASM = cem.getASM()
+        cibleOuiASM = self.__cibleOUI.getASM()
+        conditionalGotoASM = engine.getASM(operator=comparator, operand=cibleOuiASM)
+        if self.__inhibCibleNON:
+            return expressionASM+"\n"+conditionalGotoASM
+        cibleNonASM = self.__cibleNON.getASM()
+        gotoASM = engine.getASM(operator="goto", operand=cibleNonASM)
+        return expressionASM+"\n"+conditionalGotoASM+"\n"+gotoASM
 
 if __name__=="__main__":
+    from expressionparser import *
     VM = VariableManager()
     EP = ExpressionParser(VM)
 
@@ -371,4 +516,13 @@ if __name__=="__main__":
     print()
     lC = c.getLinearized()
     print(lC)
+
+    engine = ProcessorEngine()
+    asmCode = lC.getASM(engine = engine)
+    print()
+    print("Version assembleur")
+    print()
+    print(asmCode)
+
+
 
