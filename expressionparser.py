@@ -79,7 +79,7 @@ class TokenUnaryOperator(Token):
         return UnaryNode(self.__operator, operand)
 
 class TokenVariable(Token):
-    regex = "[a-zA-Z_][a-zA-Z_0-9]*"
+    regex = "[a-zA-Z][a-zA-Z_0-9]*"
 
     @classmethod
     def test(cls, expression):
