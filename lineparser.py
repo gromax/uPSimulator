@@ -15,7 +15,7 @@ class LineParser: # Définition classe
         type        : correspond au motif identifié (if, elif, while, else, print, input, affectation)
         condition   : contient un objet Expression de type bool pout les motifs attendant une condition
         expression  : contient un objet Expression s'il s'agit d'une affectation ou d'un print
-        variable    : contient un objet VariableManager s'il s'agit d'une affectation ou d'un input
+        variable    : contient un objet Variable s'il s'agit d'une affectation ou d'un input
     Une méthode getCaracs() pour retourne le dictionnaire __caracteristiques
     """
 
@@ -27,7 +27,7 @@ class LineParser: # Définition classe
             self.__variableManager = variableManagerObject
         # Pour faire le lien avec variablemanager général, expressionparser utilisé pour construire les expressions
         self.__expressionParser = ExpressionParser(self.__variableManager)
-
+        self.__lineNumber = lineNumber
         self.__originalLine = originalLine
         self.__cleanLine = self.__suppCommentsAndEndSpaces(self.__originalLine)
         self.__caracteristiques = {}
@@ -44,161 +44,114 @@ class LineParser: # Définition classe
         return len(re.findall("^\s*",line)[0]) # dénombre les espaces en début de ligne
 
     def __identificationMotif(self, line):
-        if self.__isIf(line): return True
-        if self.__isElif(line): return True
-        if self.__isWhile(line): return True
+        if self.__isTestStructure("if",line): return True
+        if self.__isTestStructure("elif",line): return True
+        if self.__isTestStructure("while",line): return True
         if self.__isElse(line): return True
         if self.__isPrint(line): return True
         if self.__isInput(line): return True
         if self.__isAffectation(line): return True
-        raise LineError(f"Struture de ligne incorrecte <{line}>")
+        raise LineError(f"Erreur de syntaxe #{self.__lineNumber} : <{line}>")
         return False
 
-    def __isIf(self, line):
-        motif = "if"
-        regex = "^\s*" + motif + "\s*(("+ ExpressionParser.regex() +"|\s*|\"*)+)\s*(:*)$"
+    def __isTestStructure(self, testStructureKeyword, line):
+        '''
+        testStructureKeyword = string. Un choix parmi "if", "elif", "while"
+        '''
+        assert testStructureKeyword in ("if", "elif", "while")
+        regex = "^\s*" + testStructureKeyword + "\s("+ ExpressionParser.expressionRegex() +")\s*:$"
         if re.match(regex,line) == None :
             return False
         allGroup = re.search(regex,line)
-        firstGroup = allGroup[1] # tout ce qui match après le motif et avant les :
-        lastGroup = allGroup[len(allGroup.groups())] # le dernier groupe, normalement les :
-        if lastGroup != ":" :
-            raise LineError(f"Absence de ':' en fin de ligne <{motif}> condition <{firstGroup}>")
-            return False
-        # print(firstGroup)
+        firstGroup = allGroup[1] # tout ce qui match après testStructureKeyword et avant les :
         expr = self.__expressionParser.buildExpression(firstGroup)
         if expr.getType() != 'bool' :
             raise LineError(f"L'expression <{expr}> n'est pas une condition")
             return False
-        self.__caracteristiques["type"] = motif
-        self.__caracteristiques["condition"] = expr
-        return True
-
-    def __isElif(self, line):
-        motif = "elif"
-        regex = "^\s*" + motif + "\s*(("+ ExpressionParser.regex() +"|\s*|\"*)+)\s*(:*)$"
-        if re.match(regex,line) == None :
-            return False
-        allGroup = re.search(regex,line)
-        firstGroup = allGroup[1] # tout ce qui match après le motif et avant les :
-        lastGroup = allGroup[len(allGroup.groups())] # le dernier groupe, normalement les :
-        if lastGroup != ":" :
-            raise LineError(f"Absence de ':' en fin de ligne <{motif}> condition <{firstGroup}>")
-            return False
-        # print(firstGroup)
-        expr = self.__expressionParser.buildExpression(firstGroup)
-        if expr.getType() != 'bool' :
-            raise LineError(f"L'expression <{expr}> n'est pas une condition")
-            return False
-        self.__caracteristiques["type"] = motif
-        self.__caracteristiques["condition"] = expr
-        return True
-
-    def __isWhile(self, line):
-        motif = "while"
-        regex = "^\s*" + motif + "\s*(("+ ExpressionParser.regex() +"|\s*|\"*)+)\s*(:*)$"
-        if re.match(regex,line) == None :
-            return False
-        allGroup = re.search(regex,line)
-        firstGroup = allGroup[1] # tout ce qui match après le motif et avant les :
-        lastGroup = allGroup[len(allGroup.groups())] # le dernier groupe, normalement les :
-        if lastGroup != ":" :
-            raise LineError(f"Absence de ':' en fin de ligne <{motif}> condition <{firstGroup}>")
-            return False
-        # print(firstGroup)
-        expr = self.__expressionParser.buildExpression(firstGroup)
-        if expr.getType() != 'bool' :
-            raise LineError(f"L'expression <{expr}> n'est pas une condition")
-            return False
-        self.__caracteristiques["type"] = motif
+        self.__caracteristiques["type"] = testStructureKeyword
         self.__caracteristiques["condition"] = expr
         return True
 
     def __isElse(self, line):
         motif = "else"
-        regex = "^\s*" + motif + "\s*(("+ ExpressionParser.regex() +"|\s*|\"*)+)\s*(:*)$"
+        regex = "^\s*else\s*:$"
         if re.match(regex,line) == None :
             return False
-        allGroup = re.search(regex,line)
-        firstGroup = allGroup[1] # tout ce qui match après le motif et avant les :
-        lastGroup = allGroup[len(allGroup.groups())] # le dernier groupe, normalement les :
-        if lastGroup != ":" :
-            raise LineError(f"Absence de ':' en fin de ligne <{motif}>")
-            return False
-        if len(firstGroup) > 0 :
-            raise LineError(f"La ligne <{motif}:> ne doit contenir rien d'autre. Présence de <{firstGroup}>")
-            return False
-        self.__caracteristiques["type"] = motif
+        self.__caracteristiques["type"] = "else"
         return True
 
     def __isPrint(self, line): # print que d'une variable, pas de texte ! buildExpression ne traite pas les string ""
-        motif = "print"
-        regex = "^\s*" + motif + "\s*\((("+ ExpressionParser.regex() +"|\s*)+)\)$"
+        regex = "^\s*print\s*\(("+ ExpressionParser.expressionRegex() +")\)$"
         if re.match(regex,line) == None :
             return False
         allGroup = re.search(regex,line)
         firstGroup = allGroup[1] # tout ce qui match dans les ( )
-        # print(firstGroup)
         expr = self.__expressionParser.buildExpression(firstGroup)
         if expr.getType() != 'int' :
             raise LineError(f"L'expression <{expr}> est incorrecte")
             return False
-        self.__caracteristiques["type"] = motif
+        self.__caracteristiques["type"] = "print"
         self.__caracteristiques["expression"] = expr
         return True
 
     def __isInput(self, line):
-        motif = "input"
-        regex = "^\s*("+ ExpressionParser.regex() +")\s*=\s*" + motif + "\s*\((.*)\)$"
+        regex = "^\s*(" + ExpressionParser.variableRegex() +")\s*=\s*input\s*\(\)$"
         if re.match(regex,line) == None :
             return False
         allGroup = re.search(regex,line)
-        firstGroup = allGroup[1] # la variable
-        lastGroup = allGroup[len(allGroup.groups())] # tout ce qu'il y a dans les ( ) de l'input
-        # print(firstGroup)
-        # print(lastGroup)
-        self.__caracteristiques["type"] = motif
-        self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(firstGroup)
+        variableName = allGroup[1].strip() # la variable
+        if not ExpressionParser.strIsVariableName(variableName):
+            raise LineError(f"La variable <{variableName}> est incorrecte")
+        self.__caracteristiques["type"] = "input"
+        self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(variableName)
         return True
 
     def __isAffectation(self, line):
-        motif = "affectation"
-        regex = "^\s*("+ ExpressionParser.regex() +")\s*=\s*(.*)\s*$"
+        regex = "^\s*(" + ExpressionParser.variableRegex() + ")\s*=\s*(" + ExpressionParser.expressionRegex() + ")$"
         if re.match(regex,line) == None :
             return False
         allGroup = re.search(regex,line)
-        firstGroup = allGroup[1] # la variable
-        lastGroup = allGroup[len(allGroup.groups())] # tout ce qu'il y a dans les ( ) de l'input
-        # print(firstGroup)
-        # print(lastGroup)
-        expr = self.__expressionParser.buildExpression(lastGroup)
+        variableName = allGroup[1].strip() # la variable
+        expressionStr = allGroup[2] # tout ce qu'il y a dans les ( ) de l'input
+        if not ExpressionParser.strIsVariableName(variableName):
+            raise LineError(f"La variable <{variableName}> est incorrecte")
+        expr = self.__expressionParser.buildExpression(expressionStr)
         if expr.getType() == None :
             raise LineError(f"L'expression <{expr}> est incorrecte")
             return False
-        self.__caracteristiques["type"] = motif
-        self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(firstGroup)
+        self.__caracteristiques["type"] = "affectation"
+        self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(variableName)
         self.__caracteristiques["expression"] = expr
         return True
 
     def getCaracs(self):
         return self.__caracteristiques
 
+    def __str__(self):
+        if self.__caracteristiques["type"] in ("if", "elif", "while"):
+            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> {self.__caracteristiques['type']} {self.__caracteristiques['condition']}"
+        elif self.__caracteristiques["type"] == "else":
+            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> else"
+        elif self.__caracteristiques["type"] == "input":
+            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> {self.__caracteristiques['variable']} = input()"
+        elif self.__caracteristiques["type"] == "print":
+            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> print({str(self.__caracteristiques['expression'])})"
+        elif self.__caracteristiques["type"] == "affectation":
+            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> {self.__caracteristiques['variable']} = {str(self.__caracteristiques['expression'])}"
+        else:
+            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> Erreur !"
+
 
 if __name__=="__main__":
-    #Exemple pour tester LineParser
-    # txt = '    while ( A < B) : #comment'
-    # txt = 'if (A==B):'
-    # txt = 'print(x)  #comment'
-    ## txt = 'A=" mon  texte "' #buildExpression ne traite pas les string ""
-    # txt = 'A=A+1  #comment'
-    # txt = 'variable = input("valeur ?")'
-    txt = '    x=x+1'
-    #txt = 'if (x < 10 or y < 100):'
-
-    ligne = LineParser(txt,1)
-    caract = ligne.getCaracs()
-    print(caract)
-    # print(caract['condition'])
-    print(caract['expression'])
-    print(caract['expression']._Expression__rootNode._BinaryNode__operands[0]._ValueNode__value.getName)
-    print(caract['variable'].getName)
+    listExemples = [
+      '    while ( x < y) : #comment',
+      'if (A==B):',
+      'print(x)  #comment',
+      'A = 15',
+      'A = A + 1  #comment',
+      'variable = input()',
+      '    x=x+1',
+      'if x < 10 or y < 100:'
+    ]
+    for i,exemple in enumerate(listExemples):
+      print(LineParser(exemple,i))
