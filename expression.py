@@ -10,6 +10,9 @@ class Expression:
         '''
         self.__rootNode = rootNode
 
+    def isComplexeCondition(self):
+        return self.__rootNode.isComplexeCondition()
+
     def boolDecompose(self):
         '''
         Sortie : Tuple avec type d'opération, et expression enfants
@@ -20,8 +23,10 @@ class Expression:
             operator, node = self.__rootNode.boolDecompose()
             return operator, Expression(node)
         if isinstance(self.__rootNode,BinaryNode):
-            operator, node1, node2 = self.__rootNode.boolDecompose()
-            return operator, Expression(node1), Expression(node2)
+            decomp = self.__rootNode.boolDecompose()
+            if decomp != None:
+                operator, node1, node2 = decomp
+                return operator, Expression(node1), Expression(node2)
         return None
 
     def getType(self):
@@ -33,6 +38,36 @@ class Expression:
         Parcours récursif de l'arbre
         '''
         return self.__rootNode.getType()
+
+    def comparaisonSwap(self):
+        '''
+        miroir de la comparaison
+        '''
+        assert self.getType() == 'bool' and not self.__rootNode.isComplexeCondition()
+        self.__rootNode.comparaisonSwap()
+
+    def comparaisonNegate(self):
+        '''
+        retourne une copie négative du symbole de comparaison
+        '''
+        assert self.getType() == 'bool' and not self.__rootNode.isComplexeCondition()
+        return Expression(self.__rootNode.comparaisonNegate())
+
+    def conditionNegate(self):
+        '''
+        retourne une copie négative de la condition
+        '''
+        assert self.getType() == 'bool'
+        return Expression(self.__rootNode.conditionNegate())
+
+    def getComparaisonSymbol(self):
+        '''
+        retourne le symbole de comparaison d'une comparaison élémentaire
+        '''
+        assert self.__rootNode.getType() == 'bool' and not self.__rootNode.isComplexeCondition()
+        comparator = self.__rootNode.getComparaisonSymbol()
+        assert comparator != None
+        return comparator
 
     def __str__(self):
         '''
@@ -49,16 +84,19 @@ class Expression:
         return self.__rootNode.getRegisterCost()
 
     def calcCompile(self, **options):
+        if self.getType() != 'int' and self.__rootNode.isComplexeCondition():
+            raise CompilationError(f"{str(self)} n'est pas une expression arithmétique ou une comparaison simple.")
         if "cem" in options:
           cem = options["cem"]
         else:
           cem = CompileExpressionManager(**options)
-        if self.getType() != 'int':
-            raise ExpressionError(f"Cette expression n'appelle pas de calcul'")
+        # Le - unaire pourrait ne pas exister dans les commandes
+        if not cem.engine.hasNEG():
+            self.__rootNode.negTosub()
         self.__rootNode.calcCompile(cem)
         if "debug" in options and options["debug"] == True:
             print(cem)
-        return cem.getOperationList()
+        return cem
 
 
 if __name__=="__main__":
