@@ -93,9 +93,9 @@ class CompileExpressionManager:
         if self.__memoryStackLastIndex < 0:
             raise CompilationError("Pas de données en mémoire disponible")
         destinationRegister = self.__getAvailableRegister()
-        memoryVariable = self.variablemanager.getTempMemory(self.__memoryStackLastIndex)
+        memoryVariable = self.__variablemanager.getTempMemory(self.__memoryStackLastIndex)
         assert memoryVariable != None
-        operation = ('load', destinationRegister, memoryVariable)
+        operation = { "operator":"load", "operands":(destinationRegister, memoryVariable) }
         self.__addNewOperation(operation)
         self.__memoryStackLastIndex -= 1
         return destinationRegister
@@ -118,8 +118,8 @@ class CompileExpressionManager:
         Ne libère pas le registre
         '''
         self.__memoryStackLastIndex +=1
-        memoryVariable = self.variablemanager.addTempMemory(self.__memoryStackLastIndex)
-        operation = ('store', sourceRegister, memoryVariable)
+        memoryVariable = self.__variablemanager.addTempMemory(self.__memoryStackLastIndex)
+        operation = { "operator":"store", "operands":(sourceRegister, memoryVariable) }
         self.__addNewOperation(operation)
 
     def __freeZeroRegister(self, toMemory):
@@ -138,7 +138,7 @@ class CompileExpressionManager:
             assert len(self.__availableRegisters) > 0
             destinationRegister = self.__availableRegisters.pop()
             self.__registerStack[index0] = destinationRegister
-            operation = ('move', destinationRegister, 0)
+            operation = { "operator":"move", "operands":(destinationRegister, 0) }
             self.__addNewOperation(operation)
 
     ### public
@@ -168,10 +168,10 @@ class CompileExpressionManager:
         else:
             op1, op2 = rLastCalc, rFirstCalc
         if operator == "cmp":
-            operation = ("cmp", op1, op2)
+            operation = { "operator":"cmp", "operands":(op1, op2) }
         else:
             registreDestination = self.__getAvailableRegister()
-            operation = (operator, registreDestination, op1, op2)
+            operation = { "operator":operator, "ualCible":registreDestination, "operands":(op1, op2) }
         self.__addNewOperation(operation)
 
     def pushBinaryOperatorWithLitteral(self, operator, litteral):
@@ -187,7 +187,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        operation = (operator+"_l", registreDestination, registreOperand, litteral)
+        operation = { "operator":operator, "ualCible":registreDestination, "operands":(registreOperand, litteral), "litteral":True }
         self.__addNewOperation(operation)
 
     def pushUnaryOperator(self, operator):
@@ -202,7 +202,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        operation = (operator, registreDestination, registreOperand)
+        operation = { "operator":operator, "ualCible":registreDestination, "operands":(registreOperand,) }
         self.__addNewOperation(operation)
 
     def pushUnaryOperatorWithLitteral(self, operator, litteral):
@@ -213,7 +213,7 @@ class CompileExpressionManager:
         occupe le premier registre libre pour le résultat
         '''
         registreDestination = self.__getAvailableRegister()
-        operation = (operator+"_l", registreDestination, litteral)
+        operation = { "operator":operator, "ualCible":registreDestination, "operands":(litteral,), "litteral":True }
         self.__addNewOperation(operation)
 
     def pushValue(self, value):
@@ -223,10 +223,9 @@ class CompileExpressionManager:
         '''
         registreDestination = self.__getAvailableRegister()
         if value.isLitteral():
-            operationDescription = "move_l"
+            operation = { "operator":"move", "operands":(registreDestination, value), "litteral":True }
         else:
-            operationDescription = "load"
-        operation = (operationDescription, registreDestination, value)
+            operation = { "operator":"load", "operands":(registreDestination, value) }
         self.__addNewOperation(operation)
 
     def getNeededRegisterSpace(self, cost, needUAL):
@@ -254,22 +253,20 @@ class CompileExpressionManager:
             output += strItem+"\n"
         return output
 
-    def getASM(self):
-        listStrAsm = [self.__engine.getASM(operator = item[0], ualCible=item[1], operands=item[2:]) for item in self.__operationList]
-        return "\n".join(listStrAsm)
-
-    def getOperationList(self):
-        return self.__operationList
+    def getAsmDescList(self):
+        return [self.__engine.getAsmDesc(item) for item in self.__operationList]
 
     def getResultRegister(self):
         return self.__getTopStackRegister()
 
     def getVariableManager(self):
         return self.__variablemanager
+
     def getEngine(self):
         return self.__engine
 
 if __name__=="__main__":
+    from assembleurcontainer import *
     cem = CompileExpressionManager()
     cem.pushValue(Variable("x"))
     cem.pushValue(Litteral(5))
@@ -280,5 +277,3 @@ if __name__=="__main__":
     cem.pushBinaryOperator("*", True)
     cem.pushBinaryOperator("/", True)
     print(cem)
-    print(cem.getASM())
-
