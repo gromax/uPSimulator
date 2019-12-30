@@ -14,17 +14,17 @@ class CompileExpressionManager:
     def __init__(self, **options):
         if "engine" in options:
             assert isinstance(options["engine"],ProcessorEngine)
-            self.engine = options["engine"]
+            self.__engine = options["engine"]
         else:
             # default
-            self.engine = ProcessorEngine(**options)
+            self.__engine = ProcessorEngine(**options)
         if "variablemanager" in options:
             assert isinstance(options["variablemanager"], VariableManager)
             self.__variablemanager = options["variablemanager"]
         else:
             # default
             self.__variablemanager = VariableManager()
-        self.__registersNumber = self.engine.registersNumber()
+        self.__registersNumber = self.__engine.registersNumber()
         assert self.__registersNumber > 1
         self.__availableRegisters = list(reversed(range(self.__registersNumber)))
         self.__registerStack = []
@@ -87,7 +87,7 @@ class CompileExpressionManager:
         return register
 
     def __UALoutputIsAvailable(self):
-        return self.engine.ualOutputIsFree() or 0 in self.__availableRegisters
+        return self.__engine.ualOutputIsFree() or 0 in self.__availableRegisters
 
     def __moveMemoryToFreeRegister(self):
         if self.__memoryStackLastIndex < 0:
@@ -255,7 +255,7 @@ class CompileExpressionManager:
         return output
 
     def getASM(self):
-        listStrAsm = [self.engine.getASM(operator = item[0], ualCible=item[1], operands=item[2:]) for item in self.__operationList]
+        listStrAsm = [self.__engine.getASM(operator = item[0], ualCible=item[1], operands=item[2:]) for item in self.__operationList]
         return "\n".join(listStrAsm)
 
     def getOperationList(self):
@@ -263,6 +263,11 @@ class CompileExpressionManager:
 
     def getResultRegister(self):
         return self.__getTopStackRegister()
+
+    def getVariableManager(self):
+        return self.__variablemanager
+    def getEngine(self):
+        return self.__engine
 
 if __name__=="__main__":
     cem = CompileExpressionManager()
