@@ -24,6 +24,7 @@ PrintElement
   .expression = objet Expression
 '''
 
+from errors import *
 from expression import *
 from variablemanager import *
 from processorengine import *
@@ -37,13 +38,15 @@ class Container:
 
     def append(self, item_s):
         '''
-        item_s = item ou liste d'items à ajouter dans le container (voir fonctions Container.__appendItem)
+        item_s = None ou item ou liste d'items à ajouter dans le container (voir fonctions Container.__appendItem)
         '''
-        if isinstance(item_s, list):
-            for item in item_s:
-                self.__appendItem(item)
-        else:
-            return self.__appendItem(item_s)
+        if item_s == None:
+            return
+        if not isinstance(item_s, list):
+            self.__appendItem(item_s)
+            return
+        for item in item_s:
+            self.__appendItem(item)
 
     def __appendItem(self, item):
         '''
@@ -69,23 +72,25 @@ class Container:
         if type == 'if':
             assert 'condition' in keys
             condition = item['condition']
-            elem = IfElement(lineNumber, condition)
-            if 'children' in keys:
+            if not 'children' in keys:
+                childIf = None
+                childElse = None
+            elif isinstance(item['children'], tuple):
                 children = item['children']
-                if isinstance(children,'tuple'):
-                    # c'est un tuple de liste pour if et else
-                    childrenIf, childrenElse = children
-                    elem.appendToIf(childrenIf)
-                    elem.appendToElse(childrenElse)
-                else:
-                    elem.appendToIf(children)
+                assert len(children) == 2
+                childIf, childElse = children
+            else:
+                childIf = item['children']
+                childElse = None
+            elem = IfElement(lineNumber, condition, childIf, childElse)
         elif type == 'while':
             assert 'condition' in keys
             condition = item['condition']
-            elem = WhileElement(lineNumber, condition)
-            if 'children' in keys:
+            if not 'children' in keys:
+                children = None
+            else:
                 children = item['children']
-                elem.append(children)
+            elem = WhileElement(lineNumber, condition, children)
         elif type == 'affectation':
             assert 'variable' in keys and 'expression' in keys
             variable = item['variable']
@@ -153,51 +158,62 @@ class Container:
             if isinstance(item,IfElement) or isinstance(item,WhileElement):
                 return False
         return True
-    def clean(self, engine):
+    def __cleanListClone(self, engine):
+        '''
+        Crée un clone de la liste d'items en faisant quelques ajustements :
+        - adaptatation des conditions pour les rendres compatibles avec le modèle de uP
+        - suppression des labels inutiles
+        - suppression des gotos inutiles
+        '''
         assert self.isLinearized()
+        cloneList = [item for item in self.__itemsList]
         # rectification des tests
-        for item in self.__itemsList:
+        index = 0
+        for index in range(len(cloneList)):
+            item = cloneList[index]
             if isinstance(item,TestElement):
-                item.adjustCondition(engine)
+                cloneList[index] = item.cloneToAdjustCondition(engine)
         # supprime des goto inutiles
-        if len(self.__itemsList) > 0:
-            lastItem = self.__itemsList[0]
-            for item in self.__itemsList[1:]:
+        if len(cloneList) > 0:
+            lastItem = cloneList[0]
+            for index in range(1, len(cloneList)):
+                item = cloneList[index]
                 if isinstance(lastItem,TestElement) and lastItem.getCibleNon() == item:
-                    lastItem.inhibCibleNon()
+                    cloneList[index-1] = lastItem.clearCibleNonClone()
                 lastItem = item
         # supprime les labels inutiles
         ciblesList = {} # stocké avec les clés
-        testsList = [item for item in self.__itemsList if isinstance(item,TestElement)]
+        testsList = [item for item in cloneList if isinstance(item,TestElement)]
         for item in testsList:
             activeCibles = item.getActiveCibles()
             for c in activeCibles:
                 ciblesList[c] = True
-        jumpsList = [item for item in self.__itemsList if isinstance(item,JumpElement)]
+        jumpsList = [item for item in cloneList if isinstance(item,JumpElement)]
         for item in jumpsList:
             c = item.getCible()
             ciblesList[c] = True
 
         index = 0
-        while index < len(self.__itemsList):
-            item = self.__itemsList[index]
+        while index < len(cloneList):
+            item = cloneList[index]
             if isinstance(item, LabelElement) and not item in ciblesList:
                 # peut être supprimé
-                self.__itemsList.pop(index)
+                cloneList.pop(index)
             else:
                 index += 1
+        return cloneList
 
 
     def getASM(self, **options):
         if not self.isLinearized():
             return self.getLinearized().getASM(**options)
         engine = ProcessorEngine(**options)
-        self.clean(engine)
-        asmList = [item.getASM(engine = engine) for item in self.__itemsList]
+        cleanList = self.__cleanListClone(engine)
+        asmList = [item.getASM(engine = engine) for item in cleanList]
         return "\n".join(asmList)
 
 class IfElement:
-    def __init__(self, lineNumber, condition):
+    def __init__(self, lineNumber, condition, childrenIf, childrenElse):
         '''
         Entrées :
           lineNumber = tuple contenant 2 int, numéro de ligne d'origine du if et celui du else
@@ -208,23 +224,13 @@ class IfElement:
         self.__condition = condition
         assert condition.getType() == 'bool'
         self.__ifChildren = Container()
+        self.__ifChildren.append(childIf)
         self.__elseChildren = Container()
+        self.__elseChildren.append(childElse)
         if isinstance(lineNumber, tuple):
             self.ifLineNumber, self.elseLineNumber = lineNumber
         else:
             self.ifLineNumber, self.elseLineNumber = lineNumber, None
-
-    def appendToIf(self, item):
-        '''
-        item = item ou liste d'items à ajouter dans le container (voir fonctions Container.append
-        '''
-        return self.__ifChildren.append(item)
-
-    def appendToElse(self, item):
-        '''
-        item = item ou liste d'items à ajouter dans le container (voir fonctions Container.append
-        '''
-        return self.__elseChildren.append(item)
 
     def __str__(self):
         if self.__elseChildren.isEmpty():
@@ -238,7 +244,7 @@ class IfElement:
         labelIf = LabelElement(self.lineNumber, "bloc if")
         labelFin = LabelElement(self.lineNumber, "fin")
 
-        conditionInverse = self.__condition.conditionNegate()
+        conditionInverse = self.__condition.logicNegateClone()
         if len(linearElse)>0:
             labelElse = LabelElement(self.lineNumber, "bloc else")
             sautFin = JumpElement(self.lineNumber, labelFin)
@@ -251,7 +257,7 @@ class IfElement:
 
 
 class WhileElement:
-    def __init__(self, lineNumber, condition):
+    def __init__(self, lineNumber, condition, children):
         '''
         Entrées :
           lineNumber = int numéro de ligne d'origine du while
@@ -263,12 +269,7 @@ class WhileElement:
         self.__condition = condition
         assert condition.getType() == 'bool'
         self.__children = Container()
-
-    def append(self,item):
-        '''
-        item = item ou liste d'items à ajouter dans le container (voir fonctions Container.append
-        '''
-        return self.__children.append(item)
+        self.__children.append(children)
 
     def __str__(self):
         return "while "+str(self.__condition)+" {\n"+str(self.__children)+"\n}"
@@ -278,7 +279,7 @@ class WhileElement:
         labelWhile = LabelElement(self.lineNumber, "while")
         labelDebut = LabelElement(self.lineNumber, "début")
         labelFin = LabelElement(self.lineNumber, "fin")
-        conditionInverse = self.__condition.conditionNegate()
+        conditionInverse = self.__condition.logicNegateClone()
         test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelFin, labelDebut)
         saut = JumpElement(self.lineNumber, labelWhile)
         return labelWhile, test, labelDebut, linear, saut, labelFin
@@ -395,7 +396,6 @@ class JumpElement:
         return jumpASM
 
 class TestElement:
-    __inhibCibleNON = False
     @staticmethod
     def decomposeComplexeCondition(lineNumber, condition, cibleOUI, cibleNON):
         '''
@@ -429,7 +429,7 @@ class TestElement:
 
     def __init__(self, lineNumber, condition, cibleOUI, cibleNON):
         assert isinstance(cibleOUI, LabelElement)
-        assert isinstance(cibleNON, LabelElement)
+        assert isinstance(cibleNON, LabelElement) or cibleNON == None
         assert isinstance(condition, Expression)
         assert condition.getType() == 'bool'
         assert not condition.isComplexeCondition()
@@ -439,39 +439,47 @@ class TestElement:
         self.__cibleNON = cibleNON
 
     def __str__(self):
-        if self.__inhibCibleNON:
+        if self.__cibleNON == None:
             return str(self.__condition)+" OUI : "+str(self.__cibleOUI)
         return str(self.__condition)+" OUI : "+str(self.__cibleOUI)+", NON : "+str(self.__cibleNON)
 
-    def __negate(self):
-        self.__inhibCibleNON = False
-        self.__cibleOUI, self.__cibleNON = self.__cibleNON, self.__cibleOUI
-        self.__condition = self.__condition.comparaisonNegate()
+    def negateClone(self):
+        '''
+        Crée un clone permuttant la condition et les cibles
+        '''
+        negConditionClone = self.__condition.logicNegateClone()
+        return TestElement(self.lineNumber, negConditionClone, self.__cibleNON, self.__cibleOUI)
 
-    def __swap(self):
-        self.__condition.comparaisonSwap()
+    def mirrorClone(self):
+        conditionMirrorClone = self.__condition.comparaisonMirrorClone()
+        return TestElement(self.lineNumber, conditionMirrorClone, self.__cibleOUI, self.__cibleNON)
 
-    def inhibCibleNon(self):
-        self.__inhibCibleNON = True
+    def clearCibleNonClone(self):
+        return TestElement(self.lineNumber, self.__condition, self.__cibleOUI, None)
 
     def getCibleNon(self):
         return self.__cibleNON
 
     def getActiveCibles(self):
-        if self.__inhibCibleNON:
+        if self.__cibleNON == None:
             return (self.__cibleOUI,)
         return (self.__cibleOUI, self.__cibleNON)
 
-    def adjustCondition(self, engine):
+    def cloneToAdjustCondition(self, engine):
+        '''
+        Crée un clone dont la condition est adaptée au modèle de microprocesseur
+        '''
         comparator = self.__condition.getComparaisonSymbol()
         getModifs = engine.lookForComparaison(comparator)
         if getModifs == None:
             raise AttributeError("Aucune instruction de comparaison dans le microprocesseur !")
         miroir, negation = getModifs
+        outClone = self
         if miroir:
-            self.__swap()
+            outClone = self.swapClone()
         if negation:
-            self.__negate()
+            outClone = outClone.negateClone()
+        return outClone
 
     def getASM(self, **options):
         assert "engine" in options
@@ -482,7 +490,7 @@ class TestElement:
         expressionASM = cem.getASM()
         cibleOuiASM = self.__cibleOUI.getASM()
         conditionalGotoASM = engine.getASM(operator=comparator, operand=cibleOuiASM)
-        if self.__inhibCibleNON:
+        if self.__cibleNON == None:
             return expressionASM+"\n"+conditionalGotoASM
         cibleNonASM = self.__cibleNON.getASM()
         gotoASM = engine.getASM(operator="goto", operand=cibleNonASM)
