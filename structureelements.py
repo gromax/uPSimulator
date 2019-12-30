@@ -30,134 +30,93 @@ from variablemanager import *
 from processorengine import *
 
 class Container:
-    def __init__(self, items = None):
-        if items != None:
-            self.__itemsList = items
-        else:
-            self.__itemsList = []
+    @staticmethod
+    def __constructItemsStructure(itemsDescriptifs):
+        if itemsDescriptifs == None:
+            return []
+        if not isinstance(itemsDescriptifs, list):
+            structItem = Container.__makeStructItem(itemsDescriptifs)
+            return [structItem]
+        return [ Container.__makeStructItem(itemDesc) for itemDesc in itemsDescriptifs ]
 
-    def append(self, item_s):
+    @staticmethod
+    def __makeStructItem(itemDescriptif):
         '''
-        item_s = None ou item ou liste d'items à ajouter dans le container (voir fonctions Container.__appendItem)
-        '''
-        if item_s == None:
-            return
-        if not isinstance(item_s, list):
-            self.__appendItem(item_s)
-            return
-        for item in item_s:
-            self.__appendItem(item)
-
-    def __appendItem(self, item):
-        '''
-        item = dictionnaire permettant de déterminer le type d'objet à ajouter
+        itemDescriptif = dictionnaire permettant de déterminer le type d'objet à ajouter
         { 'type':'if', 'lineNumber':tuple(integer, integer) ou integerr, 'condition':Expression, children: list ou tuple deux list }
         { 'type':'while', 'lineNumber': integer, 'condition':Expression, children: list}
         { 'type':'affectation', 'lineNumber':integer, 'variable': Variable, 'expression': Expression }
         { 'type':'print', 'lineNumber':integer, 'expression': Expression }
         { 'type':'input', 'lineNumber':integer, 'variable': Variable }
         '''
-        assert isinstance(item,dict)
-        keys = item.keys()
+        assert isinstance(itemDescriptif,dict)
+        keys = itemDescriptif.keys()
         assert 'type' in keys
 
-        type = item['type']
+        type = itemDescriptif['type']
         assert type in ['if', 'while', 'affectation', 'print', 'input']
 
         if 'lineNumber' not in keys:
             lineNumber = None
         else:
-            lineNumber = item['lineNumber']
+            lineNumber = itemDescriptif['lineNumber']
 
         if type == 'if':
             assert 'condition' in keys
-            condition = item['condition']
+            condition = itemDescriptif['condition']
             if not 'children' in keys:
                 childIf = None
                 childElse = None
-            elif isinstance(item['children'], tuple):
-                children = item['children']
+            elif isinstance(itemDescriptif['children'], tuple):
+                children = itemDescriptif['children']
                 assert len(children) == 2
                 childIf, childElse = children
             else:
-                childIf = item['children']
+                childIf = itemDescriptif['children']
                 childElse = None
             elem = IfElement(lineNumber, condition, childIf, childElse)
         elif type == 'while':
             assert 'condition' in keys
-            condition = item['condition']
+            condition = itemDescriptif['condition']
             if not 'children' in keys:
                 children = None
             else:
-                children = item['children']
+                children = itemDescriptif['children']
             elem = WhileElement(lineNumber, condition, children)
         elif type == 'affectation':
             assert 'variable' in keys and 'expression' in keys
-            variable = item['variable']
-            expression = item['expression']
+            variable = itemDescriptif['variable']
+            expression = itemDescriptif['expression']
             elem = AffectationElement(lineNumber, variable, expression)
         elif type == 'print':
             assert 'expression' in keys
-            expression = item['expression']
+            expression = itemDescriptif['expression']
             elem = PrintElement(lineNumber, expression)
         else:
             # cas input
             assert 'variable' in keys
-            variable = item['variable']
+            variable = itemDescriptif['variable']
             elem = InputElement(lineNumber, variable)
-        self.__itemsList.append(elem)
         return elem
 
+    def __init__(self, itemsDescriptifs):
+        brutItemList = Container.__constructItemsStructure(itemsDescriptifs)
+        self.__linearList = []
+        for structItem in brutItemList:
+            self.__linearList += structItem.getLinearItemsList()
+
     def __str__(self):
-        return "\n".join([str(item) for item in self.__itemsList])
+        return "\n".join([str(item) for item in self.__linearList])
 
     def isEmpty(self):
-        return len(self.__itemsList) == 0
+        return len(self.__linearList) == 0
 
-    def getLinearized(self):
-        '''
-        Transforme la structure arborescente en une structure linéaire avec sauts et labels
-        '''
-        listLineaire = self.getListVersion()
-        labelRank = 0
-        for item in listLineaire:
-            if isinstance(item, LabelElement):
-                item.assignRank(labelRank)
-                labelRank += 1
-        return Container(listLineaire)
-
-    def getListVersion(self):
+    def getLinearItemsList(self):
         '''
         Retourne la liste des items d'une version linéaire
         '''
-        linearizedItemsList = []
-        for item in self.__itemsList:
-            if isinstance(item, IfElement):
-                test, labelIf, linearIf, sautFin, labelElse, linearElse, labelFin = item.getListVersion()
-                linearizedItemsList += test
-                linearizedItemsList.append(labelIf)
-                linearizedItemsList += linearIf
-                if sautFin != None:
-                    linearizedItemsList.append(sautFin)
-                    linearizedItemsList.append(labelElse)
-                    linearizedItemsList += linearElse
-                    linearizedItemsList.append(labelFin)
-            elif isinstance(item,WhileElement):
-                labelWhile, test, labelDebut, linear, saut, labelFin = item.getListVersion()
-                linearizedItemsList.append(labelWhile)
-                linearizedItemsList += test
-                linearizedItemsList.append(labelDebut)
-                linearizedItemsList += linear
-                linearizedItemsList.append(saut)
-                linearizedItemsList.append(labelFin)
-            else:
-                linearizedItemsList.append(item)
-        return linearizedItemsList
-    def isLinearized(self):
-        for item in self.__itemsList:
-            if isinstance(item,IfElement) or isinstance(item,WhileElement):
-                return False
-        return True
+        return self.__linearList
+
     def __cleanListClone(self, engine):
         '''
         Crée un clone de la liste d'items en faisant quelques ajustements :
@@ -165,8 +124,7 @@ class Container:
         - suppression des labels inutiles
         - suppression des gotos inutiles
         '''
-        assert self.isLinearized()
-        cloneList = [item for item in self.__itemsList]
+        cloneList = [item for item in self.__linearList]
         # rectification des tests
         index = 0
         for index in range(len(cloneList)):
@@ -205,8 +163,6 @@ class Container:
 
 
     def getASM(self, **options):
-        if not self.isLinearized():
-            return self.getLinearized().getASM(**options)
         engine = ProcessorEngine(**options)
         cleanList = self.__cleanListClone(engine)
         asmList = [item.getASM(engine = engine) for item in cleanList]
@@ -223,10 +179,8 @@ class IfElement:
         assert isinstance(condition, Expression)
         self.__condition = condition
         assert condition.getType() == 'bool'
-        self.__ifChildren = Container()
-        self.__ifChildren.append(childIf)
-        self.__elseChildren = Container()
-        self.__elseChildren.append(childElse)
+        self.__ifChildren = Container(childIf)
+        self.__elseChildren = Container(childElse)
         if isinstance(lineNumber, tuple):
             self.ifLineNumber, self.elseLineNumber = lineNumber
         else:
@@ -238,23 +192,20 @@ class IfElement:
         else:
             return "if "+str(self.__condition)+" {\n"+str(self.__ifChildren)+"\n}\nelse {\n"+str(self.__elseChildren)+"\n}"
 
-    def getListVersion(self):
-        linearIf = self.__ifChildren.getListVersion()
-        linearElse = self.__elseChildren.getListVersion()
-        labelIf = LabelElement(self.lineNumber, "bloc if")
-        labelFin = LabelElement(self.lineNumber, "fin")
+    def getLinearItemsList(self):
+        linearIf = self.__ifChildren.getLinearItemsList()
+        labelIf = LabelElement(self.lineNumber, "_if_")
+        labelFin = LabelElement(self.lineNumber, "_end_")
 
         conditionInverse = self.__condition.logicNegateClone()
-        if len(linearElse)>0:
-            labelElse = LabelElement(self.lineNumber, "bloc else")
+        if not self.__elseChildren.isEmpty():
+            linearElse = self.__elseChildren.getLinearItemsList()
+            labelElse = LabelElement(self.lineNumber, "_else_")
             sautFin = JumpElement(self.lineNumber, labelFin)
             test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelElse, labelIf)
-        else:
-            labelElse = None
-            sautFin = None
-            test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelFin, labelIf)
-        return test, labelIf, linearIf, sautFin, labelElse, linearElse, labelFin
-
+            return test + [ labelIf ] + linearIf + [ sautFin, labelElse ] + linearElse + [ labelFin ]
+        test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelFin, labelIf)
+        return test + [ labelIf ] + linearIf + [ labelFin ]
 
 class WhileElement:
     def __init__(self, lineNumber, condition, children):
@@ -268,21 +219,20 @@ class WhileElement:
         self.lineNumber = lineNumber
         self.__condition = condition
         assert condition.getType() == 'bool'
-        self.__children = Container()
-        self.__children.append(children)
+        self.__children = Container(children)
 
     def __str__(self):
         return "while "+str(self.__condition)+" {\n"+str(self.__children)+"\n}"
 
-    def getListVersion(self):
-        linear = self.__children.getListVersion()
-        labelWhile = LabelElement(self.lineNumber, "while")
-        labelDebut = LabelElement(self.lineNumber, "début")
-        labelFin = LabelElement(self.lineNumber, "fin")
+    def getLinearItemsList(self):
+        linear = self.__children.getLinearItemsList()
+        labelWhile = LabelElement(self.lineNumber, "_while_")
+        labelDebut = LabelElement(self.lineNumber, "_begin_")
+        labelFin = LabelElement(self.lineNumber, "_end_")
         conditionInverse = self.__condition.logicNegateClone()
         test = TestElement.decomposeComplexeCondition(self.lineNumber, conditionInverse, labelFin, labelDebut)
         saut = JumpElement(self.lineNumber, labelWhile)
-        return labelWhile, test, labelDebut, linear, saut, labelFin
+        return [ labelWhile ] + test + [ labelDebut ] + linear + [ saut, labelFin ]
 
 
 class AffectationElement:
@@ -312,6 +262,9 @@ class AffectationElement:
         storeASM = engine.getASM(operator="store", operands=(resultRegister, self.__cible))
         return expressionASM+"\n"+storeASM
 
+    def getLinearItemsList(self):
+        return [ self ]
+
 class InputElement:
     def __init__(self, lineNumber, variableCible):
         '''
@@ -330,6 +283,9 @@ class InputElement:
         assert "engine" in options
         engine = options["engine"]
         return engine.getASM(operator="input", operand=self.__cible)
+
+    def getLinearItemsList(self):
+        return [ self ]
 
 class PrintElement:
     def __init__(self, lineNumber, expression):
@@ -355,26 +311,22 @@ class PrintElement:
         printASM = engine.getASM(operator="print", operand=resultRegister)
         return expressionASM+"\n"+printASM
 
+    def getLinearItemsList(self):
+        return [ self ]
 
 class LabelElement:
     def __init__(self, lineNumber, label):
         self.__label = label
         self.lineNumber = lineNumber
-        self.__rank = -1
-
-    def assignRank(self, value):
-        self.__rank = value
 
     def __str__(self):
-        if self.__rank < 0:
-            return chr(0x2386)+" "+self.__label
-        else:
-            return chr(0x2386)+" ["+str(self.__rank)+"] "+self.__label
+        return chr(0x2386)+ self.__label + str(self.lineNumber)
 
     def getASM(self, **options):
-        if self.__rank < 0:
-            return self.__label
-        return self.__label+str(self.__rank)
+        return self.__label + str(self.lineNumber)
+
+    def getLinearItemsList(self):
+        return [ self ]
 
 class JumpElement:
     def __init__(self, lineNumber, cible):
@@ -394,6 +346,9 @@ class JumpElement:
         cibleASM = self.__cible.getASM()
         jumpASM = engine.getASM(operator="goto", operand=cibleASM)
         return jumpASM
+
+    def getLinearItemsList(self):
+        return [ self ]
 
 class TestElement:
     @staticmethod
@@ -496,6 +451,9 @@ class TestElement:
         gotoASM = engine.getASM(operator="goto", operand=cibleNonASM)
         return expressionASM+"\n"+conditionalGotoASM+"\n"+gotoASM
 
+    def getLinearItemsList(self):
+        return [ self ]
+
 if __name__=="__main__":
     from expressionparser import *
     VM = VariableManager()
@@ -516,17 +474,11 @@ if __name__=="__main__":
       { 'type':'print', 'lineNumber':6, 'expression': EP.buildExpression('y') }
     ]
 
-    c = Container()
-    c.append(listeObjetsParsed)
+    c = Container(listeObjetsParsed)
     print(c)
-    print()
-    print("Version linéarisée :")
-    print()
-    lC = c.getLinearized()
-    print(lC)
 
     engine = ProcessorEngine()
-    asmCode = lC.getASM(engine = engine)
+    asmCode = c.getASM(engine = engine)
     print()
     print("Version assembleur")
     print()
