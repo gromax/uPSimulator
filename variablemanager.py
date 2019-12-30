@@ -1,10 +1,10 @@
 class VariableManager:
-    __tempMemorySize = 0
     def __init__(self): # Constructeur
         self.__listVariables = []
         self.__listVariablesNames = []
         self.__listLitteralsValues = []
         self.__listLitterals = []
+        self.__listTempMemory = []
 
     def addVariable(self, variableObject):
         '''
@@ -20,16 +20,21 @@ class VariableManager:
         '''
         index = int
         '''
-        assert index > 0
-        if index > self.__tempMemorySize:
-            self.__tempMemorySize = index
-        return self.addVariableByName("_m"+index)
+        assert index >= 0
+        while index >= len(self.__listTempMemory):
+            newMemIndex = len(self.__listTempMemory)
+            newMem = Variable("_m"+str(newMemIndex))
+            self.__listTempMemory.append(newMem)
+        return self.__listTempMemory[index]
 
     def getTempMemory(self, index):
         '''
         index = int
         '''
-        return self.getVariableByName("_m"+index)
+        assert index >= 0
+        if index <len(self.__listTempMemory):
+            return self.__listTempMemory[index]
+        return self.addTempMemory(index)
 
     def addVariableByName(self, variableName):
         '''
