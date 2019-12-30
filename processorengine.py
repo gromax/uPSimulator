@@ -1,4 +1,5 @@
 from errors import *
+from variablemanager import Litteral
 
 DEFAULT_ENGINE_ATTRIBUTES = {
   "memory_address_bits": 9,
@@ -6,41 +7,48 @@ DEFAULT_ENGINE_ATTRIBUTES = {
   "register_address_bits":3,
   "free_ual_output": True,
   "data_bits": 16,
-  "halt":   { "opcode":"00000", "asm":"HALT" },
-  "goto":   { "opcode":"00001", "asm":"JMP" },
-  "!=":    { "opcode":"0001000", "asm":"BNE" },
-  "==":    { "opcode":"0001001", "asm":"BEQ" },
-  "<":    { "opcode":"0001010", "asm":"BLT" },
-  ">":    { "opcode":"0001011", "asm":"BGT" },
-  "cmp":    { "opcode":"00011", "asm":"CMP" },
-  "print":  { "opcode":"00100", "asm":"PRINT" },
-  "input":  { "opcode":"00101", "asm":"INPUT" },
-  "load":   { "opcode":"0011", "asm":"LOAD" },
-  "move":   { "opcode":"01000", "asm":"MOVE" },
-  "move_l": { "opcode":"01001", "asm":"MOVE" },
-  "neg":    { "opcode":"010100", "asm":"NEG"},
-  "~":      { "opcode":"010101", "asm":"NOT"},
-  "neg_l":  { "opcode":"010110", "asm":"NEG"},
-  "~_l":    { "opcode":"010111", "asm":"NOT"},
-  "+":      { "opcode":"0110000", "asm":"ADD"},
-  "-":      { "opcode":"0110001", "asm":"SUB"},
-  "*":      { "opcode":"0110010", "asm":"MULT"},
-  "/":      { "opcode":"0110011", "asm":"DIV"},
-  "%":      { "opcode":"0110100", "asm":"MOD"},
-  "&":      { "opcode":"0110101", "asm":"AND"},
-  "|":      { "opcode":"0110110", "asm":"OR"},
-  "^":      { "opcode":"0110111", "asm":"XOR"},
-  "store":  { "opcode":"0111", "asm":"STORE"},
-  "+_l":    { "opcode":"1000", "asm":"ADD"},
-  "-_l":    { "opcode":"1001", "asm":"SUB"},
-  "*_l":    { "opcode":"1010", "asm":"MULT"},
-  "/_l":    { "opcode":"1011", "asm":"DIV"},
-  "%_l":    { "opcode":"1100", "asm":"MOD"},
-  "&_l":    { "opcode":"1101", "asm":"AND"},
-  "|_l":    { "opcode":"1110", "asm":"OR"},
-  "^_l":    { "opcode":"1111", "asm":"XOR"}
+  "halt":   { "opcode":"00000", "asm":"HALT", "opnumber":0 },
+  "goto":   { "opcode":"00001", "asm":"JMP", "opnumber":1 },
+  "!=":    { "opcode":"0001000", "asm":"BNE", "opnumber":1 },
+  "==":    { "opcode":"0001001", "asm":"BEQ", "opnumber":1 },
+  "<":    { "opcode":"0001010", "asm":"BLT", "opnumber":1 },
+  ">":    { "opcode":"0001011", "asm":"BGT", "opnumber":1 },
+  "cmp":    { "opcode":"00011", "asm":"CMP", "opnumber":2 },
+  "print":  { "opcode":"00100", "asm":"PRINT", "opnumber":1 },
+  "input":  { "opcode":"00101", "asm":"INPUT", "opnumber":1 },
+  "load":   { "opcode":"0011", "asm":"LOAD", "opnumber":2 },
+  "move":   { "opcode":"01000", "asm":"MOVE", "opnumber":2 },
+  "move_l": { "opcode":"01001", "asm":"MOVE", "opnumber":2 },
+  "neg":    { "opcode":"010100", "asm":"NEG", "opnumber":2},
+  "~":      { "opcode":"010101", "asm":"NOT", "opnumber":2},
+  "neg_l":  { "opcode":"010110", "asm":"NEG", "opnumber":2},
+  "~_l":    { "opcode":"010111", "asm":"NOT", "opnumber":2},
+  "+":      { "opcode":"0110000", "asm":"ADD", "opnumber":3},
+  "-":      { "opcode":"0110001", "asm":"SUB", "opnumber":3},
+  "*":      { "opcode":"0110010", "asm":"MULT", "opnumber":3},
+  "/":      { "opcode":"0110011", "asm":"DIV", "opnumber":3},
+  "%":      { "opcode":"0110100", "asm":"MOD", "opnumber":3},
+  "&":      { "opcode":"0110101", "asm":"AND", "opnumber":3},
+  "|":      { "opcode":"0110110", "asm":"OR", "opnumber":3},
+  "^":      { "opcode":"0110111", "asm":"XOR", "opnumber":3},
+  "store":  { "opcode":"0111", "asm":"STORE", "opnumber":2},
+  "+_l":    { "opcode":"1000", "asm":"ADD", "opnumber":3},
+  "-_l":    { "opcode":"1001", "asm":"SUB", "opnumber":3},
+  "*_l":    { "opcode":"1010", "asm":"MULT", "opnumber":3},
+  "/_l":    { "opcode":"1011", "asm":"DIV", "opnumber":3},
+  "%_l":    { "opcode":"1100", "asm":"MOD", "opnumber":3},
+  "&_l":    { "opcode":"1101", "asm":"AND", "opnumber":3},
+  "|_l":    { "opcode":"1110", "asm":"OR", "opnumber":3},
+  "^_l":    { "opcode":"1111", "asm":"XOR", "opnumber":3}
 }
 
+class Register:
+    def __init__(self, index, isUalOnlyOutput):
+        self.__index = index
+        self.isUalOnlyOutput = __isUalOnlyOutput == True
+
+    def __str__(self):
+        return "r"+str(self.__index)
 
 class ProcessorEngine:
     def __init__(self, **options):
@@ -86,34 +94,56 @@ class ProcessorEngine:
     def hasOperator(self, operator):
         return operator in self.__attributes
 
-    def getASM(self, **kwargs):
-        assert "operator" in kwargs
-        operator = kwargs["operator"]
-        assert operator in self.__attributes
-        strAsm = self.__attributes[operator]["asm"]+" "
+    def getRegisterList(self):
+        '''
+        génère une liste de registre disponibles à usage d'un manager de compilation
+        '''
+        if self.__freeUalOutput:
+            r0 = Register(0,False)
+        else:
+            r0 = Register(0,True)
+        regs = [r0]
+        for i in range(1,self.registersNumber()):
+            regs.append(Register(i,False))
+        return regs.reverse()
 
-        if "ualCible" in kwargs:
-            ualCible = kwargs["ualCible"]
+    def getAsmDesc(self, attributes):
+        '''
+        attributes = Dictionnaire contenant des élément optionnels :
+        - lineNumber
+        - operator (obligatoire)
+        - litteral
+        - operands
+        - ualCible
+        '''
+        if "lineNumber" in attributes:
+            lineNumber = attributes["lineNumber"]
+        else:
+            lineNumber = 0
+        assert "operator" in attributes
+        operator = attributes["operator"]
+        if "litteral" in attributes and attributes["litteral"] == True:
+            operator += "_l"
+            islitteralOp = True
+        else:
+            islitteralOp = False
+        assert operator in self.__attributes
+        strAsmCommand = self.__attributes[operator]["asm"]
+        opcode = self.__attributes[operator]["asm"]
+        opNumber = self.__attributes[operator]["opnumber"]
+        if "operands" in attributes:
+            operands = attributes["operands"]
+        else:
+            operands = tuple()
+        if "ualCible" in attributes:
+            ualCible = attributes["ualCible"]
             assert ualCible == 0 or self.ualOutputIsFree()
             if self.ualOutputIsFree():
-                strAsm += "r"+str(ualCible)+", "
-        if "operands" in kwargs:
-            operands = kwargs["operands"]
-            strOps = []
-            for op in operands:
-                if isinstance(op, int):
-                    strOps.append("r"+str(op))
-                else:
-                    strOps.append(str(op))
-            strAsm += ", ".join(strOps)
-        elif "operand" in kwargs:
-            op = kwargs["operand"]
-            if isinstance(op, int):
-                strOp = "r"+str(op)
-            else:
-                strOp = str(op)
-            strAsm += strOp
-        return strAsm
+                operands = (ualCible,) + operands
+        assert len(operands) == opNumber
+        assert islitteralOp == False or len(operands) > 0 and isinstance(operands[-1],Litteral)
+
+        return { "command":strAsmCommand, "opcode":opcode, "operands":operands, "lineNumber":lineNumber }
 
     def lookForComparaison(self, comparaisonSymbol):
         '''
