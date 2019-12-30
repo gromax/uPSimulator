@@ -2,6 +2,10 @@ from errors import *
 from compileexpressionmanager import *
 from variablemanager import *
 
+'''
+Les noeuds ne sont jamais modifiés. Les modifications sont faites sur des clones
+'''
+
 class Node:
     def isLitteral(self):
         return False
@@ -16,14 +20,39 @@ class Node:
         '''
         CEMObject = objet CompileExpressionManager
         '''
-        myCost = self.getRegisterCost(CEMObject.engine)
+        engine = CEMObject.getEngine()
+        myCost = self.getRegisterCost(engine)
         needUAL =self.needUAL()
         CEMObject.getNeededRegisterSpace(myCost, needUAL)
 
     def isComplexeCondition(self):
         return False
 
-    def negToSub(self):
+    def getComparaisonSymbol(self):
+        '''
+        Utile seulement pour BinaryNode avec opérateur <, <=, ==, =>, >, !=
+        '''
+        return None
+
+    def negToSubClone(self):
+        '''
+        vm = VariableManager, nécessaire pour ajouter le littéral 0 au besoin
+        modifie les - unaires de l'arborescence en - binaire
+        Seuls les UnaryNode et BinaryNode, qui peuvent être affectés
+        par une telle modification, sont clonés
+        '''
+        return self
+
+    def logicNegateClone(self):
+        '''
+        retourne un clone avec négation logique s'il y a lieu
+        '''
+        return self
+
+    def clone(self):
+        '''
+        Seuls les Unary et Binary sont clonés. Les feuilles terminales ne sont pas modifiées
+        '''
         return self
 
 
@@ -51,9 +80,13 @@ class UnaryNode(Node):
             return None
         return "not", self.__operand
 
-    def conditionNegate(self):
-        assert self.__operator == "not"
-        return self.__operand.clone()
+    def logicNegateClone(self):
+        '''
+        retourne un clone avec négation logique s'il y a lieu
+        '''
+        if self.__operator == "not":
+            return self.__operand.clone()
+        return self.clone()
 
     def getType(self):
         operandType = self.__operand.getType()
@@ -63,11 +96,17 @@ class UnaryNode(Node):
             return 'bool'
         return 'int'
 
-    def negToSub(self):
-        self.__operand = self.__operand.negToSub()
+    def negToSubClone(self, vm):
+        '''
+        vm = VariableManager, nécessaire pour ajouter le littéral 0 au besoin
+        Si -, c'est un - unaire remplacé par une soustraction (binaire)
+        retourne un clone avec les modifications s'il y a lieu
+        '''
+        newOperand = self.__operand.negToSubClone()
         if not self.__operator == "-":
-            return self
-        return BinaryNode("-", Litteral(0), self.__operand)
+            return UnaryNode(self.__operator, newOperand)
+        zero = vm.addLitteralByValue(0)
+        return BinaryNode("-", zero, newOperand)
 
     def __str__(self):
         strOperand = str(self.__operand)
@@ -86,12 +125,17 @@ class UnaryNode(Node):
         if self.__operator == "not":
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
         super(UnaryNode,self).calcCompile(CEMObject)
-        if CEMObject.engine.litteralOperatorAvailable(self.__operator) and self.__operand.isLitteral():
+        engine = CEMObject.getEngine()
+        if engine.litteralOperatorAvailable(self.__operator) and self.__operand.isLitteral():
             litteral = self.__operand.getValue()
             CEMObject.pushUnaryOperatorWithLitteral(self.__operator, litteral)
         else:
             self.__operand.calcCompile(CEMObject)
             CEMObject.pushUnaryOperator(self.__operator)
+    def clone(self):
+        cloneOperand = self.__operand.clone()
+        operator = self.__operator
+        return UnaryNode(operator, cloneOperand)
 
 class BinaryNode(Node):
     __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '<', '>', '<=', '>=', '==')
@@ -124,33 +168,37 @@ class BinaryNode(Node):
             return None
         return self.__operator
 
-    def conditionNegate(self):
-        if self.getComparaisonSymbol() != None:
-            return self.comparaisonNegate()
-        negation = { "and":"or", "or":"and" }
-        if self.__operator in negation:
-            newOperator = negation[self.__operator]
+    def logicNegateClone(self):
+        '''
+        retourne une copie en négation logique s'il y a lieu
+        '''
+        comparaisonNegation = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
+        if self.__operator in comparaisonNegation:
+            newOperator = comparaisonNegation[self.__operator]
             op1, op2 = self.__operands
-            op1Neg = op1.conditionNegate()
-            op2Neg = op2.conditionNegate()
-            return BinaryNode(newOperator, op1Neg, op2Neg)
+            cloneOp1 = op1.clone()
+            cloneOp2 = op2.clone()
+            return BinaryNode(newOperator, cloneOp1, cloneOp2)
+        operatorNegation = { "and":"or", "or":"and" }
+        if self.__operator in operatorNegation:
+            newOperator = operatorNegation[self.__operator]
+            op1, op2 = self.__operands
+            negCloneOp1 = op1.logicNegateClone()
+            negCloneOp2 = op2.logicNegateClone()
+            return BinaryNode(newOperator, negCloneOp1, negCloneOp2)
+        # Sinon, pas de modification -> pas besoin de cloner
         return self
 
-    def comparaisonNegate(self):
-        negation = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
-        if self.__operator in negation:
-            newOperator = negation[self.__operator]
-            op1, op2 = self.__operands
-            return BinaryNode(newOperator, op1, op2)
-        return self
-
-    def comparaisonSwap(self):
+    def comparaisonMirrorClone(self):
         if self.getComparaisonSymbol() != None:
             op1, op2 = self.__operands
-            self.__operands = op2, op1
             miroir = { "<":">", ">":"<", "<=":"=>", ">=":"<=" }
             if self.__operator in miroir:
-                self.__operator = miroir[self.__operator]
+                newOperator = miroir[self.__operator]
+            else:
+                newOperator = self.__operator
+            return BinaryNode(newOperator, op2, op1)
+        # pas de modification, sans objet
         return self
 
     def getType(self):
@@ -183,10 +231,15 @@ class BinaryNode(Node):
             # cas == <=... agissant sur entier
             return 'bool'
 
-    def negToSub(self):
+    def negToSubClone(self, vm):
+        '''
+        vm = VariableManager, nécessaire pour ajouter le littéral 0 au besoin
+        modifie les - unaires de l'arborescence en - binaire
+        '''
         op1, op2 = self.__operands
-        self.__operands = op1 = op1.negToSub(), op2.negToSub()
-        return self
+        newOp1 = op1.negToSubClone(vm)
+        newOp2 = op2.negToSubClone(vm)
+        return BinaryNode(self.__operator, newOp1, newOp2)
 
     def __str__(self):
         strOperand1 = str(self.__operands[0])
@@ -220,13 +273,14 @@ class BinaryNode(Node):
             operator = self.__operator
         super(BinaryNode,self).calcCompile(CEMObject)
         op1, op2 = self.__operands
-        litteralAvailable = (not isComparaison) and CEMObject.engine.litteralOperatorAvailable(operator)
+        engine = CEMObject.getEngine()
+        litteralAvailable = (not isComparaison) and engine.litteralOperatorAvailable(operator)
         if litteralAvailable and self.isSymetric() and not op2.isLitteral() and op1.isLitteral():
             op1, op2 = op2, op1
         if litteralAvailable and op2.isLitteral():
             firstToCalc = op1
             secondToCalc = op2
-        elif op1.getRegisterCost(CEMObject.engine) >= op2.getRegisterCost(CEMObject.engine):
+        elif op1.getRegisterCost(engine) >= op2.getRegisterCost(engine):
             firstToCalc = op1
             secondToCalc = op2
         else:
@@ -238,6 +292,13 @@ class BinaryNode(Node):
         else:
             secondToCalc.calcCompile(CEMObject)
             CEMObject.pushBinaryOperator(operator, firstToCalc == op1)
+
+    def clone(self):
+        op1, op2 = self.__operands
+        cloneOp1 = op1.clone()
+        cloneOp2 = op2.clone()
+        operator = self.__operator
+        return Binary(operator, cloneOp1, cloneOp2)
 
 class ValueNode(Node):
     def __init__(self,value):
