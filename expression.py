@@ -39,26 +39,21 @@ class Expression:
         '''
         return self.__rootNode.getType()
 
-    def comparaisonSwap(self):
+    def comparaisonMirrorClone(self):
         '''
-        miroir de la comparaison
-        '''
-        assert self.getType() == 'bool' and not self.__rootNode.isComplexeCondition()
-        self.__rootNode.comparaisonSwap()
-
-    def comparaisonNegate(self):
-        '''
-        retourne une copie négative du symbole de comparaison
+        Crée un clone avec miroir de la comparaison
         '''
         assert self.getType() == 'bool' and not self.__rootNode.isComplexeCondition()
-        return Expression(self.__rootNode.comparaisonNegate())
+        rootNodeMirrorClone = self.__rootNode.comparaisonMirrorClone()
+        return Expression(rootNodeMirrorClone)
 
-    def conditionNegate(self):
+    def logicNegateClone(self):
         '''
         retourne une copie négative de la condition
         '''
         assert self.getType() == 'bool'
-        return Expression(self.__rootNode.conditionNegate())
+        rootNodeNegClone = self.__rootNode.logicNegateClone()
+        return Expression(rootNodeNegClone)
 
     def getComparaisonSymbol(self):
         '''
@@ -91,9 +86,13 @@ class Expression:
         else:
           cem = CompileExpressionManager(**options)
         # Le - unaire pourrait ne pas exister dans les commandes
-        if not cem.engine.hasNEG():
-            self.__rootNode.negTosub()
-        self.__rootNode.calcCompile(cem)
+        engine = cem.getEngine()
+        if not engine.hasNEG():
+            vm = cem.getVariableManager()
+            nodeToCompile = self.__rootNode.negTosubClone(vm)
+        else:
+            nodeToCompile = self.__rootNode
+        nodeToCompile.calcCompile(cem)
         if "debug" in options and options["debug"] == True:
             print(cem)
         return cem
