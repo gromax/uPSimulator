@@ -1,5 +1,5 @@
 from errors import *
-from variablemanager import Litteral
+from variablemanager import Litteral, Variable
 
 DEFAULT_ENGINE_ATTRIBUTES = {
   "memory_address_bits": 9,
@@ -82,6 +82,25 @@ class ProcessorEngine:
           return 0
         return 2**self.__attributes["litteral_bits"] - 1
 
+    def getRegisterCode(self,registerIndex):
+        assert 0 <= registerIndex < self.registersNumber()
+        nbits = self.__attributes["register_address_bits"]
+        return format(registerIndex,'0'+str(nbits)+'b')
+
+    def getLitteralCode(self, litteralValue):
+        assert 0 <= litteralValue
+        if litteralValue > self.maxLitteral():
+            litteralValue = self.maxLitteral()
+        nbits = self.__attributes["litteral_bits"]
+        return format(litteralValue,'0'+str(nbits)+'b')
+
+    def getAddressCode(self, addressValue):
+        assert 0 <= addressValue
+        nbits = self.__attributes["memory_address_bits"]
+        if addressValue >= 2**nbits:
+            raise CompilationError(f"Addresse {addressValue} trop grande.")
+        return format(addressValue,'0'+str(nbits)+'b')
+
     def ualOutputIsFree(self):
         return self.__freeUalOutput
 
@@ -129,7 +148,7 @@ class ProcessorEngine:
             islitteralOp = False
         assert operator in self.__attributes
         strAsmCommand = self.__attributes[operator]["asm"]
-        opcode = self.__attributes[operator]["asm"]
+        opcode = self.__attributes[operator]["opcode"]
         opNumber = self.__attributes[operator]["opnumber"]
         if "operands" in attributes:
             operands = attributes["operands"]
@@ -142,8 +161,51 @@ class ProcessorEngine:
                 operands = (ualCible,) + operands
         assert len(operands) == opNumber
         assert islitteralOp == False or len(operands) > 0 and isinstance(operands[-1],Litteral)
+        outDesc = { "command":strAsmCommand, "opcode":opcode, "operands":operands, "lineNumber":lineNumber }
+        if islitteralOp:
+            litt = operands[-1]
+            value = litt.getValue()
+            if value > self.maxLitteral():
+                outDesc["litteralNextLine"] = litt
+        return outDesc
 
-        return { "command":strAsmCommand, "opcode":opcode, "operands":operands, "lineNumber":lineNumber }
+    def getBinary(self, asmDesc, vm, baseMemoryIndex):
+        '''
+        asmDesc = description assembleur
+        vm = VariableManager
+        memoryIndex = index mémoire pour la première mémoire
+        retourne le code binaire
+        '''
+        if not "opcode" in asmDesc or not "operands" in asmDesc:
+            return None
+        opcode = asmDesc["opcode"]
+        operands = asmDesc["operands"]
+        operandsBinaryList = []
+        for index, op in enumerate(operands):
+            if isinstance(op,int):
+                # c'est un registre
+                self.__attributes["register_address_bits"]
+                code = self.getRegisterCode(op)
+                operandsBinaryList.append(code)
+            elif isinstance(op,Litteral):
+                assert index == len(operands)-1
+                value = op.getValue()
+                code = self.getLitteralCode(value)
+                operandsBinaryList.append(code)
+            elif isinstance(op,Variable):
+                assert index == len(operands)-1
+                address = vm.getMemoryIndex(op, baseMemoryIndex)
+                code = self.getAddressCode(address)
+                operandsBinaryList.append(code)
+            elif isinstance(op,str):
+                 # il s'agit d'une étiquette
+                 pass
+            else:
+                raise CompilationError("Opérande invalide")
+        operandsBinaryStr = "".join(operandsBinaryList)
+        missingDigits = self.__attributes["data_bits"] - len(opcode) - len(operandsBinaryStr)
+        assert missingDigits >= 0
+        return opcode + "0"*missingDigits + operandsBinaryStr
 
     def lookForComparaison(self, comparaisonSymbol):
         '''
