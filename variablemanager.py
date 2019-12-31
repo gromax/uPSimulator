@@ -6,6 +6,15 @@ class VariableManager:
         self.__listLitterals = []
         self.__listTempMemory = []
 
+    def getMemoryIndex(self, variable, baseIndex):
+        if variable in self.__listVariables:
+            index = self.__listVariables.index(variable)
+            return baseIndex + index
+        if variable in self.__listTempMemory:
+            index = self.__listTempMemory.index(variable)
+            return baseIndex + len(self.__listVariables) + index
+        return baseIndex
+
     def addVariable(self, variableObject):
         '''
         variableObject = variable sous la forme d'un objet de type Variable
@@ -84,6 +93,11 @@ class VariableManager:
         index = self.__listLitteralsValues.index(value)
         litteralObject = self.__listLitterals[index]
         return litteralObject
+
+    def getVariableForAsm(self):
+        variables = [v for v in self.__listVariables]
+        mem = [m for m in self.__listTempMemory]
+        return variables + mem
 
 
 
