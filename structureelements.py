@@ -141,25 +141,49 @@ class Container:
                     cloneList[index-1] = lastItem.clearCibleNonClone()
                 lastItem = item
         # supprime les labels inutiles
-        ciblesList = {} # stocké avec les clés
-        testsList = [item for item in cloneList if isinstance(item,TestElement)]
-        for item in testsList:
-            activeCibles = item.getActiveCibles()
-            for c in activeCibles:
-                ciblesList[c] = True
-        jumpsList = [item for item in cloneList if isinstance(item,JumpElement)]
-        for item in jumpsList:
-            c = item.getCible()
-            ciblesList[c] = True
-
+        ciblesList = {} # stocké avec les clés, les valeurs seront les items origines
+        for item in cloneList:
+            if isinstance(item, LabelElement):
+                ciblesList[item] = []
+        for item in cloneList:
+            if isinstance(item, TestElement):
+                cibles = item.getCibles()
+                for c in cibles:
+                    assert c in ciblesList
+                    ciblesList[c].append(item)
+            elif isinstance(item, JumpElement):
+                c = item.getCible()
+                assert c in ciblesList
+                ciblesList[c].append(item)
+        # on peut supprimer les cibles qui n'ont aucun élément origine
+        # et fusionner les doublons consécutifs
         index = 0
         while index < len(cloneList):
             item = cloneList[index]
-            if isinstance(item, LabelElement) and not item in ciblesList:
+            if item in ciblesList and len(ciblesList[item]) == 0:
                 # peut être supprimé
                 cloneList.pop(index)
+                del ciblesList[item]
+            elif item in ciblesList and index + 1 < len(cloneList) and cloneList[index+1] in ciblesList:
+                # le label consécutif peut être supprimé
+                itemSuivant = cloneList[index+1]
+
+                if len(ciblesList[itemSuivant]) == 0:
+                    # on peut le supprimer directement
+                    cloneList.pop(index + 1)
+                    del ciblesList[itemSuivant]
+                else:
+                    # il faut fusionner
+                    for index, origine in enumerate(cloneList):
+                        if origine in ciblesList[itemSuivant]:
+                            newOrigine = origine.cloneWithReplaceCible(item, itemSuivant)
+                            ciblesList[item].append(newOrigine)
+                            cloneList[index] = newOrigine
+                    cloneList.pop(index+1)
+                    del ciblesList[itemSuivant]
             else:
                 index += 1
+
         return cloneList
 
     def getASM(self, engine):
@@ -171,8 +195,38 @@ class Container:
             asmDescList += item.getAsmDescList(engine, vm)
         haltAsmDesc = engine.getAsmDesc({"operator":"halt"})
         asmDescList.append(haltAsmDesc)
+        # à ce stade les seuls ayant un label n'ont pas d'opération,
+        # on peut poursser le label sur le suivant
+        index = 0
+        while index < len(asmDescList)-1:
+            item = asmDescList[index]
+            if "label" in item:
+                itemSuivant = asmDescList[index+1]
+                itemSuivant["label"] = item["label"]
+                asmDescList.pop(index)
+            index += 1
+        # extraction des grands littéraux
+        index = 0
+        while index < len(asmDescList):
+            item = asmDescList[index]
+            if "litteralNextLine" in item:
+                litteral = item["litteralNextLine"]
+                lineNumber = item["lineNumber"]
+                newItem = { "litteral": litteral, "lineNumber":lineNumber }
+                del item["litteralNextLine"]
+                asmDescList.insert(index+1, newItem)
+            index += 1
+        baseMemoryIndex = len(asmDescList)
+        for item in asmDescList:
+            binaryCode = engine.getBinary(item, vm, baseMemoryIndex)
+            if binaryCode != None:
+                item["binary"] = binaryCode
+        variablesList = vm.getVariableForAsm()
+        for v in variablesList:
+            asmDescList.append({ "variable": v})
         for item in asmDescList:
             asm.pushLine(item)
+
         return asm
 
 class IfElement:
@@ -201,13 +255,13 @@ class IfElement:
 
     def getLinearItemsList(self):
         linearIf = self.__ifChildren.getLinearItemsList()
-        labelIf = LabelElement(self.__ifLineNumber, "_if_")
-        labelFin = LabelElement(self.__ifLineNumber, "_end_")
+        labelIf = LabelElement(self.__ifLineNumber, "_i")
+        labelFin = LabelElement(self.__ifLineNumber, "_ie")
 
         conditionInverse = self.__condition.logicNegateClone()
         if not self.__elseChildren.isEmpty():
             linearElse = self.__elseChildren.getLinearItemsList()
-            labelElse = LabelElement(self.__elseLineNumber, "_else_")
+            labelElse = LabelElement(self.__elseLineNumber, "_el")
             sautFin = JumpElement(self.__ifLineNumber, labelFin)
             test = TestElement.decomposeComplexeCondition(self.__ifLineNumber, conditionInverse, labelElse, labelIf)
             return test + [ labelIf ] + linearIf + [ sautFin, labelElse ] + linearElse + [ labelFin ]
@@ -233,9 +287,9 @@ class WhileElement:
 
     def getLinearItemsList(self):
         linear = self.__children.getLinearItemsList()
-        labelWhile = LabelElement(self.__lineNumber, "_while_")
-        labelDebut = LabelElement(self.__lineNumber, "_begin_")
-        labelFin = LabelElement(self.__lineNumber, "_end_")
+        labelWhile = LabelElement(self.__lineNumber, "_w")
+        labelDebut = LabelElement(self.__lineNumber, "_wb")
+        labelFin = LabelElement(self.__lineNumber, "_we")
         conditionInverse = self.__condition.logicNegateClone()
         test = TestElement.decomposeComplexeCondition(self.__lineNumber, conditionInverse, labelFin, labelDebut)
         saut = JumpElement(self.__lineNumber, labelWhile)
@@ -377,6 +431,11 @@ class JumpElement:
     def getLinearItemsList(self):
         return [ self ]
 
+    def cloneWithReplaceCible(self, nouvelleCible, ciblePrecendente):
+        if self.__cible == ciblePrecendente:
+            return JumpElement(self.__lineNumber, nouvelleCible)
+        return self
+
 class TestElement:
     @staticmethod
     def decomposeComplexeCondition(lineNumber, condition, cibleOUI, cibleNON):
@@ -442,7 +501,7 @@ class TestElement:
     def getCibleNon(self):
         return self.__cibleNON
 
-    def getActiveCibles(self):
+    def getCibles(self):
         if self.__cibleNON == None:
             return (self.__cibleOUI,)
         return (self.__cibleOUI, self.__cibleNON)
@@ -484,6 +543,19 @@ class TestElement:
 
     def getLinearItemsList(self):
         return [ self ]
+
+    def cloneWithReplaceCible(self, nouvelleCible, ciblePrecendente):
+        if self.__cibleOUI != ciblePrecendente and self.__cibleNON != ciblePrecendente:
+            return self
+        if self.__cibleOUI == ciblePrecendente:
+            nouvelleCibleOui = nouvelleCible
+        else:
+            nouvelleCibleOui = self.__cibleOUI
+        if self.__cibleNON == ciblePrecendente:
+            nouvelleCibleNon = nouvelleCible
+        else:
+            nouvelleCibleNon = self.__cibleNON
+        return TestElement(self.__lineNumber, self.__condition, nouvelleCibleOui, nouvelleCibleNon)
 
 if __name__=="__main__":
     from expressionparser import *
