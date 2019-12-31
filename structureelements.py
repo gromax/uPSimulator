@@ -186,9 +186,12 @@ class Container:
 
         return cloneList
 
-    def getASM(self, engine):
+    def getASM(self, engine, vm):
+        '''
+        engine = EngineProcessor : modèle de processeur
+        vm = VariableManager
+        '''
         asm = AssembleurContainer()
-        vm = VariableManager()
         cleanList = self.__cleanListClone(engine)
         asmDescList = []
         for item in cleanList:
@@ -217,13 +220,18 @@ class Container:
                 asmDescList.insert(index+1, newItem)
             index += 1
         baseMemoryIndex = len(asmDescList)
-        for item in asmDescList:
-            binaryCode = engine.getBinary(item, vm, baseMemoryIndex)
-            if binaryCode != None:
-                item["binary"] = binaryCode
+        # extraction des adresses de saut
+        labelIndexList = {}
+        for index, asmDesc in enumerate(asmDescList):
+            if "label" in asmDesc:
+                label = asmDesc["label"]
+                labelIndexList[label] = index
         variablesList = vm.getVariableForAsm()
         for v in variablesList:
-            asmDescList.append({ "variable": v})
+            asmDescList.append({ "data": v })
+        for item in asmDescList:
+            binaryCode = engine.getBinary(item, vm, baseMemoryIndex, labelIndexList)
+            item["binary"] = binaryCode
         for item in asmDescList:
             asm.pushLine(item)
 
@@ -581,11 +589,12 @@ if __name__=="__main__":
     print(c)
 
     engine = ProcessorEngine()
-    asmCode = c.getASM(engine = engine)
+    asmCode = c.getASM(engine, VM)
     print()
     print("Version assembleur")
     print()
     print(str(asmCode))
+    print(asmCode.getBinary())
 
 
 
