@@ -7,6 +7,9 @@ class AssembleurLine:
     __command = ""
     __opcode = ""
     __lineNumber = 0
+    __binary = "?"
+    __isLitteral = False
+    __isData = False
     def __init__(self, attributes):
         if "label" in attributes:
             self.__label = attributes["label"]
@@ -20,14 +23,25 @@ class AssembleurLine:
             self.__operands = []
         if "lineNumber" in attributes:
             self.__lineNumber = attributes["lineNumber"]
-
-    def isEmpty(self):
-        return self.__label == "" and self.__command == ""
+        if "binary" in attributes:
+            self.__binary = attributes["binary"]
+        if "litteral" in attributes:
+            self.__isLitteral = True
+            self.__litteral = attributes["litteral"]
+        if "data" in attributes:
+            self.__isData = True
+            self.__data = attributes["data"]
 
     def __str__(self):
+        if self.__isLitteral:
+            return "LITT\t"+str(self.__litteral)
+        if self.__isData:
+            return "DATA\t"+str(self.__data)
         opeStr = [str(op) for op in self.__operands]
         return self.__label+"\t "+self.__command+" "+", ".join(opeStr)
 
+    def getBinary(self):
+        return self.__binary
 
 class AssembleurContainer:
     def __init__(self):
@@ -36,6 +50,10 @@ class AssembleurContainer:
     def pushLine(self, attributes):
         newLine = AssembleurLine(attributes)
         self.__lines.append(newLine)
+
+    def getBinary(self):
+        binaryList = [item.getBinary() for item in self.__lines]
+        return "\n".join(binaryList)
 
     def __str__(self):
         listStr = [str(item) for item in self.__lines]
