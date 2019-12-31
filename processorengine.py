@@ -94,6 +94,16 @@ class ProcessorEngine:
         nbits = self.__attributes["litteral_bits"]
         return format(litteralValue,'0'+str(nbits)+'b')
 
+    def getFullLitteralCode(self, litteralValue):
+        nbits = self.__attributes["data_bits"]
+        if not -2**(nbits-1)<= litteralValue < 2**(nbits-1):
+            raise CompilationError(f"Litteral {litteralValue} trop grand.")
+        if litteralValue >= 0:
+            return format(litteralValue,'0'+str(nbits)+'b')
+        # calcul utilisant le ca2
+        ca2 = (~ abs(litteralValue)) & (2**nbits-1) + 1
+        return format(ca2,'0'+str(nbits)+'b')
+
     def getAddressCode(self, addressValue):
         assert 0 <= addressValue
         nbits = self.__attributes["memory_address_bits"]
@@ -169,40 +179,52 @@ class ProcessorEngine:
                 outDesc["litteralNextLine"] = litt
         return outDesc
 
-    def getBinary(self, asmDesc, vm, baseMemoryIndex):
+    def getBinary(self, asmDesc, vm, baseMemoryIndex, labelIndexList):
         '''
         asmDesc = description assembleur
         vm = VariableManager
         memoryIndex = index mémoire pour la première mémoire
         retourne le code binaire
+        labelIndexList = dict clé = label, value = index
         '''
-        if not "opcode" in asmDesc or not "operands" in asmDesc:
-            return None
+        if "litteral" in asmDesc:
+            # simple litteral
+            litt = asmDesc["litteral"]
+            litteralValue = litt.getValue()
+            return self.getFullLitteralCode(litteralValue)
+        if not "opcode" in asmDesc:
+            return self.getFullLitteralCode(0)
         opcode = asmDesc["opcode"]
-        operands = asmDesc["operands"]
-        operandsBinaryList = []
-        for index, op in enumerate(operands):
-            if isinstance(op,int):
-                # c'est un registre
-                self.__attributes["register_address_bits"]
-                code = self.getRegisterCode(op)
-                operandsBinaryList.append(code)
-            elif isinstance(op,Litteral):
-                assert index == len(operands)-1
-                value = op.getValue()
-                code = self.getLitteralCode(value)
-                operandsBinaryList.append(code)
-            elif isinstance(op,Variable):
-                assert index == len(operands)-1
-                address = vm.getMemoryIndex(op, baseMemoryIndex)
-                code = self.getAddressCode(address)
-                operandsBinaryList.append(code)
-            elif isinstance(op,str):
-                 # il s'agit d'une étiquette
-                 pass
-            else:
-                raise CompilationError("Opérande invalide")
-        operandsBinaryStr = "".join(operandsBinaryList)
+        if not "operands" in asmDesc:
+            operandsBinaryStr = ""
+        else:
+            operands = asmDesc["operands"]
+            operandsBinaryList = []
+            for index, op in enumerate(operands):
+                if isinstance(op,int):
+                    # c'est un registre
+                    self.__attributes["register_address_bits"]
+                    code = self.getRegisterCode(op)
+                    operandsBinaryList.append(code)
+                elif isinstance(op,Litteral):
+                    assert index == len(operands)-1
+                    value = op.getValue()
+                    code = self.getLitteralCode(value)
+                    operandsBinaryList.append(code)
+                elif isinstance(op,Variable):
+                    assert index == len(operands)-1
+                    address = vm.getMemoryIndex(op, baseMemoryIndex)
+                    code = self.getAddressCode(address)
+                    operandsBinaryList.append(code)
+                elif isinstance(op,str):
+                     # il s'agit d'une étiquette
+                     assert op in labelIndexList
+                     address = labelIndexList[op]
+                     code = self.getAddressCode(address)
+                     operandsBinaryList.append(code)
+                else:
+                    raise CompilationError("Opérande invalide")
+            operandsBinaryStr = "".join(operandsBinaryList)
         missingDigits = self.__attributes["data_bits"] - len(opcode) - len(operandsBinaryStr)
         assert missingDigits >= 0
         return opcode + "0"*missingDigits + operandsBinaryStr
