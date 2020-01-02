@@ -13,6 +13,9 @@ class Expression:
     def isComplexeCondition(self):
         return self.__rootNode.isComplexeCondition()
 
+    def isSimpleCondition(self):
+        return self.getType() == 'bool' and not self.isComplexeCondition()
+
     def boolDecompose(self):
         '''
         Sortie : Tuple avec type d'opération, et expression enfants
@@ -55,14 +58,15 @@ class Expression:
         rootNodeNegClone = self.__rootNode.logicNegateClone()
         return Expression(rootNodeNegClone)
 
-    def getComparaisonSymbol(self):
+    def adjustConditionClone(self,csl):
         '''
-        retourne le symbole de comparaison d'une comparaison élémentaire
+        csl = liste de string : symboles de comparaisons disponibles
         '''
-        assert self.__rootNode.getType() == 'bool' and not self.__rootNode.isComplexeCondition()
-        comparator = self.__rootNode.getComparaisonSymbol()
-        assert comparator != None
-        return comparator
+        if not self.__rootNode.getType() == 'bool':
+            # pas de modification
+            return self
+        newNode = self.__rootNode.adjustConditionClone(csl)
+        return Expression(newNode)
 
     def __str__(self):
         '''
@@ -100,6 +104,7 @@ class Expression:
 
 if __name__=="__main__":
     from variablemanager import *
+    from litteral import Litteral
     print("Test pour l'expression 3*17+9-(4+1)*(2+3)")
     n1 = ValueNode(Litteral(1))
     n2 = ValueNode(Litteral(2))
