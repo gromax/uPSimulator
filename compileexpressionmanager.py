@@ -267,6 +267,8 @@ class CompileExpressionManager:
 
 if __name__=="__main__":
     from assembleurcontainer import *
+    from litteral import Litteral
+    from variable import Variable
     cem = CompileExpressionManager()
     cem.pushValue(Variable("x"))
     cem.pushValue(Litteral(5))
