@@ -15,6 +15,3 @@ class Variable:
 
     def __str__(self):
         return "@"+self.__nom
-
-    def isLitteral(self):
-        return False

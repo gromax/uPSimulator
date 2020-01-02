@@ -15,6 +15,3 @@ class Litteral:
 
     def __str__(self):
         return "#"+str(self.__value)
-
-    def isLitteral(self):
-        return True
