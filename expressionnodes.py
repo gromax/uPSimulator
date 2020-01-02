@@ -1,6 +1,7 @@
 from errors import *
 from compileexpressionmanager import *
 from variablemanager import *
+from litteral import Litteral
 
 '''
 Les noeuds ne sont jamais modifiés. Les modifications sont faites sur des clones
@@ -33,6 +34,13 @@ class Node:
         Utile seulement pour BinaryNode avec opérateur <, <=, ==, =>, >, !=
         '''
         return None
+
+    def adjustConditionClone(self,csl):
+        '''
+        csl = liste de string : symboles de comparaisons disponibles
+        modification seulement pour condition élémentaire
+        '''
+        return self
 
     def negToSubClone(self):
         '''
@@ -88,6 +96,15 @@ class UnaryNode(Node):
             return self.__operand.clone()
         return self.clone()
 
+    def adjustConditionClone(self,csl):
+        '''
+        csl = liste de string : symboles de comparaisons disponibles
+        '''
+        if self.__operator != "not":
+            return self
+        newOp = self.__operand.adjustConditionClone(csl)
+        return UnaryNode("not", newOp)
+
     def getType(self):
         operandType = self.__operand.getType()
         if operandType == None or (self.__operator == '~' and operandType=='bool'):
@@ -105,7 +122,7 @@ class UnaryNode(Node):
         newOperand = self.__operand.negToSubClone()
         if not self.__operator == "-":
             return UnaryNode(self.__operator, newOperand)
-        zero = vm.addLitteralByValue(0)
+        zero = Litteral(0)
         return BinaryNode("-", zero, newOperand)
 
     def __str__(self):
@@ -140,6 +157,8 @@ class UnaryNode(Node):
 class BinaryNode(Node):
     __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '<', '>', '<=', '>=', '==')
     __symetricOperators = ('+', '*', '&', '|')
+    __logicalOperators = ("and", "or")
+    __comparaisonOperators = ("<=", "<", ">=", ">", "==", "!=")
     def __init__(self,operator,operand1, operand2):
         '''
         operator : dans +, -, *, /, %, and, or, &, |
@@ -163,11 +182,6 @@ class BinaryNode(Node):
             return None
         return self.__operator, self.__operands[0], self.__operands[1]
 
-    def getComparaisonSymbol(self):
-        if not self.__operator in ('<', '>', '<=', '>=', '=='):
-            return None
-        return self.__operator
-
     def logicNegateClone(self):
         '''
         retourne une copie en négation logique s'il y a lieu
@@ -187,6 +201,31 @@ class BinaryNode(Node):
             negCloneOp2 = op2.logicNegateClone()
             return BinaryNode(newOperator, negCloneOp1, negCloneOp2)
         # Sinon, pas de modification -> pas besoin de cloner
+        return self
+
+    def adjustConditionClone(self,csl):
+        '''
+        csl = liste de string : symboles de comparaisons disponibles
+        '''
+        if self.__operator in self.__logicalOperators:
+            op1, op2 = self.__operands
+            newOp1 = op1.adjustConditionClone(csl)
+            newOp2 = op2.adjustConditionClone(csl)
+            return BinaryNode(self.__operator, newOp1, newOp2)
+        if self.__operator in self.__comparaisonOperators and not self.__operator in csl:
+            miroir = { "<":">", ">":"<", "<=":"=>", ">=":"<=" }
+            inverse = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
+            inverseMiroir = { "<":"<=", ">":">=", "<=":"<", ">=":">", "==":"!=", "!=":"==" }
+            op1, op2 = self.__operands
+            if miroir[self.__operator] in csl:
+                return BinaryNode(miroir[self.__operator], op2, op1)
+            if inverse[self.__operator] in csl:
+                inverseNode = BinaryNode(inverse[self.__operator], op1, op2)
+                return UnaryNode("not", inverseNode)
+            if inverseMiroir[self.__operator] in csl:
+                inverseNode = BinaryNode(inverseMiroir[self.__operator], op2, op1)
+                return UnaryNode("not", inverseNode)
+            raise AttributeError(f"Aucun opérateur pour {self.__operator} dans le modèle de processeur.")
         return self
 
     def comparaisonMirrorClone(self):
@@ -327,6 +366,7 @@ class ValueNode(Node):
         CEMObject.pushValue(self.__value)
 
 if __name__=="__main__":
+    from litteral import Litteral
     print("Test sur littéral")
     cem = CompileExpressionManager()
     node = ValueNode(Litteral(4))
