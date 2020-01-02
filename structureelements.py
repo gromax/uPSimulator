@@ -248,23 +248,14 @@ class PrintElement:
 
 
 class JumpElement:
-    def getCible(self):
-        return self.__cible
 
     def getAsmDescList(self, engine, vm):
         cible = self.__cible.getStrLabel()
         jumpAsmDesc = engine.getAsmDesc({"operator":"goto", "operands":(cible,), "lineNumber":self.__lineNumber})
         return [ jumpAsmDesc ]
 
-    def cloneWithReplaceCible(self, nouvelleCible, ciblePrecendente):
-        if self.__cible == ciblePrecendente:
-            return JumpElement(self.__lineNumber, nouvelleCible)
-        return self
 
 class TestElement:
-
-
-
     def getAsmDescList(self, engine, vm):
         comparator = self.__condition.getComparaisonSymbol()
         assert engine.hasOperator(comparator)
