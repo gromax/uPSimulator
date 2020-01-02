@@ -118,7 +118,8 @@ class ProcessorEngine:
     def hasNEG(self):
         return "neg" in self.__attributes
 
-    def litteralOperatorAvailable(self, operator):
+    def litteralOperatorAvailable(self, operator, litteral):
+        # convient de vérifier si cela passe avec litteral
         return self.litteralInCommand() and operator+"_l" in self.__attributes
 
     def hasOperator(self, operator):
