@@ -247,6 +247,12 @@ class JumpNode(StructureNode):
     def getCible(self):
         return self._cible
 
+    def assignNewCibleClone(self,newCible):
+        '''
+        newCible = LabelNode
+        '''
+        return JumpNode(self._lineNumber, self._condition, newCible)
+
 
 
 if __name__=="__main__":
