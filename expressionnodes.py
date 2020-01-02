@@ -228,18 +228,6 @@ class BinaryNode(Node):
             raise AttributeError(f"Aucun opérateur pour {self.__operator} dans le modèle de processeur.")
         return self
 
-    def comparaisonMirrorClone(self):
-        if self.getComparaisonSymbol() != None:
-            op1, op2 = self.__operands
-            miroir = { "<":">", ">":"<", "<=":"=>", ">=":"<=" }
-            if self.__operator in miroir:
-                newOperator = miroir[self.__operator]
-            else:
-                newOperator = self.__operator
-            return BinaryNode(newOperator, op2, op1)
-        # pas de modification, sans objet
-        return self
-
     def getType(self):
         '''
         Sortie =
@@ -287,9 +275,9 @@ class BinaryNode(Node):
 
     def getRegisterCost(self, engine):
         op1, op2 = self.__operands
-        if engine.litteralOperatorAvailable(self.__operator) and op2.isLitteral():
+        if  op2.isLitteral() and engine.litteralOperatorAvailable(self.__operator, op2.getValue()):
             return op1.getRegisterCost(engine)
-        if engine.litteralOperatorAvailable(self.__operator) and self.isSymetric() and op1.isLitteral():
+        if self.isSymetric() and op1.isLitteral() and engine.litteralOperatorAvailable(self.__operator, op1.getValue()):
             return op2.getRegisterCost(engine)
         costOperand1 = op1.getRegisterCost(engine)
         costOperand2 = op2.getRegisterCost(engine)
