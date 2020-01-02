@@ -353,7 +353,7 @@ class ValueNode(Node):
         return str(self.__value)
 
     def isLitteral(self):
-        return self.__value.isLitteral()
+        return isinstance(self.__value, Litteral)
 
     def getValue(self):
         return self.__value
