@@ -4,6 +4,7 @@ Module d'analyse des expressions arithmétiques et logiques
 from errors import *
 from expression import *
 from variablemanager import *
+from litteral import Litteral
 import re
 
 class Token:
@@ -104,20 +105,20 @@ class TokenNumber(Token):
     regex = "[0-9]+"
 
     def __init__(self,expression):
-        self.value = int(expression.strip())
+        self.__value = int(expression.strip())
 
     def negate(self):
         self.value *= -1
         return self
 
     def getValue(self):
-        return self.value
+        return self.__value
 
     def toNode(self, variableManagerObject):
         '''
         variableManagerObject : gestionnaire des variables et des littéraux
         '''
-        litteralObject = variableManagerObject.addLitteralByValue(self.value)
+        litteralObject = Litteral(self.__value)
         return ValueNode(litteralObject)
 
 
@@ -348,12 +349,12 @@ class ExpressionParser:
                 indice += 1
         return tokensList
 
-    def __init__(self, variableManagerObject=None):
-        if variableManagerObject == None:
-            self.__variableManager = VariableManager()
-        else:
-            assert isinstance(variableManagerObject, VariableManager)
-            self.__variableManager = variableManagerObject
+    def __init__(self, variableManager):
+        '''
+        variableManager = objet VariableManager
+        '''
+        assert isinstance(variableManager, VariableManager)
+        self.__variableManager = variableManager
 
     def buildExpression(self, originalExpression):
         '''
@@ -374,7 +375,8 @@ class ExpressionParser:
         return Expression(rootNodeTree)
 
 if __name__=="__main__":
-    EP = ExpressionParser()
+    vm = VariableManager()
+    EP = ExpressionParser(vm)
     for strExpression in [
       "(x < 10 or y < 100)",
       "3*x+ 5 -y",
