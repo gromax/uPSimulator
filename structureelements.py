@@ -36,9 +36,11 @@ class CompilationManager:
         engine = ProcessorEngine object
         '''
         self.__engine = engine
-    def compile(self, structureNodeList):
+
+    def compile(self, structureNodeList, variableManager):
         '''
         structureNodeList = List d'items StructureNode
+        variableManager = objet VariableManager
         '''
         comparaisonSymbolsAvailables = engine.getComparaisonSymbolsAvailables()
         for node in structureNodeList:
@@ -47,84 +49,118 @@ class CompilationManager:
         for node in structureNodeList:
             linearForNode = node.getLinearStructureList(comparaisonSymbolsAvailables)
             linearList.extend(linearForNode)
+        self.__cleanList(linearList)
         return linearList
 
     def __str__(self):
         return "\n".join([str(item) for item in self.__linearList])
 
-    def getLinearItemsList(self):
+    def __delJumpToNextLine(self, linearList):
         '''
-        Retourne la liste des items d'une version linéaire
+        linearList = liste de noeuds de types :
+            LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
+        Sortie : True si un changement a été effectué
         '''
-        return self.__linearList
+        flagActionDone = False
+        if len(linearList) < 2:
+            return linearList, False
+        index = 0
+        while index < len(linearList)-1:
+            currentNode = linearList[index]
+            nextNode = linearList[index+1]
+            if isinstance(currentNode,JumpNode) and currentNode.getCible() == nextNode:
+                linearList.pop(index)
+                flagActionDone = True
+            else:
+                index += 1
+        return flagActionDone
 
-    def __cleanListClone(self, engine):
+    def __delNotUseLabel(self, linearList):
         '''
-        Crée un clone de la liste d'items en faisant quelques ajustements :
-        - adaptatation des conditions pour les rendres compatibles avec le modèle de uP
+        linearList = liste de noeuds de types :
+            LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
+        Sortie : True si un changement a été effectué
+        '''
+        flagActionDone = False
+        labels = self.__getLabels(linearList)
+        for label, listeJumps in labels.items():
+            if len(listeJumps) == 0:
+                flagActionDone = True
+                indexToDel = linearList.index(label)
+                linearList.pop(indexToDel)
+        return flagActionDone
+
+    def __fusionNodeLabel(self, linearList, label, labelToDel):
+        '''
+        linearList = liste de noeuds de types :
+            LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
+        label, labelToDel = LabelNode
+        tout jumpNode pointant vers labelToDel est redirigé vers label
+        labelToDel supprimé de la liste
+        Sortie = True si un changement a été effectué
+        '''
+        flagActionDone = False
+        for index in range(len(linearList)):
+            node = linearList(index)
+            if isinstance(node,JumpNode) and node.getCible() == labelToDel:
+                flagActionDone = True
+                linearList[index] = node.assignNewCibleClone(label)
+        if labelToDel in linearList:
+            indexToDel = linearList.index(labelToDel)
+            linearList.pop(indexToDel)
+            flagActionDone = True
+        return flagActionDone
+
+    def __getLabels(self, linearList):
+        '''
+        linearList = liste de noeuds de types :
+            LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
+        Sortie : dict clé = LabelNode, value = list des JumpNode pointant vers ce LabelNode
+        '''
+        labels = {}
+        for node in linearList:
+            if isinstance(node,LabelNode):
+                labels[node] = []
+        # association jump -> label
+        for node in linearList:
+            if isinstance(node,JumpNode):
+                cible = node.getCible()
+                if not cible in labels:
+                    raise CompilationError("Saut vers label inconnu : "+str(cible))
+                labels[cible].append(node)
+        return labels
+
+    def __getConsecutivesLabel(self, linearList):
+        '''
+        linearList = liste de noeuds de types :
+            LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
+        Sortie : tuple contenant une succession de deux NodeLabel, None si aucun
+        '''
+        for index in range(len(linearList)-1):
+            node = linearList[index]
+            nodeSuivant = linearList[index + 1]
+            if isinstance(node, LabelNode) and isinstance(nodeSuivant, LabelNode):
+                return (node,nodeSuivant)
+        return None
+
+    def __cleanList(self, linearList):
+        '''
+        linearList = liste de noeuds de types :
+            LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
+        Sortie : liste "nettoyée" :
         - suppression des labels inutiles
         - suppression des gotos inutiles
         '''
-        cloneList = [item for item in self.__linearList]
-        # rectification des tests
-        index = 0
-        for index in range(len(cloneList)):
-            item = cloneList[index]
-            if isinstance(item,TestElement):
-                cloneList[index] = item.cloneToAdjustCondition(engine)
-        # supprime des goto inutiles
-        if len(cloneList) > 0:
-            lastItem = cloneList[0]
-            for index in range(1, len(cloneList)):
-                item = cloneList[index]
-                if isinstance(lastItem,TestElement) and lastItem.getCibleNon() == item:
-                    cloneList[index-1] = lastItem.clearCibleNonClone()
-                lastItem = item
-        # supprime les labels inutiles
-        ciblesList = {} # stocké avec les clés, les valeurs seront les items origines
-        for item in cloneList:
-            if isinstance(item, LabelElement):
-                ciblesList[item] = []
-        for item in cloneList:
-            if isinstance(item, TestElement):
-                cibles = item.getCibles()
-                for c in cibles:
-                    assert c in ciblesList
-                    ciblesList[c].append(item)
-            elif isinstance(item, JumpElement):
-                c = item.getCible()
-                assert c in ciblesList
-                ciblesList[c].append(item)
-        # on peut supprimer les cibles qui n'ont aucun élément origine
-        # et fusionner les doublons consécutifs
-        index = 0
-        while index < len(cloneList):
-            item = cloneList[index]
-            if item in ciblesList and len(ciblesList[item]) == 0:
-                # peut être supprimé
-                cloneList.pop(index)
-                del ciblesList[item]
-            elif item in ciblesList and index + 1 < len(cloneList) and cloneList[index+1] in ciblesList:
-                # le label consécutif peut être supprimé
-                itemSuivant = cloneList[index+1]
+        goOnFlag = True
+        while goOnFlag:
+            goOnFlag = False
+            labelsSuccessifs = self.__getConsecutivesLabel(linearList)
+            if labelsSuccessifs != None:
+                label, labelToDel = labelsSuccessifs
+                goOnFlag = self.__fusionNodeLabel(linearList, label, labelToDel)
+            goOnFlag = self.__delNotUseLabel(linearList) or goOnFlag
+            goOnFlag = self.__delJumpToNextLine(linearList) or goOnFlag
 
-                if len(ciblesList[itemSuivant]) == 0:
-                    # on peut le supprimer directement
-                    cloneList.pop(index + 1)
-                    del ciblesList[itemSuivant]
-                else:
-                    # il faut fusionner
-                    for index, origine in enumerate(cloneList):
-                        if origine in ciblesList[itemSuivant]:
-                            newOrigine = origine.cloneWithReplaceCible(item, itemSuivant)
-                            ciblesList[item].append(newOrigine)
-                            cloneList[index] = newOrigine
-                    cloneList.pop(index+1)
-                    del ciblesList[itemSuivant]
-            else:
-                index += 1
-
-        return cloneList
 
     def getASM(self, engine, vm):
         '''
@@ -267,7 +303,7 @@ if __name__=="__main__":
     ]
 
     cm = CompilationManager(engine)
-    listCompiled = cm.compile(structuredList)
+    listCompiled = cm.compile(structuredList, VM)
     for item in listCompiled:
         print(item)
 
