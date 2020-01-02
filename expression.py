@@ -42,14 +42,6 @@ class Expression:
         '''
         return self.__rootNode.getType()
 
-    def comparaisonMirrorClone(self):
-        '''
-        Crée un clone avec miroir de la comparaison
-        '''
-        assert self.getType() == 'bool' and not self.__rootNode.isComplexeCondition()
-        rootNodeMirrorClone = self.__rootNode.comparaisonMirrorClone()
-        return Expression(rootNodeMirrorClone)
-
     def logicNegateClone(self):
         '''
         retourne une copie négative de la condition
