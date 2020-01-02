@@ -1,5 +1,6 @@
 from errors import *
-from variablemanager import Litteral, Variable
+from litteral import Litteral
+from variable import Variable
 
 DEFAULT_ENGINE_ATTRIBUTES = {
   "memory_address_bits": 9,
@@ -228,6 +229,13 @@ class ProcessorEngine:
         missingDigits = self.__attributes["data_bits"] - len(opcode) - len(operandsBinaryStr)
         assert missingDigits >= 0
         return opcode + "0"*missingDigits + operandsBinaryStr
+
+    def getComparaisonSymbolsAvailables(self):
+      '''
+      Retourne la liste des symbole de comparaison disponibles dans le modèle
+      '''
+      symbols = ["<=", "<", ">=", ">", "==", "!="]
+      return [item for item in symbols if item in self.__attributes]
 
     def lookForComparaison(self, comparaisonSymbol):
         '''
