@@ -137,6 +137,53 @@ class ProcessorEngine:
             regs.append(Register(i,False))
         return regs.reverse()
 
+    def getAsmCommand(self, commandDesc):
+        '''
+        commandDesc = chaîne de caractère décrivant un type de commande
+        sortie = string pour asm, None si n'existe pas
+        '''
+        if not commandDesc in self.__attributes:
+            return None
+        itemAttribute = self.__attributes[commandDesc]
+        return itemAttribute["asm"]
+
+    def getOpcode(self, commandDesc):
+        '''
+        commandDesc = chaîne de caractère décrivant un type de commande
+        sortie = string pour opcode, None si n'existe pas
+        '''
+        if not commandDesc in self.__attributes:
+            return None
+        itemAttribute = self.__attributes[commandDesc]
+        return itemAttribute["opcode"]
+
+    def bigLitteralIsNextLine(self):
+        if "bigLitteralIsNextLine" in self.__attributes:
+            return self.__attributes["bigLitteralIsNextLine"] == True
+        return False
+
+    def getLitteralMaxSizeIn(self, commandDesc):
+        '''
+        commandDesc = chaîne de caractère décrivant un type de commande
+        retourne la taille du litteral maximum dans une commande
+        '''
+        assert commandDesc in self.__attributes
+        commandAttributes = self.__attributes[commandDesc]
+        if "litteral_bits" in commandAttributes:
+            nbits = commandAttributes["litteral_bits"]
+        elif "litteral_bits" in self.__attributes:
+            nbits = self.__attributes["litteral_bits"]
+        else:
+            # il faut calculer la place disponible
+            nbits_total = self.__attributes["data_bits"]
+            nbits_reg = self.__attributes["nbits_reg"]
+            nb_reg_operands = self.__attributes[commandDesc]["opnumber"] - 1
+            opcode = self.__attributes[commandDesc]["opcode"]
+            nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
+            if nbits <=0:
+                raise AttributeError(f"Pas assez de place pour un littéral dans {commandDesc}.")
+        return 2**nbits - 2
+
     def getAsmDesc(self, attributes):
         '''
         attributes = Dictionnaire contenant des élément optionnels :
@@ -237,27 +284,6 @@ class ProcessorEngine:
       symbols = ["<=", "<", ">=", ">", "==", "!="]
       return [item for item in symbols if item in self.__attributes]
 
-    def lookForComparaison(self, comparaisonSymbol):
-        '''
-        indique quelle opération à effectuer pour obtenir un symbole de comparaison disponible
-        dans a < b on peut transformer en :
-        -  b > a, ce qui ne change rien au fonctionnement (miroir) -> à privilégier
-        -  not(a>=b), ce qui intervertit les branchements (négation)
-        Sortie = mirroir, négation
-        '''
-        if comparaisonSymbol in self.__attributes:
-            return (False, False)
-        negation = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
-        miroir = { "<":">", ">":"<", "<=":"=>", ">=":"<=" }
-        if comparaisonSymbol in miroir and miroir[comparaisonSymbol] in self.__attributes:
-            return (True, False)
-        if comparaisonSymbol in negation and negation[comparaisonSymbol] in self.__attributes:
-            return (False, True)
-        if comparaisonSymbol in miroir:
-            miroirSymbol == miroir[comparaisonSymbol]
-            if miroirSymbol in negation and negation[miroirSymbol] in self.__attributes:
-                return (True,True)
-        return None
 
 
 if __name__=="__main__":
