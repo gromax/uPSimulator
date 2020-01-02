@@ -25,92 +25,32 @@ PrintElement
 '''
 
 from errors import *
-from expression import *
-from variablemanager import *
-from processorengine import *
+from structuresnodes import *
 from assembleurcontainer import *
 
-class Container:
-    @staticmethod
-    def __constructItemsStructure(itemsDescriptifs):
-        if itemsDescriptifs == None:
-            return []
-        if not isinstance(itemsDescriptifs, list):
-            structItem = Container.__makeStructItem(itemsDescriptifs)
-            return [structItem]
-        return [ Container.__makeStructItem(itemDesc) for itemDesc in itemsDescriptifs ]
+# partie manager
 
-    @staticmethod
-    def __makeStructItem(itemDescriptif):
+class CompilationManager:
+    def __init__(self, engine):
         '''
-        itemDescriptif = dictionnaire permettant de déterminer le type d'objet à ajouter
-        { 'type':'if', 'lineNumber':tuple(integer, integer) ou integerr, 'condition':Expression, children: list ou tuple deux list }
-        { 'type':'while', 'lineNumber': integer, 'condition':Expression, children: list}
-        { 'type':'affectation', 'lineNumber':integer, 'variable': Variable, 'expression': Expression }
-        { 'type':'print', 'lineNumber':integer, 'expression': Expression }
-        { 'type':'input', 'lineNumber':integer, 'variable': Variable }
+        engine = ProcessorEngine object
         '''
-        assert isinstance(itemDescriptif,dict)
-        keys = itemDescriptif.keys()
-        assert 'type' in keys
-
-        type = itemDescriptif['type']
-        assert type in ['if', 'while', 'affectation', 'print', 'input']
-
-        if 'lineNumber' not in keys:
-            lineNumber = None
-        else:
-            lineNumber = itemDescriptif['lineNumber']
-
-        if type == 'if':
-            assert 'condition' in keys
-            condition = itemDescriptif['condition']
-            if not 'children' in keys:
-                childIf = None
-                childElse = None
-            elif isinstance(itemDescriptif['children'], tuple):
-                children = itemDescriptif['children']
-                assert len(children) == 2
-                childIf, childElse = children
-            else:
-                childIf = itemDescriptif['children']
-                childElse = None
-            elem = IfElement(lineNumber, condition, childIf, childElse)
-        elif type == 'while':
-            assert 'condition' in keys
-            condition = itemDescriptif['condition']
-            if not 'children' in keys:
-                children = None
-            else:
-                children = itemDescriptif['children']
-            elem = WhileElement(lineNumber, condition, children)
-        elif type == 'affectation':
-            assert 'variable' in keys and 'expression' in keys
-            variable = itemDescriptif['variable']
-            expression = itemDescriptif['expression']
-            elem = AffectationElement(lineNumber, variable, expression)
-        elif type == 'print':
-            assert 'expression' in keys
-            expression = itemDescriptif['expression']
-            elem = PrintElement(lineNumber, expression)
-        else:
-            # cas input
-            assert 'variable' in keys
-            variable = itemDescriptif['variable']
-            elem = InputElement(lineNumber, variable)
-        return elem
-
-    def __init__(self, itemsDescriptifs):
-        brutItemList = Container.__constructItemsStructure(itemsDescriptifs)
-        self.__linearList = []
-        for structItem in brutItemList:
-            self.__linearList += structItem.getLinearItemsList()
+        self.__engine = engine
+    def compile(self, structureNodeList):
+        '''
+        structureNodeList = List d'items StructureNode
+        '''
+        comparaisonSymbolsAvailables = engine.getComparaisonSymbolsAvailables()
+        for node in structureNodeList:
+            assert isinstance(node, StructureNode)
+        linearList = []
+        for node in structureNodeList:
+            linearForNode = node.getLinearStructureList(comparaisonSymbolsAvailables)
+            linearList.extend(linearForNode)
+        return linearList
 
     def __str__(self):
         return "\n".join([str(item) for item in self.__linearList])
-
-    def isEmpty(self):
-        return len(self.__linearList) == 0
 
     def getLinearItemsList(self):
         '''
@@ -237,96 +177,15 @@ class Container:
 
         return asm
 
-class IfElement:
-    def __init__(self, lineNumber, condition, childrenIf, childrenElse):
-        '''
-        Entrées :
-          lineNumber = tuple contenant 2 int, numéro de ligne d'origine du if et celui du else
-            ou un seul int pour if
-          condition est un objet Expression
-        '''
-        assert isinstance(condition, Expression)
-        self.__condition = condition
-        assert condition.getType() == 'bool'
-        self.__ifChildren = Container(childIf)
-        self.__elseChildren = Container(childElse)
-        if isinstance(lineNumber, tuple):
-            self.__ifLineNumber, self.__elseLineNumber = lineNumber
-        else:
-            self.__ifLineNumber, self.__elseLineNumber = lineNumber, None
-
-    def __str__(self):
-        if self.__elseChildren.isEmpty():
-            return "if ("+str(self.__condition)+") {\n"+str(self.__ifChildren)+"\n}"
-        else:
-            return "if "+str(self.__condition)+" {\n"+str(self.__ifChildren)+"\n}\nelse {\n"+str(self.__elseChildren)+"\n}"
-
-    def getLinearItemsList(self):
-        linearIf = self.__ifChildren.getLinearItemsList()
-        labelIf = LabelElement(self.__ifLineNumber, "_i")
-        labelFin = LabelElement(self.__ifLineNumber, "_ie")
-
-        conditionInverse = self.__condition.logicNegateClone()
-        if not self.__elseChildren.isEmpty():
-            linearElse = self.__elseChildren.getLinearItemsList()
-            labelElse = LabelElement(self.__elseLineNumber, "_el")
-            sautFin = JumpElement(self.__ifLineNumber, labelFin)
-            test = TestElement.decomposeComplexeCondition(self.__ifLineNumber, conditionInverse, labelElse, labelIf)
-            return test + [ labelIf ] + linearIf + [ sautFin, labelElse ] + linearElse + [ labelFin ]
-        test = TestElement.decomposeComplexeCondition(self.__ifLineNumber, conditionInverse, labelFin, labelIf)
-        return test + [ labelIf ] + linearIf + [ labelFin ]
-
-class WhileElement:
-    def __init__(self, lineNumber, condition, children):
-        '''
-        Entrées :
-          lineNumber = int numéro de ligne d'origine du while
-          condition est un objet Expression
-          children = liste des enfants, vide par défaut
-        '''
-        assert isinstance(condition, Expression)
-        self.__lineNumber = lineNumber
-        self.__condition = condition
-        assert condition.getType() == 'bool'
-        self.__children = Container(children)
-
-    def __str__(self):
-        return "while "+str(self.__condition)+" {\n"+str(self.__children)+"\n}"
-
-    def getLinearItemsList(self):
-        linear = self.__children.getLinearItemsList()
-        labelWhile = LabelElement(self.__lineNumber, "_w")
-        labelDebut = LabelElement(self.__lineNumber, "_wb")
-        labelFin = LabelElement(self.__lineNumber, "_we")
-        conditionInverse = self.__condition.logicNegateClone()
-        test = TestElement.decomposeComplexeCondition(self.__lineNumber, conditionInverse, labelFin, labelDebut)
-        saut = JumpElement(self.__lineNumber, labelWhile)
-        return [ labelWhile ] + test + [ labelDebut ] + linear + [ saut, labelFin ]
 
 
+
+
+
+
+'''
 class AffectationElement:
-    def __init__(self, lineNumber, variableCible, expression):
-        '''
-        Entrées :
-          lineNumber = int numéro de ligne d'origine de l'affectation
-          nomCible = string nom de la variable cible
-          expression est un objet Expression
-        '''
-        assert isinstance(expression, Expression)
-        assert isinstance(variableCible, Variable)
-        self.__lineNumber = lineNumber
-        self.__cible = variableCible
-        assert expression.getType() == 'int'
-        self.__expression = expression
-
-    def __str__(self):
-        return str(self.__cible)+" "+chr(0x2190)+" "+str(self.__expression)
-
     def getAsmDescList(self, engine, vm):
-        '''
-        engine = ProcessorEngine
-        vm = VariableManager
-        '''
         cem = self.__expression.calcCompile(engine = engine, variablemanager = vm)
         asmDescList = cem.getAsmDescList()
         resultRegister = cem.getResultRegister()
@@ -334,55 +193,15 @@ class AffectationElement:
         asmDescList.append(storeAsmDesc)
         return asmDescList
 
-    def getLinearItemsList(self):
-        return [ self ]
 
 class InputElement:
-    def __init__(self, lineNumber, variableCible):
-        '''
-        Entrées :
-          lineNumber = int numéro de ligne d'origine de l'affectation
-          nomCible = string nom de la variable cible
-        '''
-        assert isinstance(variableCible, Variable)
-        self.__lineNumber = lineNumber
-        self.__cible = variableCible
-
-    def __str__(self):
-        return str(self.__cible)+" "+chr(0x2190)+" Input"
-
     def getAsmDescList(self, engine, vm):
-        '''
-        engine = ProcessorEngine
-        vm = VariableManager
-        '''
         operands = (self.__cible,)
         inputAsmDesc = engine.getAsmDesc({"operator":"input", "operands":operands, "lineNumber":self.__lineNumber})
         return [ inputAsmDesc ]
 
-    def getLinearItemsList(self):
-        return [ self ]
-
 class PrintElement:
-    def __init__(self, lineNumber, expression):
-        '''
-        Entrées :
-          lineNumber = int numéro de ligne d'origine de l'affectation
-          expression est un objet Expression
-        '''
-        assert isinstance(expression, Expression)
-        self.__lineNumber = lineNumber
-        assert expression.getType() == 'int'
-        self.__expression = expression
-
-    def __str__(self):
-        return str(self.__expression)+" "+chr(0x2192)+" Affichage"
-
     def getAsmDescList(self, engine, vm):
-        '''
-        engine = ProcessorEngine
-        vm = VariableManager
-        '''
         cem = self.__expression.calcCompile(engine = engine, variablemanager = vm)
         asmDescList = cem.getAsmDescList()
         resultRegister = cem.getResultRegister()
@@ -390,54 +209,16 @@ class PrintElement:
         asmDescList.append(printASMDesc)
         return asmDescList
 
-    def getLinearItemsList(self):
-        return [ self ]
 
-class LabelElement:
-    def __init__(self, lineNumber, label):
-        self.__label = label
-        self.__lineNumber = lineNumber
-
-    def __str__(self):
-        return chr(0x2386)+ self.getStrLabel()
-
-    def getAsmDescList(self, engine, vm):
-        '''
-        engine = ProcessorEngine
-        vm = VariableManager
-        '''
-        labelAsmDesc = { "label": self.getStrLabel() }
-        return [ labelAsmDesc ]
-
-    def getLinearItemsList(self):
-        return [ self ]
-
-    def getStrLabel(self):
-        return self.__label + str(self.__lineNumber)
 
 class JumpElement:
-    def __init__(self, lineNumber, cible):
-        assert isinstance(cible, LabelElement)
-        self.__lineNumber = lineNumber
-        self.__cible = cible
-
-    def __str__(self):
-        return "Saut "+str(self.__cible)
-
     def getCible(self):
         return self.__cible
 
     def getAsmDescList(self, engine, vm):
-        '''
-        engine = ProcessorEngine
-        vm = VariableManager
-        '''
         cible = self.__cible.getStrLabel()
         jumpAsmDesc = engine.getAsmDesc({"operator":"goto", "operands":(cible,), "lineNumber":self.__lineNumber})
         return [ jumpAsmDesc ]
-
-    def getLinearItemsList(self):
-        return [ self ]
 
     def cloneWithReplaceCible(self, nouvelleCible, ciblePrecendente):
         if self.__cible == ciblePrecendente:
@@ -445,96 +226,10 @@ class JumpElement:
         return self
 
 class TestElement:
-    @staticmethod
-    def decomposeComplexeCondition(lineNumber, condition, cibleOUI, cibleNON):
-        '''
-        lineNumber : numéro de la ligne à l'origine de ce test
-        condition : objet Expression de type bool. Si c'est un and, or, not, décompose en élément plus petit
-          jusqu'à obtenir des tests élémentaires en <, <=, >, >=, ==, !=
-        cibleOUI, cibleNON : cible LabelElement en cas de OUI et en cas de NON
-        Sortie : liste de TestElement et de LabelElement
-        '''
-        assert isinstance(condition, Expression)
-        assert condition.getType() == 'bool'
-        if not condition.isComplexeCondition():
-            # c'est un test élémentaire
-            test = TestElement(lineNumber, condition, cibleOUI, cibleNON)
-            return [test]
-        decomposition = condition.boolDecompose()
-        if decomposition[0] == "not":
-            # c'est un not, il faudra inverser OUI et NON et traiter la condition enfant
-            conditionEnfant = decomposition[1]
-            return TestElement.decomposeComplexeCondition(lineNumber, decompositionEnfant, cibleNON, cibleOUI)
-        # c'est un OR ou AND
-        cibleInter = LabelElement(lineNumber,"")
-        operator, conditionEnfant1, conditionEnfant2 = decomposition
-        if operator == "and":
-            enfant1 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant1, cibleInter, cibleNON)
-            enfant2 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant2, cibleOUI, cibleNON)
-        else:
-            enfant1 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant1, cibleOUI, cibleInter)
-            enfant2 = TestElement.decomposeComplexeCondition(lineNumber, conditionEnfant2, cibleOUI, cibleNON)
-        return enfant1 + [cibleInter] + enfant2
 
-    def __init__(self, lineNumber, condition, cibleOUI, cibleNON):
-        assert isinstance(cibleOUI, LabelElement)
-        assert isinstance(cibleNON, LabelElement) or cibleNON == None
-        assert isinstance(condition, Expression)
-        assert condition.getType() == 'bool'
-        assert not condition.isComplexeCondition()
-        self.__lineNumber = lineNumber
-        self.__condition = condition
-        self.__cibleOUI = cibleOUI
-        self.__cibleNON = cibleNON
 
-    def __str__(self):
-        if self.__cibleNON == None:
-            return str(self.__condition)+" OUI : "+str(self.__cibleOUI)
-        return str(self.__condition)+" OUI : "+str(self.__cibleOUI)+", NON : "+str(self.__cibleNON)
-
-    def negateClone(self):
-        '''
-        Crée un clone permuttant la condition et les cibles
-        '''
-        negConditionClone = self.__condition.logicNegateClone()
-        return TestElement(self.__lineNumber, negConditionClone, self.__cibleNON, self.__cibleOUI)
-
-    def mirrorClone(self):
-        conditionMirrorClone = self.__condition.comparaisonMirrorClone()
-        return TestElement(self.__lineNumber, conditionMirrorClone, self.__cibleOUI, self.__cibleNON)
-
-    def clearCibleNonClone(self):
-        return TestElement(self.__lineNumber, self.__condition, self.__cibleOUI, None)
-
-    def getCibleNon(self):
-        return self.__cibleNON
-
-    def getCibles(self):
-        if self.__cibleNON == None:
-            return (self.__cibleOUI,)
-        return (self.__cibleOUI, self.__cibleNON)
-
-    def cloneToAdjustCondition(self, engine):
-        '''
-        Crée un clone dont la condition est adaptée au modèle de microprocesseur
-        '''
-        comparator = self.__condition.getComparaisonSymbol()
-        getModifs = engine.lookForComparaison(comparator)
-        if getModifs == None:
-            raise AttributeError("Aucune instruction de comparaison dans le microprocesseur !")
-        miroir, negation = getModifs
-        outClone = self
-        if miroir:
-            outClone = self.swapClone()
-        if negation:
-            outClone = outClone.negateClone()
-        return outClone
 
     def getAsmDescList(self, engine, vm):
-        '''
-        engine = ProcessorEngine
-        vm = VariableManager
-        '''
         comparator = self.__condition.getComparaisonSymbol()
         assert engine.hasOperator(comparator)
         cem = self.__condition.calcCompile(engine = engine, variablemanager = vm)
@@ -548,28 +243,42 @@ class TestElement:
         gotoAsmDesc = engine.getAsmDesc({"operator":"goto", "operands":(cibleNon,), "lineNumber":self.__lineNumber})
         asmDescList.append(gotoAsmDesc)
         return asmDescList
-
-    def getLinearItemsList(self):
-        return [ self ]
-
-    def cloneWithReplaceCible(self, nouvelleCible, ciblePrecendente):
-        if self.__cibleOUI != ciblePrecendente and self.__cibleNON != ciblePrecendente:
-            return self
-        if self.__cibleOUI == ciblePrecendente:
-            nouvelleCibleOui = nouvelleCible
-        else:
-            nouvelleCibleOui = self.__cibleOUI
-        if self.__cibleNON == ciblePrecendente:
-            nouvelleCibleNon = nouvelleCible
-        else:
-            nouvelleCibleNon = self.__cibleNON
-        return TestElement(self.__lineNumber, self.__condition, nouvelleCibleOui, nouvelleCibleNon)
+'''
 
 if __name__=="__main__":
-    from expressionparser import *
+    from expressionparser import ExpressionParser
+    from variablemanager import VariableManager
+    from processorengine import ProcessorEngine
     VM = VariableManager()
     EP = ExpressionParser(VM)
+    engine = ProcessorEngine()
 
+    varX = VM.addVariableByName('x')
+    varY = VM.addVariableByName('y')
+    expr = EP.buildExpression('3*x+2')
+
+    affectationX = AffectationNode(4, varX, EP.buildExpression('x+1'))
+    affectationY = AffectationNode(5, varY, EP.buildExpression('y+x'))
+    structuredList = [
+        AffectationNode(1, varX, EP.buildExpression('0')),
+        AffectationNode(2, varY, EP.buildExpression('0')),
+        WhileNode(3, EP.buildExpression('x < 10 or y < 100'), [affectationX, affectationY]),
+        PrintNode(6, EP.buildExpression('y'))
+    ]
+
+    cm = CompilationManager(engine)
+    listCompiled = cm.compile(structuredList)
+    for item in listCompiled:
+        print(item)
+
+
+
+
+
+
+
+
+    '''
     varX = VM.addVariableByName('x')
     varY = VM.addVariableByName('y')
     expr = EP.buildExpression('3*x+2')
@@ -595,6 +304,7 @@ if __name__=="__main__":
     print()
     print(str(asmCode))
     print(asmCode.getBinary())
+    '''
 
 
 
