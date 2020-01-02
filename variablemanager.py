@@ -1,9 +1,9 @@
+from variable import Variable
+
 class VariableManager:
     def __init__(self): # Constructeur
         self.__listVariables = []
         self.__listVariablesNames = []
-        self.__listLitteralsValues = []
-        self.__listLitterals = []
         self.__listTempMemory = []
 
     def getMemoryIndex(self, variable, baseIndex):
@@ -69,20 +69,6 @@ class VariableManager:
         variableObject = self.__listVariables[index]
         return variableObject
 
-
-    def addLitteralByValue(self, value):
-        '''
-        value = entier
-        Sortie = objet litteral créé ou récupéré dans la liste
-        '''
-        litteralObjectFound = self.getLitteralByValue(value)
-        if litteralObjectFound != None:
-            return litteralObjectFound
-        self.__listLitteralsValues.append(value)
-        litteralObject = Litteral(value)
-        self.__listLitterals.append(litteralObject)
-        return litteralObject
-
     def getLitteralByValue(self, value):
         '''
         value = entier
@@ -99,31 +85,3 @@ class VariableManager:
         mem = [m for m in self.__listTempMemory]
         return variables + mem
 
-
-
-class Variable:
-    def __init__(self, nom):
-        self.__nom = nom
-
-    def getName(self):
-        return self.__nom
-
-    def __str__(self):
-        return "@"+self.__nom
-
-    def isLitteral(self):
-        return False
-
-class Litteral:
-    def __init__(self, value):
-        assert isinstance(value,int)
-        self.__value = value
-
-    def getValue(self):
-        return self.__value
-
-    def __str__(self):
-        return "#"+str(self.__value)
-
-    def isLitteral(self):
-        return True
