@@ -100,11 +100,11 @@ class AsmLoadLine(AsmLine):
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
-        source = objet Variable
+        source = objet Variable ou Litteral (alors stocké comme variable)
         destination = entier
         '''
         assert isinstance(destination,int)
-        assert isinstance(source, Variable)
+        assert isinstance(source, Variable) or isinstance(source, Litteral)
         self.__label = label
         self.__opcode = opcode
         self.__asmCommand = asmCommand
@@ -118,7 +118,7 @@ class AsmLoadLine(AsmLine):
 class AsmLitteralLine(AsmLine):
     def __init__(self, litteral):
         '''
-        litteral = Literral object
+        litteral = Litteral object
         '''
         assert isinstance(litteral,Litteral)
         self.__litteral = litteral
@@ -127,62 +127,21 @@ class AsmLitteralLine(AsmLine):
         return str(self.__litteral)+"\t"+str(self.__litteral.getValue())
 
 
-class AssembleurLine:
-    __label = ""
-    __command = ""
-    __opcode = ""
-    __lineNumber = 0
-    __binary = "?"
-    __isLitteral = False
-    __isData = False
-    def __init__(self, attributes):
-        if "label" in attributes:
-            self.__label = attributes["label"]
-        if "command" in attributes:
-            self.__command = attributes["command"]
-            assert "opcode" in attributes
-            self.__opcode = attributes["opcode"]
-        if "operands" in attributes:
-            self.__operands = attributes["operands"]
-        else:
-            self.__operands = []
-        if "lineNumber" in attributes:
-            self.__lineNumber = attributes["lineNumber"]
-        if "binary" in attributes:
-            self.__binary = attributes["binary"]
-        if "litteral" in attributes:
-            self.__isLitteral = True
-            self.__litteral = attributes["litteral"]
-        if "data" in attributes:
-            self.__isData = True
-            self.__data = attributes["data"]
-
-    def __str__(self):
-        if self.__isLitteral:
-            return "LITT\t"+str(self.__litteral)
-        if self.__isData:
-            return "DATA\t"+str(self.__data)
-        opeStr = [str(op) for op in self.__operands]
-        return self.__label+"\t "+self.__command+" "+", ".join(opeStr)
-
-    def getBinary(self):
-        return self.__binary
-
 class AssembleurContainer:
     def __init__(self):
         self.__lines = []
-        self.__variables = []
-        self.__tempMem = []
+        self.__memoryData = []
 
-    def __pushVariable(self, variable):
+    def __pushMemory(self, item):
         '''
-        variable = Variable
-        ajoute si nécessaire la variable à la liste
+        item = Variable ou Litteral
+        ajoute si nécessaire l'item à la liste
         '''
-        for itemVariable in self.__variables:
-            if str(itemVariable) == str(variable):
+        assert isinstance(item,Variable) or isinstance(item,Litteral)
+        for item in self.__memoryData:
+            if str(item) == str(item):
                 return
-        self.__variables.append(variable)
+        self.__memoryData.append(item)
 
     def pushStore(self, engine, source, destination):
         '''
@@ -235,10 +194,8 @@ class AssembleurContainer:
                     self.__lines.append(AsmMoveLine("", opcode, asmCommand, Litteral(maxSize+1), destination))
                     self.__lines.append(AsmLitteralLine(source))
                     return
-            nameForNewVariable = str(littValue)
-            variable = Variable(nameForNewVariable, littValue)
-            self.__pushVariable(variable)
-            self.pushLoad(engine, destination, variable)
+            self.__pushVariable(source)
+            self.pushLoad(engine, destination, source)
             return
         opcode = engine.getOpcode("move")
         asmCommand = engine.getAsmCommand("move")
