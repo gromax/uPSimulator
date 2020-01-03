@@ -44,7 +44,6 @@ class Node:
 
     def negToSubClone(self):
         '''
-        vm = VariableManager, nécessaire pour ajouter le littéral 0 au besoin
         modifie les - unaires de l'arborescence en - binaire
         Seuls les UnaryNode et BinaryNode, qui peuvent être affectés
         par une telle modification, sont clonés
@@ -113,9 +112,8 @@ class UnaryNode(Node):
             return 'bool'
         return 'int'
 
-    def negToSubClone(self, vm):
+    def negToSubClone(self):
         '''
-        vm = VariableManager, nécessaire pour ajouter le littéral 0 au besoin
         Si -, c'est un - unaire remplacé par une soustraction (binaire)
         retourne un clone avec les modifications s'il y a lieu
         '''
@@ -258,14 +256,13 @@ class BinaryNode(Node):
             # cas == <=... agissant sur entier
             return 'bool'
 
-    def negToSubClone(self, vm):
+    def negToSubClone(self):
         '''
-        vm = VariableManager, nécessaire pour ajouter le littéral 0 au besoin
         modifie les - unaires de l'arborescence en - binaire
         '''
         op1, op2 = self.__operands
-        newOp1 = op1.negToSubClone(vm)
-        newOp2 = op2.negToSubClone(vm)
+        newOp1 = op1.negToSubClone()
+        newOp2 = op2.negToSubClone()
         return BinaryNode(self.__operator, newOp1, newOp2)
 
     def __str__(self):
@@ -301,10 +298,9 @@ class BinaryNode(Node):
         super(BinaryNode,self).calcCompile(CEMObject)
         op1, op2 = self.__operands
         engine = CEMObject.getEngine()
-        litteralAvailable = (not isComparaison) and engine.litteralOperatorAvailable(operator)
-        if litteralAvailable and self.isSymetric() and not op2.isLitteral() and op1.isLitteral():
+        if (not isComparaison) and self.isSymetric() and not op2.isLitteral() and op1.isLitteral() and engine.litteralOperatorAvailable(operator, op1):
             op1, op2 = op2, op1
-        if litteralAvailable and op2.isLitteral():
+        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2):
             firstToCalc = op1
             secondToCalc = op2
         elif op1.getRegisterCost(engine) >= op2.getRegisterCost(engine):
@@ -314,7 +310,7 @@ class BinaryNode(Node):
             firstToCalc = op2
             secondToCalc = op1
         firstToCalc.calcCompile(CEMObject)
-        if litteralAvailable and op2.isLitteral():
+        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2):
             CEMObject.pushBinaryOperatorWithLitteral(operator, op2.getValue())
         else:
             secondToCalc.calcCompile(CEMObject)
