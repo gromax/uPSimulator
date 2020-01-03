@@ -74,24 +74,20 @@ class Expression:
         '''
         return self.__rootNode.getRegisterCost()
 
-    def calcCompile(self, **options):
+    def negToSubClone(self):
+        newRootNode = self.__rootNode.negTosubClone()
+        return Expression(newRootNode)
+
+    def getComparaisonSymbol(self):
+        return self.__rootNode.getComparaisonSymbol()
+
+    def compile(self, cem):
+        '''
+        cem = objet CompileExpressionManager
+        '''
         if self.getType() != 'int' and self.__rootNode.isComplexeCondition():
             raise CompilationError(f"{str(self)} n'est pas une expression arithmétique ou une comparaison simple.")
-        if "cem" in options:
-          cem = options["cem"]
-        else:
-          cem = CompileExpressionManager(**options)
-        # Le - unaire pourrait ne pas exister dans les commandes
-        engine = cem.getEngine()
-        if not engine.hasNEG():
-            vm = cem.getVariableManager()
-            nodeToCompile = self.__rootNode.negTosubClone(vm)
-        else:
-            nodeToCompile = self.__rootNode
-        nodeToCompile.calcCompile(cem)
-        if "debug" in options and options["debug"] == True:
-            print(cem)
-        return cem
+        self.__rootNode.calcCompile(cem)
 
 
 if __name__=="__main__":
@@ -111,11 +107,5 @@ if __name__=="__main__":
     nFinal = BinaryNode("-", add_3x17p9 ,mult_4p1x2p3)
 
     monExpression = Expression(nFinal)
-    cem = CompileExpressionManager()
-    monExpression.calcCompile(cem = cem)
-    print(cem)
-
-    print()
-    print("nouvel essai, même expression avec autorisation d'avoir des littéraux dans les commandes")
-    monExpression.calcCompile(litteralInCommand = True, debug = True)
+    print(monExpression)
 
