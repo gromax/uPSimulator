@@ -1,34 +1,6 @@
-'''
-Définition des classes constituant les éléments structurels de programmation.
-On comptera les classe suivantes :
-Produire en fin de parse une liste d'objets (les objets eux-mêmes seront définis en Demande #240)
-IfElement
-  .condition = Objet Expression
-  .ifChildren = liste d'objets (comme ceux donnés ici)
-  .ifLineNumber = numéro de ligne programme où le if apparaît
-  .elseChildren = liste d'objets (comme ceux donnés ici) éventuellement vide
-  .ifElseLineNumber = numéro de ligne programme où le else apparaît (None si pas de else)
-WhileElement
-  .lineNumber = numéro de ligne programme où le while apparaît
-  .condition = Objet Expression
-  .children = liste d'objets (comme ceux donnés ici)
-AffectationElement
-  .lineNumber = numéro de ligne programme où l'affectation apparaît
-  .nomCible = string nom de la variable affectée
-  .expression = objet Expression
-InputElement
-  .lineNumber = numéro de ligne programme où le input apparaît
-  .nomCible = string nom de la variable cible
-PrintElement
-  .lineNumber = numéro de ligne programme où le print apparaît
-  .expression = objet Expression
-'''
-
 from errors import *
 from structuresnodes import *
 from assembleurcontainer import *
-
-# partie manager
 
 class CompilationManager:
     def __init__(self, engine):
