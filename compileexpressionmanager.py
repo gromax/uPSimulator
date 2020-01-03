@@ -84,7 +84,7 @@ class CompileExpressionManager:
             raise CompilationError("Pas de données en mémoire disponible")
         destinationRegister = self.__getAvailableRegister()
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
-        self.__asmManager.pushLoad(self.__engine, memoryVariable, desinationRegister)
+        self.__asmManager.pushLoad(memoryVariable, desinationRegister)
         self.__memoryStackLastIndex -= 1
         return destinationRegister
 
@@ -107,7 +107,7 @@ class CompileExpressionManager:
         '''
         self.__memoryStackLastIndex +=1
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
-        self.__asmManager.pushStore(self.__engine, sourceRegister, memoryVariable)
+        self.__asmManager.pushStore(sourceRegister, memoryVariable)
 
     def __freeZeroRegister(self, toMemory):
         '''
@@ -125,7 +125,7 @@ class CompileExpressionManager:
             assert len(self.__availableRegisters) > 0
             destinationRegister = self.__availableRegisters.pop()
             self.__registerStack[index0] = destinationRegister
-            self.__asmManager.pushMove(self.__engine, 0, desinationRegister)
+            self.__asmManager.pushMove(0, desinationRegister)
 
     ### public
     def pushBinaryOperator(self, operator, directOrder):
@@ -154,10 +154,10 @@ class CompileExpressionManager:
         else:
             op1, op2 = rLastCalc, rFirstCalc
         if operator == "cmp":
-            self.__asmManager.pushCmp(self.__engine, (op1, op2))
+            self.__asmManager.pushCmp(op1, op2)
         else:
             registreDestination = self.__getAvailableRegister()
-            self.__asmManager.pushUal(self.__engine, operator, registreDestination, (op1, op2))
+            self.__asmManager.pushUal(operator, registreDestination, (op1, op2))
 
     def pushBinaryOperatorWithLitteral(self, operator, litteral):
         '''
@@ -172,7 +172,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__engine, operator, registreDestination, (registreOperand, litteral))
+        self.__asmManager.pushUal(operator, registreDestination, (registreOperand, litteral))
 
     def pushUnaryOperator(self, operator):
         '''
@@ -186,7 +186,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__engine, operator, registreDestination, (registreOperand,))
+        self.__asmManager.pushUal(operator, registreDestination, (registreOperand,))
 
     def pushUnaryOperatorWithLitteral(self, operator, litteral):
         '''
@@ -196,7 +196,7 @@ class CompileExpressionManager:
         occupe le premier registre libre pour le résultat
         '''
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__engine, operator, registreDestination, (litteral,))
+        self.__asmManager.pushUal(operator, registreDestination, (litteral,))
 
     def pushValue(self, value):
         '''
@@ -205,9 +205,9 @@ class CompileExpressionManager:
         '''
         registreDestination = self.__getAvailableRegister()
         if isinstance(value, Litteral):
-            self.__asmManager.pushMove(self.__engine, value, registreDestination)
+            self.__asmManager.pushMove(value, registreDestination)
         else:
-            self.__asmManager.pushLoad(self.__engine, value, registreDestination)
+            self.__asmManager.pushLoad(value, registreDestination)
 
     def getNeededRegisterSpace(self, cost, needUAL):
         '''
@@ -240,7 +240,7 @@ if __name__=="__main__":
     from assembleurcontainer import AssembleurContainer
     from processorengine import ProcessorEngine
     engine = ProcessorEngine()
-    asm = AssembleurContainer()
+    asm = AssembleurContainer(engine)
     cem = CompileExpressionManager(engine, asm)
     cem.pushValue(Variable("x"))
     cem.pushValue(Litteral(5))
