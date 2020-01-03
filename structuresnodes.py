@@ -178,6 +178,7 @@ class LabelNode(StructureNode):
     def getNextFreeIndex(cls):
         cls.__currentIndex += 1
         return cls.__currentIndex
+
     def __init__(self):
         self.__index = self.getNextFreeIndex()
 
@@ -199,6 +200,12 @@ class AffectationNode(StructureNode):
         self._cible = variableCible
         self._expression = expression
 
+    def getExpression(self):
+        return self._expression
+
+    def getCible(self):
+        return self._cible
+
     def __str__(self):
         return str(self._cible)+" "+chr(0x2190)+" "+str(self._expression)
 
@@ -212,6 +219,9 @@ class InputNode(StructureNode):
         assert isinstance(variableCible, Variable)
         self._lineNumber = lineNumber
         self._cible = variableCible
+
+    def getCible(self):
+        return self._cible
 
     def __str__(self):
         return str(self._cible)+" "+chr(0x2190)+" Input"
@@ -227,6 +237,9 @@ class PrintNode(StructureNode):
         assert expression.getType() == 'int'
         self._lineNumber = lineNumber
         self._expression = expression
+
+    def getExpression(self):
+        return self._expression
 
     def __str__(self):
         return str(self._expression)+" "+chr(0x2192)+" Affichage"
@@ -246,6 +259,9 @@ class JumpNode(StructureNode):
 
     def getCible(self):
         return self._cible
+
+    def getCondition(self):
+        return self._condition
 
     def assignNewCibleClone(self,newCible):
         '''
