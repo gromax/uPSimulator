@@ -17,9 +17,7 @@ class CompileExpressionManager:
 
         self.__registersNumber = self.__engine.registersNumber()
         assert self.__registersNumber > 1
-        self.__availableRegisters = list(reversed(range(self.__registersNumber)))
-        self.__registerStack = []
-        self.__memoryStackLastIndex = -1
+        self.resetMemory()
 
     ### private
     def __freeRegister(self):
@@ -128,6 +126,11 @@ class CompileExpressionManager:
             self.__asmManager.pushMove(0, desinationRegister)
 
     ### public
+    def resetMemory(self):
+        self.__availableRegisters = list(reversed(range(self.__registersNumber)))
+        self.__registerStack = []
+        self.__memoryStackLastIndex = -1
+
     def pushBinaryOperator(self, operator, directOrder):
         '''
         Ajoute une opération binaire.
@@ -235,6 +238,7 @@ class CompileExpressionManager:
 
     def getEngine(self):
         return self.__engine
+
 
 if __name__=="__main__":
     from assembleurcontainer import AssembleurContainer
