@@ -3,8 +3,8 @@ Module d'analyse des expressions arithmétiques et logiques
 '''
 from errors import *
 from expression import *
-from variablemanager import *
 from litteral import Litteral
+from variable import Variable
 import re
 
 class Token:
@@ -93,12 +93,9 @@ class TokenVariable(Token):
     def getValue(self):
         return self.expression
 
-    def toNode(self, variableManagerObject):
-        '''
-        variableManagerObject : gestionnaire des variables et des littéraux
-        '''
+    def toNode(self):
         nomVariable = self.expression
-        variableObject = variableManagerObject.addVariableByName(nomVariable)
+        variableObject = Variable(nomVariable)
         return ValueNode(variableObject)
 
 class TokenNumber(Token):
@@ -114,10 +111,7 @@ class TokenNumber(Token):
     def getValue(self):
         return self.__value
 
-    def toNode(self, variableManagerObject):
-        '''
-        variableManagerObject : gestionnaire des variables et des littéraux
-        '''
+    def toNode(self):
         litteralObject = Litteral(self.__value)
         return ValueNode(litteralObject)
 
@@ -231,17 +225,15 @@ class ExpressionParser:
         return polishStack
 
     @staticmethod
-    def __buildTree(polishTokensList, variableManagerObject):
+    def __buildTree(polishTokensList):
         '''
-        Entrées :
-           polishTokensList : list de Tokens construite en utilisant la notation polonaise inversée
-           variableManagerObject : objet de gestion des variables
+        polishTokensList : list de Tokens construite en utilisant la notation polonaise inversée
         Sortie : Noeud racine de l'expression
         '''
         operandsList = []
         for token in polishTokensList:
             if token.isOperand():
-                node = token.toNode(variableManagerObject)
+                node = token.toNode()
             else:
                 node = token.toNode(operandsList)
             operandsList.append(node)
@@ -349,12 +341,8 @@ class ExpressionParser:
                 indice += 1
         return tokensList
 
-    def __init__(self, variableManager):
-        '''
-        variableManager = objet VariableManager
-        '''
-        assert isinstance(variableManager, VariableManager)
-        self.__variableManager = variableManager
+    def __init__(self):
+        pass
 
     def buildExpression(self, originalExpression):
         '''
@@ -370,13 +358,12 @@ class ExpressionParser:
         if not self.__tokensListIsLegal(tokensList):
             raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
         reversePolishTokensList = self.__buildReversePolishNotation(tokensList)
-        rootNodeTree = ExpressionParser.__buildTree(reversePolishTokensList, self.__variableManager)
+        rootNodeTree = ExpressionParser.__buildTree(reversePolishTokensList)
 
         return Expression(rootNodeTree)
 
 if __name__=="__main__":
-    vm = VariableManager()
-    EP = ExpressionParser(vm)
+    EP = ExpressionParser()
     for strExpression in [
       "(x < 10 or y < 100)",
       "3*x+ 5 -y",
