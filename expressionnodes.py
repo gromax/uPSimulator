@@ -298,9 +298,9 @@ class BinaryNode(Node):
         super(BinaryNode,self).calcCompile(CEMObject)
         op1, op2 = self.__operands
         engine = CEMObject.getEngine()
-        if (not isComparaison) and self.isSymetric() and not op2.isLitteral() and op1.isLitteral() and engine.litteralOperatorAvailable(operator, op1):
+        if (not isComparaison) and self.isSymetric() and not op2.isLitteral() and op1.isLitteral() and engine.litteralOperatorAvailable(operator, op1.getValue()):
             op1, op2 = op2, op1
-        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2):
+        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2.getValue()):
             firstToCalc = op1
             secondToCalc = op2
         elif op1.getRegisterCost(engine) >= op2.getRegisterCost(engine):
@@ -310,7 +310,7 @@ class BinaryNode(Node):
             firstToCalc = op2
             secondToCalc = op1
         firstToCalc.calcCompile(CEMObject)
-        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2):
+        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2.getValue()):
             CEMObject.pushBinaryOperatorWithLitteral(operator, op2.getValue())
         else:
             secondToCalc.calcCompile(CEMObject)
