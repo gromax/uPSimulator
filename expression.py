@@ -95,7 +95,6 @@ class Expression:
 
 
 if __name__=="__main__":
-    from variablemanager import *
     from litteral import Litteral
     print("Test pour l'expression 3*17+9-(4+1)*(2+3)")
     n1 = ValueNode(Litteral(1))
