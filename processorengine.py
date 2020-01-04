@@ -2,7 +2,6 @@ from errors import *
 
 DEFAULT_ENGINE_ATTRIBUTES = {
   "memory_address_bits": 9,
-  "litteral_bits": 6,
   "register_address_bits":3,
   "free_ual_output": True,
   "data_bits": 16,
@@ -62,8 +61,6 @@ class ProcessorEngine:
     def __checkAttributes(self):
       if not "memory_address_bits" in self.__attributes or not isinstance(self.__attributes["memory_address_bits"],int) or self.__attributes["memory_address_bits"] < 1:
         raise AttributeError("Attribut 'memory_adress_bits' manquant ou incorrect")
-      if "litteral_bits" in self.__attributes and ( not isinstance(self.__attributes["litteral_bits"],int) or self.__attributes["litteral_bits"] < 1):
-        raise AttributeError("Attribut 'litteral_bits' incorrect")
       if not "register_address_bits" in self.__attributes or not isinstance(self.__attributes["register_address_bits"],int) or self.__attributes["register_address_bits"] < 1:
         raise AttributeError("Attribut 'register_address_bits' manquant ou incorrect")
       if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
@@ -72,40 +69,6 @@ class ProcessorEngine:
 
     def registersNumber(self):
         return 2**self.__attributes["register_address_bits"]
-
-    def maxLitteral(self):
-        if not self.litteralInCommand():
-          return 0
-        return 2**self.__attributes["litteral_bits"] - 1
-
-    def getRegisterCode(self,registerIndex):
-        assert 0 <= registerIndex < self.registersNumber()
-        nbits = self.__attributes["register_address_bits"]
-        return format(registerIndex,'0'+str(nbits)+'b')
-
-    def getLitteralCode(self, litteralValue):
-        assert 0 <= litteralValue
-        if litteralValue > self.maxLitteral():
-            litteralValue = self.maxLitteral()
-        nbits = self.__attributes["litteral_bits"]
-        return format(litteralValue,'0'+str(nbits)+'b')
-
-    def getFullLitteralCode(self, litteralValue):
-        nbits = self.__attributes["data_bits"]
-        if not -2**(nbits-1)<= litteralValue < 2**(nbits-1):
-            raise CompilationError(f"Litteral {litteralValue} trop grand.")
-        if litteralValue >= 0:
-            return format(litteralValue,'0'+str(nbits)+'b')
-        # calcul utilisant le ca2
-        ca2 = (~ abs(litteralValue)) & (2**nbits-1) + 1
-        return format(ca2,'0'+str(nbits)+'b')
-
-    def getAddressCode(self, addressValue):
-        assert 0 <= addressValue
-        nbits = self.__attributes["memory_address_bits"]
-        if addressValue >= 2**nbits:
-            raise CompilationError(f"Addresse {addressValue} trop grande.")
-        return format(addressValue,'0'+str(nbits)+'b')
 
     def ualOutputIsFree(self):
         return self.__freeUalOutput
@@ -178,19 +141,15 @@ class ProcessorEngine:
         '''
         assert commandDesc in self.__attributes
         commandAttributes = self.__attributes[commandDesc]
-        if "litteral_bits" in commandAttributes:
-            nbits = commandAttributes["litteral_bits"]
-        elif "litteral_bits" in self.__attributes:
-            nbits = self.__attributes["litteral_bits"]
-        else:
-            # il faut calculer la place disponible
-            nbits_total = self.__attributes["data_bits"]
-            nbits_reg = self.__attributes["nbits_reg"]
-            nb_reg_operands = self.__attributes[commandDesc]["opnumber"] - 1
-            opcode = self.__attributes[commandDesc]["opcode"]
-            nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
-            if nbits <=0:
-                raise AttributeError(f"Pas assez de place pour un littéral dans {commandDesc}.")
+        # on suppose toujours que le littéral peut occuper toute la place restante
+        # il faut calculer la place disponible
+        nbits_total = self.__attributes["data_bits"]
+        nbits_reg = self.__attributes["nbits_reg"]
+        nb_reg_operands = self.__attributes[commandDesc]["opnumber"] - 1
+        opcode = self.__attributes[commandDesc]["opcode"]
+        nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
+        if nbits <=0:
+            raise AttributeError(f"Pas assez de place pour un littéral dans {commandDesc}.")
         return 2**nbits - 2
 
     def getComparaisonSymbolsAvailables(self):
