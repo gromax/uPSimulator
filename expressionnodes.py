@@ -1,5 +1,4 @@
 from errors import *
-from compileexpressionmanager import *
 from variablemanager import *
 from litteral import Litteral
 
@@ -141,7 +140,7 @@ class UnaryNode(Node):
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
         super(UnaryNode,self).calcCompile(CEMObject)
         engine = CEMObject.getEngine()
-        if engine.litteralOperatorAvailable(self.__operator) and self.__operand.isLitteral():
+        if self.__operand.isLitteral() and engine.litteralOperatorAvailable(self.__operator, self.__operand.getValue()):
             litteral = self.__operand.getValue()
             CEMObject.pushUnaryOperatorWithLitteral(self.__operator, litteral)
         else:
@@ -351,21 +350,26 @@ class ValueNode(Node):
 
 if __name__=="__main__":
     from litteral import Litteral
+    from processorengine import ProcessorEngine
+    from assembleurcontainer import AssembleurContainer
+    from compileexpressionmanager import CompileExpressionManager
+    engine = ProcessorEngine()
+    asm = AssembleurContainer(engine)
     print("Test sur littéral")
-    cem = CompileExpressionManager()
+    cem = CompileExpressionManager(engine, asm)
     node = ValueNode(Litteral(4))
     node.calcCompile(cem)
     print(cem)
 
     print("Test sur opération unaire")
-    cem = CompileExpressionManager()
+    cem = CompileExpressionManager(engine, asm)
     nodeL = ValueNode(Litteral(4))
     nodeOp = UnaryNode("-", nodeL)
     nodeOp.calcCompile(cem)
     print(cem)
 
     print("Test sur opération binaire")
-    cem = CompileExpressionManager()
+    cem = CompileExpressionManager(engine, asm)
     nodeChild1 = ValueNode(Litteral(4))
     nodeChild2 = ValueNode(Litteral(3))
     nodeOp = BinaryNode("-", nodeChild1, nodeChild2)
