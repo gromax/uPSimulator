@@ -1,7 +1,6 @@
 from errors import *
 
 DEFAULT_ENGINE_ATTRIBUTES = {
-  "memory_address_bits": 9,
   "register_address_bits":3,
   "free_ual_output": True,
   "data_bits": 16,
@@ -59,8 +58,6 @@ class ProcessorEngine:
       self.__freeUalOutput = "free_ual_output" in self.__attributes and (self.__attributes["free_ual_output"] == True or self.__attributes["free_ual_output"] == 1)
 
     def __checkAttributes(self):
-      if not "memory_address_bits" in self.__attributes or not isinstance(self.__attributes["memory_address_bits"],int) or self.__attributes["memory_address_bits"] < 1:
-        raise AttributeError("Attribut 'memory_adress_bits' manquant ou incorrect")
       if not "register_address_bits" in self.__attributes or not isinstance(self.__attributes["register_address_bits"],int) or self.__attributes["register_address_bits"] < 1:
         raise AttributeError("Attribut 'register_address_bits' manquant ou incorrect")
       if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
