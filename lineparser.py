@@ -1,7 +1,7 @@
 import re
 from errors import *
-from expressionparser import *
-from variablemanager import *
+from expressionparser import ExpressionParser
+from variable import Variable
 
 class LineParser: # Définition classe
     """Classe LineParser
@@ -19,14 +19,8 @@ class LineParser: # Définition classe
     Une méthode getCaracs() pour retourne le dictionnaire __caracteristiques
     """
 
-    def __init__(self, originalLine, lineNumber, variableManagerObject=None): # Constructeur
-        if variableManagerObject == None:
-            self.__variableManager = VariableManager()
-        else:
-            assert isinstance(variableManagerObject, VariableManager)
-            self.__variableManager = variableManagerObject
-        # Pour faire le lien avec variablemanager général, expressionparser utilisé pour construire les expressions
-        self.__expressionParser = ExpressionParser(self.__variableManager)
+    def __init__(self, originalLine, lineNumber): # Constructeur
+        self.__expressionParser = ExpressionParser()
         self.__lineNumber = lineNumber
         self.__originalLine = originalLine
         self.__cleanLine = self.__suppCommentsAndEndSpaces(self.__originalLine)
@@ -103,7 +97,7 @@ class LineParser: # Définition classe
         if not ExpressionParser.strIsVariableName(variableName):
             raise ParseError(f"La variable <{variableName}> est incorrecte")
         self.__caracteristiques["type"] = "input"
-        self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(variableName)
+        self.__caracteristiques["variable"] = Variable(variableName)
         return True
 
     def __isAffectation(self, line):
@@ -120,7 +114,7 @@ class LineParser: # Définition classe
             raise ParseError(f"L'expression <{expr}> est incorrecte")
             return False
         self.__caracteristiques["type"] = "affectation"
-        self.__caracteristiques["variable"] = self.__variableManager.addVariableByName(variableName)
+        self.__caracteristiques["variable"] = Variable(variableName)
         self.__caracteristiques["expression"] = expr
         return True
 
