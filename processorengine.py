@@ -1,6 +1,4 @@
 from errors import *
-from litteral import Litteral
-from variable import Variable
 
 DEFAULT_ENGINE_ATTRIBUTES = {
   "memory_address_bits": 9,

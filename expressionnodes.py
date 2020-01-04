@@ -1,5 +1,4 @@
 from errors import *
-from variablemanager import *
 from litteral import Litteral
 
 '''

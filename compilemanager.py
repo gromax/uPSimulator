@@ -189,7 +189,6 @@ class CompilationManager:
 
 if __name__=="__main__":
     from expressionparser import ExpressionParser
-    from variablemanager import VariableManager
     from processorengine import ProcessorEngine
     EP = ExpressionParser()
     engine = ProcessorEngine()

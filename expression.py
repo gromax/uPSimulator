@@ -1,6 +1,5 @@
 from errors import *
 from expressionnodes import *
-from compileexpressionmanager import *
 
 class Expression:
     def __init__(self, rootNode):
