@@ -9,9 +9,6 @@ class CodeParser: # Définition classe
     ATTENTION - pas de gestion particulière du if, elif, else -> pas de tuple pour le noeud if et else --> voir structureelements
     """
 
-    #Instanciation VariableManager
-    variableManagerObject = VariableManager()
-
     def __init__(self, **options): # Constructeur
         '''
         options doit contenir l'un des attributs :
@@ -40,7 +37,7 @@ class CodeParser: # Définition classe
         # On boucle sur les lignes de code
         for num, line in enumerate(lignesCode):
             objDictLine = {}
-            objLine = LineParser(line, num, self.variableManagerObject)
+            objLine = LineParser(line, num)
             caract = objLine.getCaracs()
             # Traitement ligne non vide
             if not caract['emptyLine'] :
