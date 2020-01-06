@@ -149,7 +149,7 @@ class CompilationManager:
 
     def __pushNodeAsm(self, node):
         if isinstance(node, LabelNode):
-            self.__asm.pushLabel(str(node))
+            self.__asm.pushLabel(node)
             return
         if isinstance(node, AffectationNode):
             expression = node.getExpression()
@@ -212,3 +212,5 @@ if __name__=="__main__":
         print(item)
     print()
     print(cm.getAsm())
+    print()
+    print(cm.getAsm().getBinary())
