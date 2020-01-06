@@ -4,200 +4,7 @@ Classe contenant le code assembleur et permettant des sorties sous diverse forme
 
 from litteral import Litteral
 from variable import Variable
-
-
-class AsmLine:
-    pass
-
-class AsmLabelLine(AsmLine):
-    def __init__(self, label):
-        '''
-        label = chaîne de caractère
-        '''
-        self.__label = label
-    def __str__(self):
-        return self.__label
-
-class AsmJumpLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, cible):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        cible = string (label)
-        '''
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__cible = cible
-    def __str__(self):
-        return self.__label + "\t" + self.__asmCommand + " " + str(self.__cible)
-
-
-class AsmCmpLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, operands):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        operands = tuple de 2 opérandes
-        '''
-        assert len(operands) == 2
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__operands = operands
-    def __str__(self):
-        strOperands = ["r"+str(ope) for ope in self.__operands]
-        return self.__label+"\t"+self.__asmCommand+" "+", ".join(strOperands)
-
-class AsmUalLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, destination, operands):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        destination = int (registre) ou None si pas nécessaire
-        operands = tuple non vide avec les opérandes, la dernière pouvant être un Litteral
-        '''
-        assert len(operands) != 0
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__destination = destination
-        self.__operands = operands
-    def __str__(self):
-        lastOperand = self.__operands[-1]
-        if isinstance(lastOperand, Litteral):
-            strLastOperand = str(lastOperand)
-        else:
-            strLastOperand = "r"+str(lastOperand)
-        strOperands = ["r"+str(ope) for ope in self.__operands[:-1]]
-        strOperands.append(strLastOperand)
-        if self.__destination == None:
-            return self.__label+"\t"+self.__asmCommand+" "+", ".join(strOperands)
-        return self.__label+"\t"+self.__asmCommand+" r"+str(self.__destination)+", "+", ".join(strOperands)
-
-class AsmMoveLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, source, destination):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        source = entier (registre) ou Litteral
-        destination = entier (registre)
-        '''
-        assert isinstance(source,int) or isinstance(source,Litteral)
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__source = source
-        self.__destination = destination
-
-    def __str__(self):
-        if isinstance(self.__source, Litteral):
-            return self.__label + "\t" + self.__asmCommand + " r" + str(self.__destination) + ", " + str(self.__source)
-        return self.__label + "\t" + self.__asmCommand + " r" + str(self.__destination) + ", r"+str(self.__source)
-
-class AsmStoreLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, source, destination):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        source = entier
-        destination = Variable
-        '''
-        assert isinstance(source,int)
-        assert isinstance(destination, Variable)
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__source = source
-        self.__destination = destination
-
-    def __str__(self):
-        return self.__label + "\t" + self.__asmCommand + " r" + str(self.__source) + ", " + str(self.__destination)
-
-class AsmLoadLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, source, destination):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        source = objet Variable ou Litteral (alors stocké comme variable)
-        destination = entier
-        '''
-        assert isinstance(destination,int)
-        assert isinstance(source, Variable) or isinstance(source, Litteral)
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__source = source
-        self.__destination = destination
-
-    def __str__(self):
-        return self.__label + "\t" + self.__asmCommand + " r" + str(self.__destination) + ", " + str(self.__source)
-
-class AsmInputLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, destination):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        destination = Variable
-        '''
-        assert isinstance(destination, Variable)
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__destination = destination
-
-    def __str__(self):
-        return self.__label+"\t" + self.__asmCommand+" " + str(self.__destination)
-
-class AsmPrintLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand, source):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        source = int (registre)
-        '''
-        assert isinstance(source, int)
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__source = source
-
-    def __str__(self):
-        return self.__label+"\t" + self.__asmCommand+" r" + str(self.__source)
-
-class AsmHaltLine(AsmLine):
-    def __init__(self, label, opcode, asmCommand):
-        '''
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        '''
-        self.__label = label
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-
-    def __str__(self):
-        return self.__label + "\t" + self.__asmCommand
-
-class AsmLitteralLine(AsmLine):
-    def __init__(self, litteral):
-        '''
-        litteral = Litteral object
-        '''
-        assert isinstance(litteral,Litteral)
-        self.__litteral = litteral
-
-    def __str__(self):
-        return str(self.__litteral)+"\t"+str(self.__litteral.getValue())
-
+from assembleurlines import *
 
 class AssembleurContainer:
     def __init__(self, engine):
@@ -230,7 +37,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("store")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour store dans le modèle de processeur.")
-        asmLine = AsmStoreLine("", opcode, asmCommand, source, destination)
+        asmLine = AsmStoreLine(self, "", opcode, asmCommand, source, destination)
         self.__lines.append(asmLine)
         self.__pushMemory(destination)
 
@@ -245,7 +52,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("load")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour load dans le modèle de processeur.")
-        asmLine = AsmLoadLine("", opcode, asmCommand, source, destination)
+        asmLine = AsmLoadLine(self, "", opcode, asmCommand, source, destination)
         self.__lines.append(asmLine)
         self.__pushMemory(source)
 
@@ -261,11 +68,11 @@ class AssembleurContainer:
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn("move_l")
                 if littValue <= maxSize:
-                    self.__lines.append(AsmMoveLine("", opcode, asmCommand, source, destination))
+                    self.__lines.append(AsmMoveLine(self, "", opcode, asmCommand, source, destination))
                     return
                 if self.__engine.bigLitteralIsNextLine():
-                    self.__lines.append(AsmMoveLine("", opcode, asmCommand, Litteral(maxSize+1), destination))
-                    self.__lines.append(AsmLitteralLine(source))
+                    self.__lines.append(AsmMoveLine(self, "", opcode, asmCommand, Litteral(maxSize+1), destination))
+                    self.__lines.append(AsmLitteralLine(self, source))
                     return
             self.__pushMemory(source)
             self.pushLoad(source, destination)
@@ -274,7 +81,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("move")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour move dans le modèle de processeur.")
-        self.__lines.append(AsmMoveLine("", opcode, asmCommand, source, destination))
+        self.__lines.append(AsmMoveLine(self, "", opcode, asmCommand, source, destination))
 
     def pushUal(self, operator, destination, operands):
         '''
@@ -297,12 +104,12 @@ class AssembleurContainer:
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator+"_l")
                 if littValue <= maxSize:
-                    self.__lines.append(AsmUalLine("", opcode, asmCommand, destination, operands))
+                    self.__lines.append(AsmUalLine(self, "", opcode, asmCommand, destination, operands))
                     return
                 if self.__engine.bigLitteralIsNextLine():
                     operands = operands[:-1]+(Litteral(maxSize+1),)
-                    self.__lines.append(AsmUalLine("", opcode, asmCommand, destination, operands))
-                    self.__lines.append(AsmLitteralLine(source))
+                    self.__lines.append(AsmUalLine(self, "", opcode, asmCommand, destination, operands))
+                    self.__lines.append(AsmLitteralLine(self, source))
                     return
                 raise CompilationError(f"Litteral trop grand pour {operator}")
             raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur")
@@ -310,7 +117,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == None or opcode == None:
             raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
-        self.__lines.append(AsmUalLine("", opcode, asmCommand, destination, operands))
+        self.__lines.append(AsmUalLine(self, "", opcode, asmCommand, destination, operands))
 
     def pushCmp(self, operand1, operand2):
         '''
@@ -322,7 +129,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("cmp")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour cmp dans le modèle de processeur.")
-        self.__lines.append(AsmCmpLine("", opcode, asmCommand, (operand1, operand2)))
+        self.__lines.append(AsmCmpLine(self, "", opcode, asmCommand, (operand1, operand2)))
 
     def pushInput(self, destination):
         '''
@@ -333,7 +140,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("input")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour input dans le modèle de processeur.")
-        self.__lines.append(AsmInputLine("", opcode, asmCommand, destination))
+        self.__lines.append(AsmInputLine(self, "", opcode, asmCommand, destination))
 
     def pushPrint(self, source):
         '''
@@ -344,7 +151,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("print")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour print dans le modèle de processeur.")
-        self.__lines.append(AsmPrintLine("", opcode, asmCommand, source))
+        self.__lines.append(AsmPrintLine(self, "", opcode, asmCommand, source))
 
     def pushJump(self, cible, operator = None):
         '''
@@ -358,23 +165,25 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == None or opcode == None:
             raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
-        self.__lines.append(AsmJumpLine("", opcode, asmCommand, cible))
+        self.__lines.append(AsmJumpLine(self, "", opcode, asmCommand, cible))
 
     def pushHalt(self):
         opcode = self.__engine.getOpcode("halt")
         asmCommand = self.__engine.getAsmCommand("halt")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour halt dans le modèle de processeur.")
-        self.__lines.append(AsmHaltLine("", opcode, asmCommand))
+        self.__lines.append(AsmHaltLine(self, "", opcode, asmCommand))
 
     def pushLabel(self, label):
         '''
         label = chaîne de caractère
         '''
-        self.__lines.append(AsmLabelLine(label))
+        self.__lines.append(AsmLabelLine(self, label))
 
     def getBinary(self):
-        binaryList = [item.getBinary() for item in self.__lines]
+        regSize = self.__engine.getRegBits()
+        wordSize = self.__engine.getDataBits()
+        binaryList = [item.getBinary(wordSize, regSize) for item in self.__lines if not isinstance(item, AsmLabelLine)]
         return "\n".join(binaryList)
 
     def __str__(self):
@@ -383,3 +192,14 @@ class AssembleurContainer:
         variablesStr = [str(item) + "\tDATA" for item in self.__memoryData if isinstance(item,Variable)]
         litterauxStr = [str(item) + "\t" + str(item.getValue()) for item in self.__memoryData if isinstance(item,Litteral)]
         return codePart + "\n" + "\n".join(litterauxStr + variablesStr)
+
+    def getLineLabel(self, label):
+        index = 0
+        for item in self.__lines:
+            if item.getLabel() == label:
+                return index
+            if not isinstance(item, AsmLabelLine):
+                index += 1
+        return None
+
+

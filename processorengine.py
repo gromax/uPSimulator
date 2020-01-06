@@ -1,7 +1,7 @@
 from errors import *
 
 DEFAULT_ENGINE_ATTRIBUTES = {
-  "register_address_bits":3,
+  "register_bits":3,
   "free_ual_output": True,
   "data_bits": 16,
   "halt":   { "opcode":"00000", "asm":"HALT", "opnumber":0 },
@@ -58,14 +58,14 @@ class ProcessorEngine:
       self.__freeUalOutput = "free_ual_output" in self.__attributes and (self.__attributes["free_ual_output"] == True or self.__attributes["free_ual_output"] == 1)
 
     def __checkAttributes(self):
-      if not "register_address_bits" in self.__attributes or not isinstance(self.__attributes["register_address_bits"],int) or self.__attributes["register_address_bits"] < 1:
-        raise AttributeError("Attribut 'register_address_bits' manquant ou incorrect")
+      if not "register_bits" in self.__attributes or not isinstance(self.__attributes["register_bits"],int) or self.__attributes["register_bits"] < 1:
+        raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
       if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
         raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
       return True
 
     def registersNumber(self):
-        return 2**self.__attributes["register_address_bits"]
+        return 2**self.__attributes["register_bits"]
 
     def ualOutputIsFree(self):
         return self.__freeUalOutput
@@ -141,7 +141,7 @@ class ProcessorEngine:
         # on suppose toujours que le littéral peut occuper toute la place restante
         # il faut calculer la place disponible
         nbits_total = self.__attributes["data_bits"]
-        nbits_reg = self.__attributes["register_address_bits"]
+        nbits_reg = self.__attributes["register_bits"]
         nb_reg_operands = self.__attributes[commandDesc]["opnumber"] - 1
         opcode = self.__attributes[commandDesc]["opcode"]
         nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
@@ -150,12 +150,17 @@ class ProcessorEngine:
         return 2**nbits - 2
 
     def getComparaisonSymbolsAvailables(self):
-      '''
-      Retourne la liste des symbole de comparaison disponibles dans le modèle
-      '''
-      symbols = ["<=", "<", ">=", ">", "==", "!="]
-      return [item for item in symbols if item in self.__attributes]
+        '''
+        Retourne la liste des symbole de comparaison disponibles dans le modèle
+        '''
+        symbols = ["<=", "<", ">=", ">", "==", "!="]
+        return [item for item in symbols if item in self.__attributes]
 
+    def getRegBits(self):
+        return self.__attributes["register_bits"]
+
+    def getDataBits(self):
+        return self.__attributes["data_bits"]
 
 
 if __name__=="__main__":
