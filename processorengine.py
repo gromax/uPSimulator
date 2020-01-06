@@ -141,7 +141,7 @@ class ProcessorEngine:
         # on suppose toujours que le littéral peut occuper toute la place restante
         # il faut calculer la place disponible
         nbits_total = self.__attributes["data_bits"]
-        nbits_reg = self.__attributes["nbits_reg"]
+        nbits_reg = self.__attributes["register_address_bits"]
         nb_reg_operands = self.__attributes[commandDesc]["opnumber"] - 1
         opcode = self.__attributes[commandDesc]["opcode"]
         nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
