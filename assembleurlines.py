@@ -11,8 +11,8 @@ class AsmLine:
     _label = ""
     def getBinary(self, wordSize, regSize):
         '''
-        wordSize = int : nbre de bits pour les registres
-        regSize = int : nbre de bits pour l'ensemble
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
         '''
         return "0"*wordSize
 
@@ -76,8 +76,8 @@ class AsmJumpLine(AsmLine):
 
     def getBinary(self, wordSize, regSize):
         '''
-        wordSize = int : nbre de bits pour les registres
-        regSize = int : nbre de bits pour l'ensemble
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
         '''
         lineCible = self._parent.getLineLabel(self._cible)
         if lineCible == None:
@@ -105,8 +105,8 @@ class AsmCmpLine(AsmLine):
 
     def getBinary(self, wordSize, regSize):
         '''
-        wordSize = int : nbre de bits pour les registres
-        regSize = int : nbre de bits pour l'ensemble
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
         '''
         r1, r2 = self._operands
         return self.formatBinary(wordSize, [(r1, regSize), (r2, regSize)])
@@ -143,8 +143,8 @@ class AsmUalLine(AsmLine):
 
     def getBinary(self, wordSize, regSize):
         '''
-        wordSize = int : nbre de bits pour les registres
-        regSize = int : nbre de bits pour l'ensemble
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
         '''
         items = []
         if self._destination != None:
@@ -178,6 +178,17 @@ class AsmMoveLine(AsmLine):
         if isinstance(self._source, Litteral):
             return self._label + "\t" + self._asmCommand + " r" + str(self._destination) + ", " + str(self._source)
         return self._label + "\t" + self._asmCommand + " r" + str(self._destination) + ", r"+str(self._source)
+    
+    def getBinary(self, wordSize, regSize):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        source = self._source
+        dest = self._destination
+        if isinstance(self._source, Litteral):
+            return self.formatBinary(wordSize, [(dest, regSize), (source.getValue(), 0)])
+        return self.formatBinary(wordSize, [(dest, regSize), (source, regSize)])
 
 class AsmStoreLine(AsmLine):
     def __init__(self, parent, label, opcode, asmCommand, source, destination):
@@ -201,6 +212,16 @@ class AsmStoreLine(AsmLine):
     def __str__(self):
         return self._label + "\t" + self._asmCommand + " r" + str(self._source) + ", " + str(self._destination)
 
+    def getBinary(self, wordSize, regSize):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        source = self._source
+        dest = self._destination
+        memAbsolutePosition = self._parent.getMemAbsPos(dest)
+        return self.formatBinary(wordSize, [(source, regSize), (memAbsolutePosition, 0)])
+
 class AsmLoadLine(AsmLine):
     def __init__(self, parent, label, opcode, asmCommand, source, destination):
         '''
@@ -222,6 +243,16 @@ class AsmLoadLine(AsmLine):
 
     def __str__(self):
         return self._label + "\t" + self._asmCommand + " r" + str(self._destination) + ", " + str(self._source)
+
+    def getBinary(self, wordSize, regSize):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        source = self._source
+        dest = self._destination
+        memAbsolutePosition = self._parent.getMemAbsPos(source)
+        return self.formatBinary(wordSize, [(dest, regSize), (memAbsolutePosition, 0)])
 
 class AsmInputLine(AsmLine):
     def __init__(self, parent, label, opcode, asmCommand, destination):

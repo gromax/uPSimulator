@@ -186,6 +186,12 @@ class AssembleurContainer:
         binaryList = [item.getBinary(wordSize, regSize) for item in self.__lines if not isinstance(item, AsmLabelLine)]
         return "\n".join(binaryList)
 
+    def getAsmSize(self):
+        return len([item for item in self.__lines if not isinstance(item, AsmLabelLine)])
+
+    def getMemAbsPos(self,item):
+        return [str(var) for var in self.__memoryData].index(str(item)) + self.getAsmSize()
+
     def __str__(self):
         listStr = [str(item) for item in self.__lines]
         codePart = "\n".join(listStr)
