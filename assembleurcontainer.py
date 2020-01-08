@@ -26,6 +26,14 @@ class AssembleurContainer:
                 return
         self.__memoryData.append(item)
 
+    def __memoryToBinary(self):
+        '''
+        les variables donnent une chaîne de 0
+        les littéraux donnent un entienr en CA2
+        '''
+        wordSize = self.__engine.getDataBits()
+        return [ item.getBinary(wordSize) for item in self.__memoryData]
+
     def pushStore(self, source, destination):
         '''
         source = int (registre)
@@ -184,7 +192,12 @@ class AssembleurContainer:
         regSize = self.__engine.getRegBits()
         wordSize = self.__engine.getDataBits()
         binaryList = [item.getBinary(wordSize, regSize) for item in self.__lines if not isinstance(item, AsmLabelLine)]
-        return "\n".join(binaryList)
+        memoryBinary = self.__memoryToBinary()
+        return "\n".join(binaryList + memoryBinary)
+
+    def getDecimal(self):
+        binaryLines = self.getBinary().split("\n")
+        return [int(item,2) for item in binaryLines]
 
     def getAsmSize(self):
         return len([item for item in self.__lines if not isinstance(item, AsmLabelLine)])
@@ -227,4 +240,7 @@ if __name__=="__main__":
 
 
     print(str(AsmCont))
+    print()
     print(AsmCont.getBinary())
+    print()
+    print(AsmCont.getDecimal())
