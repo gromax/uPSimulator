@@ -1,5 +1,9 @@
 __pycache__
 .idea
 .DS_Store
+<<<<<<< HEAD
 .vscode/.ropeproject/config.py
 .vscode/.ropeproject/objectdb
+=======
+.vscode
+>>>>>>> 94d07291d78f05312ad7823982e04400cf70c063
