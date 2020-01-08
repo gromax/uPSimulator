@@ -129,7 +129,7 @@ class AsmUalLine(AsmLine):
         self._asmCommand = asmCommand
         self._destination = destination
         self._operands = operands
-    
+
     def __str__(self):
         lastOperand = self._operands[-1]
         if isinstance(lastOperand, Litteral):
@@ -179,7 +179,7 @@ class AsmMoveLine(AsmLine):
         if isinstance(self._source, Litteral):
             return self._label + "\t" + self._asmCommand + " r" + str(self._destination) + ", " + str(self._source)
         return self._label + "\t" + self._asmCommand + " r" + str(self._destination) + ", r"+str(self._source)
-    
+
     def getBinary(self, wordSize, regSize):
         '''
         regSize = int : nbre de bits pour les registres
@@ -273,7 +273,7 @@ class AsmInputLine(AsmLine):
 
     def __str__(self):
         return self._label+"\t" + self._asmCommand+" " + str(self._destination)
-    
+
     def getBinary(self, wordSize, regSize):
         '''
         regSize = int : nbre de bits pour les registres
@@ -308,7 +308,7 @@ class AsmPrintLine(AsmLine):
         wordSize = int : nbre de bits pour l'ensemble
         '''
         source = self._source
-        return self.formatBinary(wordSize, [(source, 0)])
+        return self.formatBinary(wordSize, [(source, regSize)])
 
 class AsmHaltLine(AsmLine):
     def __init__(self, parent, label, opcode, asmCommand):
@@ -351,5 +351,5 @@ class AsmLitteralLine(AsmLine):
         regSize = int : nbre de bits pour les registres
         wordSize = int : nbre de bits pour l'ensemble
         '''
-        return format(self._litteral.getValue(), '0'+str(wordSize)+'b')
+        return self._litteral.getBinary(wordSize)
 
