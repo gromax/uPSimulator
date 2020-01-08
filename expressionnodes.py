@@ -2,7 +2,8 @@ from errors import *
 from litteral import Litteral
 
 '''
-Les noeuds ne sont jamais modifiés. Les modifications sont faites sur des clones
+Les noeuds ne sont jamais modifiés.
+toute modification entraîne la création de clones
 '''
 
 class Node:
@@ -53,13 +54,6 @@ class Node:
         retourne un clone avec négation logique s'il y a lieu
         '''
         return self
-
-    def clone(self):
-        '''
-        Seuls les Unary et Binary sont clonés. Les feuilles terminales ne sont pas modifiées
-        '''
-        return self
-
 
 class UnaryNode(Node):
     __knownOperators = ('not', '~', '-')
@@ -118,7 +112,7 @@ class UnaryNode(Node):
         newOperand = self.__operand.negToSubClone()
         if not self.__operator == "-":
             return UnaryNode(self.__operator, newOperand)
-        zero = Litteral(0)
+        zero = ValueNode(Litteral(0))
         return BinaryNode("-", zero, newOperand)
 
     def __str__(self):
@@ -145,6 +139,7 @@ class UnaryNode(Node):
         else:
             self.__operand.calcCompile(CEMObject)
             CEMObject.pushUnaryOperator(self.__operator)
+
     def clone(self):
         cloneOperand = self.__operand.clone()
         operator = self.__operator
@@ -315,11 +310,14 @@ class BinaryNode(Node):
             CEMObject.pushBinaryOperator(operator, firstToCalc == op1)
 
     def clone(self):
+        '''
+        Retourne un clone de l'objet et de son arborescence
+        '''
         op1, op2 = self.__operands
         cloneOp1 = op1.clone()
         cloneOp2 = op2.clone()
         operator = self.__operator
-        return Binary(operator, cloneOp1, cloneOp2)
+        return BinaryNode(operator, cloneOp1, cloneOp2)
 
 class ValueNode(Node):
     def __init__(self,value):
@@ -347,30 +345,39 @@ class ValueNode(Node):
         super(ValueNode,self).calcCompile(CEMObject)
         CEMObject.pushValue(self.__value)
 
+    def clone(self):
+        '''
+        Retourne un clone de l'objet et de son arborescence
+        '''
+        return ValueNode(self.__value.clone())
+
 if __name__=="__main__":
-    from litteral import Litteral
-    from processorengine import ProcessorEngine
-    from assembleurcontainer import AssembleurContainer
-    from compileexpressionmanager import CompileExpressionManager
-    engine = ProcessorEngine()
-    asm = AssembleurContainer(engine)
-    print("Test sur littéral")
-    cem = CompileExpressionManager(engine, asm)
-    node = ValueNode(Litteral(4))
-    node.calcCompile(cem)
-    print(cem)
+    from variable import Variable
 
-    print("Test sur opération unaire")
-    cem = CompileExpressionManager(engine, asm)
-    nodeL = ValueNode(Litteral(4))
-    nodeOp = UnaryNode("-", nodeL)
-    nodeOp.calcCompile(cem)
-    print(cem)
+    #Vérification de base
+    l_1 = ValueNode(Litteral(1))
+    l_10 = ValueNode(Litteral(10))
+    v_x = ValueNode(Variable("x"))
+    v_y = ValueNode(Variable("y"))
 
-    print("Test sur opération binaire")
-    cem = CompileExpressionManager(engine, asm)
-    nodeChild1 = ValueNode(Litteral(4))
-    nodeChild2 = ValueNode(Litteral(3))
-    nodeOp = BinaryNode("-", nodeChild1, nodeChild2)
-    nodeOp.calcCompile(cem)
-    print(cem)
+    l_m1 = UnaryNode("-", l_1)
+    add_x_1 = BinaryNode("+", v_x, l_1)
+    sub_y_10 = BinaryNode("-", v_y, l_10)
+    m = BinaryNode("*", add_x_1, sub_y_10)
+    m2 = BinaryNode("*", l_m1, m)
+    tst = BinaryNode("<=", m2, l_10)
+    ntst = UnaryNode("not", tst)
+
+    print(ntst)
+
+    # vérification de l'ajustement des test
+    ntst_adj = ntst.adjustConditionClone(["==", "<"])
+    print(ntst_adj)
+
+    # vérication négation logique
+    neg_ntst = ntst.logicNegateClone()
+    print(neg_ntst)
+
+    # vérification de la suppression du neg
+    neg_replace_tst = ntst.negToSubClone()
+    print(neg_replace_tst)
