@@ -129,6 +129,7 @@ class AsmUalLine(AsmLine):
         self._asmCommand = asmCommand
         self._destination = destination
         self._operands = operands
+    
     def __str__(self):
         lastOperand = self._operands[-1]
         if isinstance(lastOperand, Litteral):
@@ -272,6 +273,15 @@ class AsmInputLine(AsmLine):
 
     def __str__(self):
         return self._label+"\t" + self._asmCommand+" " + str(self._destination)
+    
+    def getBinary(self, wordSize, regSize):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        dest = self._destination
+        memAbsolutePosition = self._parent.getMemAbsPos(dest)
+        return self.formatBinary(wordSize, [(memAbsolutePosition, 0)])
 
 class AsmPrintLine(AsmLine):
     def __init__(self, parent, label, opcode, asmCommand, source):
@@ -292,6 +302,14 @@ class AsmPrintLine(AsmLine):
     def __str__(self):
         return self._label+"\t" + self._asmCommand+" r" + str(self._source)
 
+    def getBinary(self, wordSize, regSize):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        source = self._source
+        return self.formatBinary(wordSize, [(source, 0)])
+
 class AsmHaltLine(AsmLine):
     def __init__(self, parent, label, opcode, asmCommand):
         '''
@@ -308,6 +326,13 @@ class AsmHaltLine(AsmLine):
     def __str__(self):
         return self._label + "\t" + self._asmCommand
 
+    def getBinary(self, wordSize, regSize):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        return self.formatBinary(wordSize, [])
+
 class AsmLitteralLine(AsmLine):
     def __init__(self, parent, litteral):
         '''
@@ -320,4 +345,11 @@ class AsmLitteralLine(AsmLine):
 
     def __str__(self):
         return str(self._litteral)+"\t"+str(self._litteral.getValue())
+
+    def getBinary(self, wordSize, regSize):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        return format(self._litteral.getValue(), '0'+str(wordSize)+'b')
 

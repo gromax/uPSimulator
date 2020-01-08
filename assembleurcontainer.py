@@ -21,8 +21,8 @@ class AssembleurContainer:
         ajoute si nécessaire l'item à la liste
         '''
         assert isinstance(item,Variable) or isinstance(item,Litteral)
-        for item in self.__memoryData:
-            if str(item) == str(item):
+        for item_memory in self.__memoryData:
+            if str(item_memory) == str(item):
                 return
         self.__memoryData.append(item)
 
@@ -109,7 +109,7 @@ class AssembleurContainer:
                 if self.__engine.bigLitteralIsNextLine():
                     operands = operands[:-1]+(Litteral(maxSize+1),)
                     self.__lines.append(AsmUalLine(self, "", opcode, asmCommand, destination, operands))
-                    self.__lines.append(AsmLitteralLine(self, source))
+                    self.__lines.append(AsmLitteralLine(self, lastOperand))
                     return
                 raise CompilationError(f"Litteral trop grand pour {operator}")
             raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur")
@@ -208,4 +208,23 @@ class AssembleurContainer:
                 index += 1
         return None
 
+if __name__=="__main__":
+    from assembleurcontainer import *
+    from expressionparser import ExpressionParser
+    from processorengine import ProcessorEngine
+    EP = ExpressionParser()
 
+    engine = ProcessorEngine()
+    AsmCont = AssembleurContainer(engine)
+    AsmCont.pushMove(2,1)
+    AsmCont.pushMove(Litteral(2),1)
+    AsmCont.pushUal("+",2,(3,Litteral(1089)))
+    AsmCont.pushStore(1,Variable("x"))
+    AsmCont.pushLoad(Variable("x"),3)
+    AsmCont.pushInput(Variable("x"))
+    AsmCont.pushPrint(1)
+    AsmCont.pushHalt()
+
+
+    print(str(AsmCont))
+    print(AsmCont.getBinary())
