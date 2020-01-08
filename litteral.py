@@ -13,5 +13,8 @@ class Litteral:
     def getValue(self):
         return self.__value
 
+    def clone(self):
+        return Litteral(self.__value)
+
     def __str__(self):
         return "#"+str(self.__value)
