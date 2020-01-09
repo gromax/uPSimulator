@@ -74,11 +74,11 @@ class AssembleurContainer:
             asmCommand = self.__engine.getAsmCommand("move_l")
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn("move_l")
-                if sourceisBetween(0,maxSize):
+                if source.isBetween(0,maxSize):
                     self.__lines.append(AsmMoveLine(self, "", opcode, asmCommand, source, destination))
                     return
                 if self.__engine.bigLitteralIsNextLine():
-                    self.__lines.append(AsmMoveLine(self, "", opcode, asmCommand, Litteral(maxSize+1), destination))
+                    self.__lines.append(AsmMoveLine(self, "", opcode, asmCommand, Litteral(None), destination))
                     self.__lines.append(AsmLitteralLine(self, source))
                     return
             self.__pushMemory(source)
@@ -113,7 +113,7 @@ class AssembleurContainer:
                     self.__lines.append(AsmUalLine(self, "", opcode, asmCommand, destination, operands))
                     return
                 if self.__engine.bigLitteralIsNextLine():
-                    operands = operands[:-1]+(Litteral(maxSize+1),)
+                    operands = operands[:-1]+(Litteral(None),)
                     self.__lines.append(AsmUalLine(self, "", opcode, asmCommand, destination, operands))
                     self.__lines.append(AsmLitteralLine(self, lastOperand))
                     return
