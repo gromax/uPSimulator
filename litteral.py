@@ -10,9 +10,6 @@ class Litteral:
         assert isinstance(value,int)
         self.__value = value
 
-    def getValue(self):
-        return self.__value
-
     def clone(self):
         return Litteral(self.__value)
 
@@ -22,6 +19,9 @@ class Litteral:
         else:
             valueToCode = self.__value
         return format(valueToCode, '0'+str(wordSize)+'b')
+
+    def isBetween(self, minValue, maxValue):
+        return minValue <= self.__value <= maxValue
 
     def __str__(self):
         return "#"+str(self.__value)

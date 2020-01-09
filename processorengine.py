@@ -3,7 +3,7 @@ from errors import *
 DEFAULT_ENGINE_ATTRIBUTES = {
   "register_bits":3,
   "free_ual_output": True,
-  "bigLitteralIsNextLine": True,  
+  "bigLitteralIsNextLine": True,
   "data_bits": 16,
   "halt":   { "opcode":"00000", "asm":"HALT", "opnumber":0 },
   "goto":   { "opcode":"00001", "asm":"JMP", "opnumber":1 },
@@ -125,7 +125,7 @@ class ProcessorEngine:
         if self.bigLitteralIsNextLine():
             return True
         maxLitteralSize = self.getLitteralMaxSizeIn(operatorForLitteral)
-        return maxLitteralSize >= litteral.getValue()
+        return litteral.isBetween(0, maxLitteralSize)
 
     def bigLitteralIsNextLine(self):
         if "bigLitteralIsNextLine" in self.__attributes:

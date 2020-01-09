@@ -22,7 +22,7 @@ class AsmLine:
     def formatBinary(self, wordSize, items):
         '''
         wordSize = int = nombre de bits que doit contenir le mot
-        items = Liste de tuple avec (valeur, taille)
+        items = Liste de tuple avec (valeur, taille), valeur = int ou Litteral
         Si taille = 0, occupe tout l'espace disponible
         Erreur si le code final dépasse la taille donné
         Sinon on complète avec des 0
@@ -34,7 +34,10 @@ class AsmLine:
                 size = sizeForItems - len(strItems)
             if size < 0:
                 raise CompilationError("Place allouée à un code binaire négative !")
-            strItems += format(valeur, '0'+str(size)+'b')
+            if isinstance(valeur, Litteral):
+                strItems += valeur.getBinary(size)
+            else:
+                strItems += format(valeur, '0'+str(size)+'b')
         unusedBits = sizeForItems - len(strItems)
         if unusedBits < 0:
             raise CompilationError(f"Le code {code} dépasse la taille limit de {wordSize} bits.")
@@ -152,7 +155,7 @@ class AsmUalLine(AsmLine):
             items.append((self._destination, regSize))
         for op in self._operands:
             if isinstance(op, Litteral):
-                items.append((op.getValue(), 0))
+                items.append((op, 0))
             else:
                 items.append((op,regSize))
         return self.formatBinary(wordSize, items)
@@ -188,7 +191,7 @@ class AsmMoveLine(AsmLine):
         source = self._source
         dest = self._destination
         if isinstance(self._source, Litteral):
-            return self.formatBinary(wordSize, [(dest, regSize), (source.getValue(), 0)])
+            return self.formatBinary(wordSize, [(dest, regSize), (source, 0)])
         return self.formatBinary(wordSize, [(dest, regSize), (source, regSize)])
 
 class AsmStoreLine(AsmLine):
@@ -344,7 +347,7 @@ class AsmLitteralLine(AsmLine):
         self._litteral = litteral
 
     def __str__(self):
-        return str(self._litteral)+"\t"+str(self._litteral.getValue())
+        return "\t"+str(self._litteral)
 
     def getBinary(self, wordSize, regSize):
         '''
