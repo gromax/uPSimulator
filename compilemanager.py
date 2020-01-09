@@ -195,9 +195,8 @@ if __name__=="__main__":
 
     varX = Variable('x')
     varY = Variable('y')
-    expr = EP.buildExpression('3*x+2')
 
-    affectationX = AffectationNode(4, varX, EP.buildExpression('x+1'))
+    affectationX = AffectationNode(4, varX, EP.buildExpression('-3*x+1'))
     affectationY = AffectationNode(5, varY, EP.buildExpression('y+x'))
     structuredList = [
         AffectationNode(1, varX, EP.buildExpression('0')),
