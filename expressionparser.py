@@ -77,6 +77,10 @@ class TokenUnaryOperator(Token):
         if len(operandsList) == 0:
             raise ExpressionError(f"Plus d'opérande pour : {self.__operator}")
         operand = operandsList.pop()
+        # Le cas NEG sur litteral devrait se contenter de preondre l'opposé du littéral
+        if self.__operator == "-" and operand.isLitteral():
+            negLitt = operand.getValue().negClone()
+            return ValueNode(negLitt)
         return UnaryNode(self.__operator, operand)
 
 class TokenVariable(Token):
@@ -365,6 +369,7 @@ class ExpressionParser:
 if __name__=="__main__":
     EP = ExpressionParser()
     for strExpression in [
+      "-2 + x",
       "(x < 10 or y < 100)",
       "3*x+ 5 -y",
       "+ 6 -4*x / 3",
