@@ -9,6 +9,7 @@ from variable import Variable
 
 class AsmLine:
     _label = ""
+    _lineNumber = -1
     def getBinary(self, wordSize, regSize):
         '''
         regSize = int : nbre de bits pour les registres
@@ -47,12 +48,14 @@ class AsmLine:
         return self._label
 
 class AsmLabelLine(AsmLine):
-    def __init__(self, parent, label):
+    def __init__(self, parent, lineNumber, label):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         '''
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
 
     def __str__(self):
@@ -60,15 +63,17 @@ class AsmLabelLine(AsmLine):
 
 
 class AsmJumpLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, cible):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, cible):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
         cible = string (label)
         '''
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -88,9 +93,10 @@ class AsmJumpLine(AsmLine):
         return self.formatBinary(wordSize, [(lineCible, 0)])
 
 class AsmCmpLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, operands):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, operands):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
@@ -98,6 +104,7 @@ class AsmCmpLine(AsmLine):
         '''
         assert len(operands) == 2
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -116,9 +123,10 @@ class AsmCmpLine(AsmLine):
 
 
 class AsmUalLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, destination, operands):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, destination, operands):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
@@ -127,6 +135,7 @@ class AsmUalLine(AsmLine):
         '''
         assert len(operands) != 0
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -161,9 +170,10 @@ class AsmUalLine(AsmLine):
         return self.formatBinary(wordSize, items)
 
 class AsmMoveLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, source, destination):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, source, destination):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
@@ -172,6 +182,7 @@ class AsmMoveLine(AsmLine):
         '''
         assert isinstance(source,int) or isinstance(source,Litteral)
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -195,9 +206,10 @@ class AsmMoveLine(AsmLine):
         return self.formatBinary(wordSize, [(dest, regSize), (source, regSize)])
 
 class AsmStoreLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, source, destination):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, source, destination):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
@@ -207,6 +219,7 @@ class AsmStoreLine(AsmLine):
         assert isinstance(source,int)
         assert isinstance(destination, Variable)
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -227,9 +240,10 @@ class AsmStoreLine(AsmLine):
         return self.formatBinary(wordSize, [(source, regSize), (memAbsolutePosition, 0)])
 
 class AsmLoadLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, source, destination):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, source, destination):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
@@ -239,6 +253,7 @@ class AsmLoadLine(AsmLine):
         assert isinstance(destination,int)
         assert isinstance(source, Variable) or isinstance(source, Litteral)
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -259,9 +274,10 @@ class AsmLoadLine(AsmLine):
         return self.formatBinary(wordSize, [(dest, regSize), (memAbsolutePosition, 0)])
 
 class AsmInputLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, destination):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, destination):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
@@ -269,6 +285,7 @@ class AsmInputLine(AsmLine):
         '''
         assert isinstance(destination, Variable)
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -287,9 +304,10 @@ class AsmInputLine(AsmLine):
         return self.formatBinary(wordSize, [(memAbsolutePosition, 0)])
 
 class AsmPrintLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand, source):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, source):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
@@ -297,6 +315,7 @@ class AsmPrintLine(AsmLine):
         '''
         assert isinstance(source, int)
         self._parent = parent
+        self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
@@ -337,13 +356,15 @@ class AsmHaltLine(AsmLine):
         return self.formatBinary(wordSize, [])
 
 class AsmLitteralLine(AsmLine):
-    def __init__(self, parent, litteral):
+    def __init__(self, parent, lineNumber, litteral):
         '''
         parent = objet AssembleurContainer parent
+        lineNumber = int = numéro de la ligne d'origine
         litteral = Litteral object
         '''
         assert isinstance(litteral,Litteral)
         self._parent = parent
+        self._lineNumber = lineNumber
         self._litteral = litteral
 
     def __str__(self):
