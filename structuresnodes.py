@@ -2,6 +2,7 @@ from expression import Expression
 from variable import Variable
 
 class StructureNode:
+    _lineNumber= 0
     def __str__(self):
         return "noeud de structure"
 
@@ -11,6 +12,9 @@ class StructureNode:
         csl = liste de string : symboles de comparaisons disponibles - utile seulement pour IfNode et héritiers
         '''
         return [ self ]
+
+    def getLineNumber(self):
+        return self._lineNumber
 
 class IfNode(StructureNode):
     @classmethod
