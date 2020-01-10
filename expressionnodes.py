@@ -146,8 +146,8 @@ class UnaryNode(Node):
         return UnaryNode(operator, cloneOperand)
 
 class BinaryNode(Node):
-    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '<', '>', '<=', '>=', '==')
-    __symetricOperators = ('+', '*', '&', '|')
+    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '^', '<', '>', '<=', '>=', '==')
+    __symetricOperators = ('+', '*', '&', '|', '^')
     __logicalOperators = ("and", "or")
     __comparaisonOperators = ("<=", "<", ">=", ">", "==", "!=")
     def __init__(self,operator,operand1, operand2):

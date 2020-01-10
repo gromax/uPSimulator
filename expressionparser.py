@@ -23,7 +23,7 @@ class Token:
 
 
 class TokenBinaryOperator(Token):
-    regex = "<=|==|>=|!=|[<>+\-*\/%&|]|and|or"
+    regex = "<=|==|>=|!=|[\^<>+\-*\/%&|]|and|or"
 
     def __init__(self,expression):
         self.__operator = expression.strip()
@@ -38,10 +38,12 @@ class TokenBinaryOperator(Token):
             return 4
         elif self.__operator in "+-":
             return 5
-        elif self.__operator in "*/&|":
+        elif self.__operator == "|":
             return 6
-        elif self.__operator == "%":
+        elif self.__operator in "*/&^":
             return 7
+        elif self.__operator == "%":
+            return 8
         else:
             # cas du or
             return 1
@@ -376,6 +378,7 @@ if __name__=="__main__":
       "x<4 and y>3*x",
       "(2 < 4) * (3+x)",
       "(2+x) and (x-1)",
+      "45^x",
       "x"
     ]:
         print("Test de :",strExpression)
