@@ -11,9 +11,15 @@ from variable import Variable
 from litteral import Litteral
 
 class CompileExpressionManager:
-    def __init__(self, engine, asmManager):
+    def __init__(self, engine, asmManager, lineNumber = -1):
+        '''
+        engine = objet ProcessorEngine, définit le modèle de processeur utilisé
+        asmManager = objet AssembleurContainer, contient le code assembleur final
+        lineNumber = int = ligne d'origine de l'expression qui sera compilée
+        '''
         self.__engine = engine
         self.__asmManager = asmManager
+        self.__lineNumber = lineNumber
 
         self.__registersNumber = self.__engine.registersNumber()
         assert self.__registersNumber > 1
@@ -82,7 +88,7 @@ class CompileExpressionManager:
             raise CompilationError("Pas de données en mémoire disponible")
         destinationRegister = self.__getAvailableRegister()
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
-        self.__asmManager.pushLoad(memoryVariable, desinationRegister)
+        self.__asmManager.pushLoad(self.__lineNumber, memoryVariable, desinationRegister)
         self.__memoryStackLastIndex -= 1
         return destinationRegister
 
@@ -105,7 +111,7 @@ class CompileExpressionManager:
         '''
         self.__memoryStackLastIndex +=1
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
-        self.__asmManager.pushStore(sourceRegister, memoryVariable)
+        self.__asmManager.pushStore(self.__lineNumber, sourceRegister, memoryVariable)
 
     def __freeZeroRegister(self, toMemory):
         '''
@@ -123,7 +129,7 @@ class CompileExpressionManager:
             assert len(self.__availableRegisters) > 0
             destinationRegister = self.__availableRegisters.pop()
             self.__registerStack[index0] = destinationRegister
-            self.__asmManager.pushMove(0, desinationRegister)
+            self.__asmManager.pushMove(self.__lineNumber, 0, desinationRegister)
 
     ### public
     def resetMemory(self):
@@ -157,10 +163,10 @@ class CompileExpressionManager:
         else:
             op1, op2 = rLastCalc, rFirstCalc
         if operator == "cmp":
-            self.__asmManager.pushCmp(op1, op2)
+            self.__asmManager.pushCmp(self.__lineNumber, op1, op2)
         else:
             registreDestination = self.__getAvailableRegister()
-            self.__asmManager.pushUal(operator, registreDestination, (op1, op2))
+            self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (op1, op2))
 
     def pushBinaryOperatorWithLitteral(self, operator, litteral):
         '''
@@ -175,7 +181,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(operator, registreDestination, (registreOperand, litteral))
+        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand, litteral))
 
     def pushUnaryOperator(self, operator):
         '''
@@ -189,7 +195,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(operator, registreDestination, (registreOperand,))
+        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand,))
 
     def pushUnaryOperatorWithLitteral(self, operator, litteral):
         '''
@@ -199,7 +205,7 @@ class CompileExpressionManager:
         occupe le premier registre libre pour le résultat
         '''
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(operator, registreDestination, (litteral,))
+        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (litteral,))
 
     def pushValue(self, value):
         '''
@@ -208,9 +214,9 @@ class CompileExpressionManager:
         '''
         registreDestination = self.__getAvailableRegister()
         if isinstance(value, Litteral):
-            self.__asmManager.pushMove(value, registreDestination)
+            self.__asmManager.pushMove(self.__lineNumber, value, registreDestination)
         else:
-            self.__asmManager.pushLoad(value, registreDestination)
+            self.__asmManager.pushLoad(self.__lineNumber, value, registreDestination)
 
     def getNeededRegisterSpace(self, cost, needUAL):
         '''

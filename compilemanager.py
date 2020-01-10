@@ -137,44 +137,45 @@ class CompilationManager:
             goOnFlag = self.__delNotUseLabel(linearList) or goOnFlag
             goOnFlag = self.__delJumpToNextLine(linearList) or goOnFlag
 
-    def __pushExpressionAsm(self, expression):
+    def __pushExpressionAsm(self, lineNumber, expression):
         '''
         expression : objet Expression
         '''
         if not self.__engine.hasNEG():
             expression = expression.negToSubClone()
-        cem = CompileExpressionManager(self.__engine, self.__asm)
+        cem = CompileExpressionManager(self.__engine, self.__asm, lineNumber)
         expression.compile(cem)
         return cem.getResultRegister()
 
     def __pushNodeAsm(self, node):
+        lineNumber = node.getLineNumber()
         if isinstance(node, LabelNode):
-            self.__asm.pushLabel(node)
+            self.__asm.pushLabel(lineNumber, node)
             return
         if isinstance(node, AffectationNode):
             expression = node.getExpression()
             cible = node.getCible()
-            resultRegister = self.__pushExpressionAsm(expression)
-            self.__asm.pushStore(resultRegister, cible)
+            resultRegister = self.__pushExpressionAsm(lineNumber, expression)
+            self.__asm.pushStore(lineNumber, resultRegister, cible)
             return
         if isinstance(node, InputNode):
             cible = node.getCible()
-            self.__asm.pushInput(cible)
+            self.__asm.pushInput(lineNumber, cible)
             return
         if isinstance(node, PrintNode):
             expression = node.getExpression()
-            resultRegister = self.__pushExpressionAsm(expression)
-            self.__asm.pushPrint(resultRegister)
+            resultRegister = self.__pushExpressionAsm(lineNumber, expression)
+            self.__asm.pushPrint(lineNumber, resultRegister)
             return
         if isinstance(node, JumpNode):
             cible = node.getCible()
             condition = node.getCondition()
             if condition == None:
-                self.__asm.pushJump(cible)
+                self.__asm.pushJump(lineNumber, cible)
                 return
             comparaisonSymbol = condition.getComparaisonSymbol()
-            self.__pushExpressionAsm(condition)
-            self.__asm.pushJump(cible, comparaisonSymbol)
+            self.__pushExpressionAsm(lineNumber, condition)
+            self.__asm.pushJump(lineNumber, cible, comparaisonSymbol)
 
     def __compileASM(self):
         for node in self.__linearList:
