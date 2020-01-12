@@ -74,7 +74,7 @@ class Expression:
         return self.__rootNode.getRegisterCost()
 
     def negToSubClone(self):
-        newRootNode = self.__rootNode.negTosubClone()
+        newRootNode = self.__rootNode.negToSubClone()
         return Expression(newRootNode)
 
     def getComparaisonSymbol(self):
