@@ -122,7 +122,8 @@ class IfElseNode(IfNode):
           ifChildren = éléments enfants
           elseChildren = éléments enfants
         '''
-        super(IfNode, self).__init__(ifLineNumber, condition, ifChildren)
+        super().__init__(ifLineNumber, condition, ifChildren)
+        #super(IfNode, self).__init__(ifLineNumber, condition, ifChildren)
         for node in elseChildren:
             assert isinstance(node,StructureNode)
         self._elseChildren = elseChildren
@@ -141,7 +142,7 @@ class IfElseNode(IfNode):
         labelElse = LabelNode()
         labelFin = LabelNode()
         sautFin = JumpNode(self._lineNumber, labelFin)
-        listForCondition = _decomposeCondition(csl, labelIf, labelElse)
+        listForCondition = self._decomposeCondition(csl, labelIf, labelElse)
         listForIfChildren = self._recursiveLinearStructureListOnChildren(self._children)
         listForElseChildren = self._recursiveLinearStructureListOnChildren(self._elseChildren)
         outputList = listForCondition
@@ -277,11 +278,14 @@ class JumpNode(StructureNode):
 
 if __name__=="__main__":
     from expressionparser import *
-    VM = VariableManager()
-    EP = ExpressionParser(VM)
+    # VM = VariableManager()
+    # EP = ExpressionParser(VM)
+    EP = ExpressionParser()
 
-    varX = VM.addVariableByName('x')
-    varY = VM.addVariableByName('y')
+    # varX = VM.addVariableByName('x')
+    # varY = VM.addVariableByName('y')
+    varX = Variable('x')
+    varY = Variable('y')
     expr = EP.buildExpression('3*x+2')
 
     initialisationX = AffectationNode(1, varX, EP.buildExpression('0'))
