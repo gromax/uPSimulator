@@ -18,11 +18,12 @@ class StructureNode:
 
 class IfNode(StructureNode):
     @classmethod
-    def _recursiveLinearStructureListOnChildren(csl, childrenList):
+    def _recursiveLinearStructureListOnChildren(cls, csl, childrenList):
         '''
+        cls = la classe elle-même
+        csl = liste de string : symboles de comparaisons disponibles - utile seulement pour IfNode et héritiers
         childrenList = Liste de StructureNode
         Sortie = Liste d'items en version linéaire
-        csl = liste de string : symboles de comparaisons disponibles - utile seulement pour IfNode et héritiers
         '''
         outList = []
         for node in childrenList:
@@ -105,7 +106,7 @@ class IfNode(StructureNode):
         labelIf = LabelNode()
         labelFin = LabelNode()
         listForCondition = self._decomposeCondition(csl, labelIf, labelFin)
-        listForChildren = self._recursiveLinearStructureListOnChildren(self._children)
+        listForChildren = self._recursiveLinearStructureListOnChildren(csl, self._children)
         outputList = listForCondition
         outputList.append(labelIf)
         outputList.extend(listForChildren)
@@ -143,8 +144,8 @@ class IfElseNode(IfNode):
         labelFin = LabelNode()
         sautFin = JumpNode(self._lineNumber, labelFin)
         listForCondition = self._decomposeCondition(csl, labelIf, labelElse)
-        listForIfChildren = self._recursiveLinearStructureListOnChildren(self._children)
-        listForElseChildren = self._recursiveLinearStructureListOnChildren(self._elseChildren)
+        listForIfChildren = self._recursiveLinearStructureListOnChildren(csl, self._children)
+        listForElseChildren = self._recursiveLinearStructureListOnChildren(csl, self._elseChildren)
         outputList = listForCondition
         outputList.append(labelIf)
         outputList.extend(listForIfChildren)
@@ -168,7 +169,7 @@ class WhileNode(IfNode):
         labelFin = LabelNode()
         sautRetour = JumpNode(self._lineNumber, labelWhile)
         listForCondition = self._decomposeCondition(csl, labelDebut, labelFin)
-        listForChildren = self._recursiveLinearStructureListOnChildren(self._children)
+        listForChildren = self._recursiveLinearStructureListOnChildren(csl, self._children)
         outputList = [ labelWhile ]
         outputList.extend(listForCondition)
         outputList.append(labelDebut)
@@ -272,7 +273,7 @@ class JumpNode(StructureNode):
         '''
         newCible = LabelNode
         '''
-        return JumpNode(self._lineNumber, self._condition, newCible)
+        return JumpNode(self._lineNumber, newCible, self._condition)
 
 
 
