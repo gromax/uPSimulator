@@ -261,7 +261,8 @@ elif x == 0 :
         test_code = '''
 x = 0
 if x > 0:
-    x = x - 1
+    if x == 2:
+        x = x - 1
 elif x == 0 :
     x = x + 1
   print(x)
