@@ -23,7 +23,7 @@ class CodeParser: # Définition classe
             self.__parseFile(filename)
         elif "code" in options:
             code = options["code"]
-            self.parseCode(code)
+            self.parseCode(code.split("\n"))
         else:
             raise ParseError("Il faut doner 'filename' ou 'code'")
 
@@ -202,7 +202,6 @@ class CodeParser: # Définition classe
     def __structureList(self):
         #Parcours du listing pour ranger les enfants
         listProfondeur = [self.__listingCode[index]["indentation"] for index in range(len(self.__listingCode))]
-        # print(listProfondeur)
         maximun = max(listProfondeur)
         while maximun > 0:
             indexMaximun = listProfondeur.index(maximun)
@@ -239,16 +238,38 @@ if __name__=="__main__":
     print("")
     print(str(code))
     print("")
-    print(code.getFinalStructuredList())
-
-    from compilemanager import *
-    from processorengine import ProcessorEngine
-    engine = ProcessorEngine()
-    cm = CompilationManager(engine, code.getFinalStructuredList())
-    listCompiled = cm.getLinearNodeList()
-    for item in listCompiled:
+    for item in code.getFinalStructuredList():
         print(item)
-    print()
-    print(cm.getAsm())
-    print()
-    print(cm.getAsm().getBinary())
+
+    print("")
+    code = CodeParser(filename = "example2.code")
+    for item in code.getFinalStructuredList():
+        print(item)
+
+    test_code = '''
+x = 0
+if x > 0:
+    x = x - 1
+elif x == 0 :
+    x = x + 1
+'''
+    print("")
+    code = CodeParser(code = test_code)
+    for item in code.getFinalStructuredList():
+        print(item)
+
+        test_code = '''
+x = 0
+if x > 0:
+    x = x - 1
+elif x == 0 :
+    x = x + 1
+  print(x)
+'''
+    print("")
+    code = CodeParser(code = test_code)
+    for item in code.getFinalStructuredList():
+        print(item)
+
+
+
