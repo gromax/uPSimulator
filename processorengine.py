@@ -1,43 +1,68 @@
 from errors import *
 
-DEFAULT_ENGINE_ATTRIBUTES = {
-  "register_bits":3,
-  "free_ual_output": True,
-  "bigLitteralIsNextLine": True,
-  "data_bits": 16,
-  "halt":   { "opcode":"00000", "asm":"HALT", "opnumber":0 },
-  "goto":   { "opcode":"00001", "asm":"JMP", "opnumber":1 },
-  "!=":    { "opcode":"0001000", "asm":"BNE", "opnumber":1 },
-  "==":    { "opcode":"0001001", "asm":"BEQ", "opnumber":1 },
-  "<":    { "opcode":"0001010", "asm":"BLT", "opnumber":1 },
-  ">":    { "opcode":"0001011", "asm":"BGT", "opnumber":1 },
-  "cmp":    { "opcode":"00011", "asm":"CMP", "opnumber":2 },
-  "print":  { "opcode":"00100", "asm":"PRINT", "opnumber":1 },
-  "input":  { "opcode":"00101", "asm":"INPUT", "opnumber":1 },
-  "load":   { "opcode":"0011", "asm":"LOAD", "opnumber":2 },
-  "move":   { "opcode":"01000", "asm":"MOVE", "opnumber":2 },
-  "move_l": { "opcode":"01001", "asm":"MOVE", "opnumber":2 },
-  "neg":    { "opcode":"010100", "asm":"NEG", "opnumber":2},
-  "~":      { "opcode":"010101", "asm":"NOT", "opnumber":2},
-  "neg_l":  { "opcode":"010110", "asm":"NEG", "opnumber":2},
-  "~_l":    { "opcode":"010111", "asm":"NOT", "opnumber":2},
-  "+":      { "opcode":"0110000", "asm":"ADD", "opnumber":3},
-  "-":      { "opcode":"0110001", "asm":"SUB", "opnumber":3},
-  "*":      { "opcode":"0110010", "asm":"MULT", "opnumber":3},
-  "/":      { "opcode":"0110011", "asm":"DIV", "opnumber":3},
-  "%":      { "opcode":"0110100", "asm":"MOD", "opnumber":3},
-  "&":      { "opcode":"0110101", "asm":"AND", "opnumber":3},
-  "|":      { "opcode":"0110110", "asm":"OR", "opnumber":3},
-  "^":      { "opcode":"0110111", "asm":"XOR", "opnumber":3},
-  "store":  { "opcode":"0111", "asm":"STORE", "opnumber":2},
-  "+_l":    { "opcode":"1000", "asm":"ADD", "opnumber":3},
-  "-_l":    { "opcode":"1001", "asm":"SUB", "opnumber":3},
-  "*_l":    { "opcode":"1010", "asm":"MULT", "opnumber":3},
-  "/_l":    { "opcode":"1011", "asm":"DIV", "opnumber":3},
-  "%_l":    { "opcode":"1100", "asm":"MOD", "opnumber":3},
-  "&_l":    { "opcode":"1101", "asm":"AND", "opnumber":3},
-  "|_l":    { "opcode":"1110", "asm":"OR", "opnumber":3},
-  "^_l":    { "opcode":"1111", "asm":"XOR", "opnumber":3}
+ENGINE_COLLECTION = {
+    "default": {
+        "register_bits":3,
+        "free_ual_output": True,
+        "bigLitteralIsNextLine": True,
+        "data_bits": 16,
+        "halt":   { "opcode":"00000", "asm":"HALT", "opnumber":0 },
+        "goto":   { "opcode":"00001", "asm":"JMP", "opnumber":1 },
+        "!=":    { "opcode":"0001000", "asm":"BNE", "opnumber":1 },
+        "==":    { "opcode":"0001001", "asm":"BEQ", "opnumber":1 },
+        "<":    { "opcode":"0001010", "asm":"BLT", "opnumber":1 },
+        ">":    { "opcode":"0001011", "asm":"BGT", "opnumber":1 },
+        "cmp":    { "opcode":"00011", "asm":"CMP", "opnumber":2 },
+        "print":  { "opcode":"00100", "asm":"PRINT", "opnumber":1 },
+        "input":  { "opcode":"00101", "asm":"INPUT", "opnumber":1 },
+        "load":   { "opcode":"0011", "asm":"LOAD", "opnumber":2 },
+        "move":   { "opcode":"01000", "asm":"MOVE", "opnumber":2 },
+        "move_l": { "opcode":"01001", "asm":"MOVE", "opnumber":2 },
+        "neg":    { "opcode":"010100", "asm":"NEG", "opnumber":2},
+        "~":      { "opcode":"010101", "asm":"NOT", "opnumber":2},
+        "neg_l":  { "opcode":"010110", "asm":"NEG", "opnumber":2},
+        "~_l":    { "opcode":"010111", "asm":"NOT", "opnumber":2},
+        "+":      { "opcode":"0110000", "asm":"ADD", "opnumber":3},
+        "-":      { "opcode":"0110001", "asm":"SUB", "opnumber":3},
+        "*":      { "opcode":"0110010", "asm":"MULT", "opnumber":3},
+        "/":      { "opcode":"0110011", "asm":"DIV", "opnumber":3},
+        "%":      { "opcode":"0110100", "asm":"MOD", "opnumber":3},
+        "&":      { "opcode":"0110101", "asm":"AND", "opnumber":3},
+        "|":      { "opcode":"0110110", "asm":"OR", "opnumber":3},
+        "^":      { "opcode":"0110111", "asm":"XOR", "opnumber":3},
+        "store":  { "opcode":"0111", "asm":"STORE", "opnumber":2},
+        "+_l":    { "opcode":"1000", "asm":"ADD", "opnumber":3},
+        "-_l":    { "opcode":"1001", "asm":"SUB", "opnumber":3},
+        "*_l":    { "opcode":"1010", "asm":"MULT", "opnumber":3},
+        "/_l":    { "opcode":"1011", "asm":"DIV", "opnumber":3},
+        "%_l":    { "opcode":"1100", "asm":"MOD", "opnumber":3},
+        "&_l":    { "opcode":"1101", "asm":"AND", "opnumber":3},
+        "|_l":    { "opcode":"1110", "asm":"OR", "opnumber":3},
+        "^_l":    { "opcode":"1111", "asm":"XOR", "opnumber":3}
+    },
+    "12bits": {
+        "register_bits":2,
+        "data_bits": 12,
+        "halt":   { "opcode":"0000", "asm":"HALT", "opnumber":0 },
+        "goto":   { "opcode":"0001", "asm":"JMP", "opnumber":1 },
+        "==":    { "opcode":"0010", "asm":"BEQ", "opnumber":1 },
+        "<":    { "opcode":"0011", "asm":"BLT", "opnumber":1 },
+        "cmp":    { "opcode":"11110101", "asm":"CMP", "opnumber":2 },
+        "print":  { "opcode":"0100", "asm":"PRINT", "opnumber":1 },
+        "input":  { "opcode":"0101", "asm":"INPUT", "opnumber":1 },
+        "load":   { "opcode":"100", "asm":"LOAD", "opnumber":2 },
+        "move":   { "opcode":"11110110", "asm":"MOVE", "opnumber":2 },
+        "~":      { "opcode":"11110111", "asm":"NOT", "opnumber":1},
+        "+":      { "opcode":"11111000", "asm":"ADD", "opnumber":2},
+        "-":      { "opcode":"11111001", "asm":"SUB", "opnumber":2},
+        "*":      { "opcode":"11111010", "asm":"MULT", "opnumber":2},
+        "/":      { "opcode":"11111011", "asm":"DIV", "opnumber":2},
+        "%":      { "opcode":"11111100", "asm":"MOD", "opnumber":2},
+        "&":      { "opcode":"11111101", "asm":"AND", "opnumber":2},
+        "|":      { "opcode":"11111110", "asm":"OR", "opnumber":2},
+        "^":      { "opcode":"11111111", "asm":"XOR", "opnumber":2},
+        "store":  { "opcode":"101", "asm":"STORE", "opnumber":2},
+    }
 }
 
 class Register:
@@ -49,14 +74,14 @@ class Register:
         return "r"+str(self.__index)
 
 class ProcessorEngine:
-    def __init__(self, **options):
+    def __init__(self, name = "default"):
       '''
-      pour l'instant, les paramètres sont forcément définis par le DEFAULT_ENGINE_ATTRIBUTES
-      à venir : possibilité de charger un objet ou un fichier
+      name = string = nom du modèle
       '''
-      self.__attributes = DEFAULT_ENGINE_ATTRIBUTES
+      if not name in ENGINE_COLLECTION:
+          name = "default"
+      self.__attributes = ENGINE_COLLECTION[name]
       assert self.__checkAttributes() == True
-      self.__freeUalOutput = "free_ual_output" in self.__attributes and (self.__attributes["free_ual_output"] == True or self.__attributes["free_ual_output"] == 1)
 
     def __checkAttributes(self):
       if not "register_bits" in self.__attributes or not isinstance(self.__attributes["register_bits"],int) or self.__attributes["register_bits"] < 1:
@@ -69,7 +94,7 @@ class ProcessorEngine:
         return 2**self.__attributes["register_bits"]
 
     def ualOutputIsFree(self):
-        return self.__freeUalOutput
+        return "free_ual_output" in self.__attributes and (self.__attributes["free_ual_output"] == True or self.__attributes["free_ual_output"] == 1)
 
     def hasNEG(self):
         return "neg" in self.__attributes
@@ -81,7 +106,7 @@ class ProcessorEngine:
         '''
         génère une liste de registre disponibles à usage d'un manager de compilation
         '''
-        if self.__freeUalOutput:
+        if self.ualOutputIsFree():
             r0 = Register(0,False)
         else:
             r0 = Register(0,True)
