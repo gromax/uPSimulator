@@ -77,7 +77,7 @@ class CompilationManager:
         '''
         flagActionDone = False
         for index in range(len(linearList)):
-            node = linearList(index)
+            node = linearList[index]
             if isinstance(node,JumpNode) and node.getCible() == labelToDel:
                 flagActionDone = True
                 linearList[index] = node.assignNewCibleClone(label)
@@ -145,7 +145,8 @@ class CompilationManager:
             expression = expression.negToSubClone()
         cem = CompileExpressionManager(self.__engine, self.__asm, lineNumber)
         expression.compile(cem)
-        return cem.getResultRegister()
+        if expression.getType() == 'int':
+            return cem.getResultRegister()
 
     def __pushNodeAsm(self, node):
         lineNumber = node.getLineNumber()
