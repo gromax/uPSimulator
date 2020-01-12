@@ -130,7 +130,7 @@ class IfElseNode(IfNode):
         self._elseLineNumber = elseLineNumber
 
     def __str__(self):
-        ifChildrenStr = self._childrenStr(self._ifChildren)
+        ifChildrenStr = self._childrenStr(self._children)
         elseChildrenStr = self._childrenStr(self._elseChildren)
         return "if "+str(self._condition)+" {\n"+ifChildrenStr+"\n}\nelse {\n"+elseChildrenStr+"\n}"
 
