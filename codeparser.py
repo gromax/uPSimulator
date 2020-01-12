@@ -44,12 +44,16 @@ class CodeParser: # Définition classe
             if not caract['emptyLine'] :
                 # Ajout des informations parsées dans le listing
                 self.__listingCode.append(caract)
+        lineIndentError = self.__verifyIndent()
+        if lineIndentError != -1:
+            raise ParseError(f"{lineIndentError} : Erreur d'indentation en ligne")
+        lineElseError = self.__verifyElse()
+        if lineElseError != -1:
+            raise ParseError(f"{lineElseError} : else / elif n'est relié à aucun if.")
         self.__manageElif()
-        self.__blocControl()
         self.__buildFinalNodeList()
         self.__structureList()
         return
-
 
     def __manageElif(self):
         # Gestion du cas Elif
@@ -89,27 +93,73 @@ class CodeParser: # Définition classe
                         if len(self.__listingCode) == nextIndice + 1: break
         return True
 
-    def __blocControl(self):
-        # Contrôle des blocs et de l'indentation
-        for indice in range(len(self.__listingCode)):
-            if self.__listingCode[indice]['type'] in ("if", "elif", "else", "while"):
-                # cas dernière ligne de code : on attend une instruction
-                if indice+1 == len(self.__listingCode):
-                    raise ParseError(f"Il manque une instruction en fin de programme après la ligne n°{self.__listingCode[indice]['lineNumber']} - bloc <{self.__listingCode[indice]['type']}>")
-                # cas ligne instruction suivante doit avoir une indentation supplémentaire
-                if self.__listingCode[indice+1]['indentation'] != self.__listingCode[indice]['indentation'] + 4:
-                    raise ParseError(f"Problème d'indentation de l'instruction après la ligne n°{self.__listingCode[indice]['lineNumber']} - bloc <{self.__listingCode[indice]['type']}>")
+    def __verifyIndent(self):
+        '''
+        retourne le numéro de ligne d'une erreur d'indentation
+        L'indentation est libre, pas forcément +4
+        Elle ne peut augmenter qu'après if, elif, else, while
+        Quand elle diminue, elle doit retomber à un niveau déjà rencontré antérieurement
+        -1 s'il n'y en a pas
+        '''
+        indentedBlocks = ('if', 'elif', 'else', 'while')
+        if len(self.__listingCode) == 0:
+            # liste vide
+            return -1
+        # doit commencer à 0
+        lines = [(line['indentation'], line['type'], line['lineNumber']) for line in self.__listingCode[1:]]
+        if indents[0] != 0:
+            return -1
+        previousIndents = [0]
+        previousNeedIndent = self.__listingCode[0]['type'] in indentedBlocks
+        for currentIndent, currentType, currentLineNumber in lines:
+            if currentIndent > previousIndents[-1]:
+                if previousNeedIndent in indentedBlocks:
+                    previousIndents.append(currentIndent)
+                else:
+                    return currentLineNumber
+            elif previousNeddIndent and currentIndent <= prepreviousIndents[-1]:
+                return currentLineNumber
+            elif currentIndent < previousIndents[-1]:
+                while previousIndents[-1] > currentIndent:
+                    previousIndents.pop()
+                if currentIndent != previousIndents[-1]:
+                    return currentLineNumber
+            previousNeedIndent = currentType in indentedBlocks
+        # ne doit pas terminé par un item nécessitant indentation
+        if previousNeddIndent:
+            return lineNumber
+        return -1
 
-        # Contrôle de if associé au else - Parcours de liste en sens inverse
-        for line in reversed(self.__listingCode):
-            if line['type'] == 'else':
-                startIndice = self.__listingCode.index(line)
-                startIndentation = line['indentation']
-                nextIndice = startIndice - 1
-                while nextIndice >= 0 and self.__listingCode[nextIndice]['indentation'] > startIndentation:
-                    nextIndice -= 1
-                if nextIndice == -1 or self.__listingCode[nextIndice]['type'] != 'if':
-                    raise ParseError(f"Détection d'un <else> en ligne n°{self.__listingCode[startIndice]['lineNumber']} sans <if> associé")
+    def __verifyElse(self):
+        '''
+        vérifie si un else ou elif donné correspond bien à un if
+        retourne la ligne de l'erreur s'il y en a une
+        -1 si pas d'erreur
+        '''
+        if len(self.__listingCode) == 0:
+            # liste vide
+            return -1
+        lines = [(line['indentation'], line['type'], line['lineNumber']) for line in self.__listingCode]
+        previousIfIndents = []
+        for currentIndent, currentType, currentLineNumber in lines:
+            # fermeture de tout if d'indentation supérieure
+            while len(peviousIfIndents) > 0 and previousIfIndents[-1] > currentIndent:
+                previousIfIndents.pop()
+            if currentType == "else" or currentType == "elif":
+                # ce cas doit poursuivre un if ouvert au même niveau
+                if len(previousIfIndents) == 0 or previousIfIndents[-1] != currentIndent:
+                    return lineNumber
+                if currentType == "else":
+                    # referme le if
+                    previousIfIndents.pop()
+            else
+                # si if ouvert au même niveau, il se referme
+                if len(previousIfIndents) > 0 and previousIfIndents[-1] == currentIndent:
+                    previousIfIndents.pop()
+                if currentType == "if":
+                    # on ouvre un nouveau if
+                    previousIfIndents.push(currentIndent)
+        return -1
 
     def __buildFinalNodeList(self):
         #Construction de la liste d'objets StructureNode
