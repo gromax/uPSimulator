@@ -20,10 +20,10 @@ class CompileExpressionManager:
         self.__engine = engine
         self.__asmManager = asmManager
         self.__lineNumber = lineNumber
-
         self.__registersNumber = self.__engine.registersNumber()
         assert self.__registersNumber > 1
         self.resetMemory()
+        self.log = ""
 
     ### private
     def __freeRegister(self):
@@ -33,10 +33,12 @@ class CompileExpressionManager:
         retourne le numéro du registre libéré
         '''
         if len(self.__registerStack) == 0:
+            self.log += "Erreur : plus de registre à libérer.\n"
             raise CompilationError("Aucun registre à libérer.")
         register = self.__registerStack.pop()
         assert register >= 0
         self.__availableRegisters.append(register)
+        self.log += f"Libération de r{register}\n"
         return register
 
     def __getTopStackRegister(self):
@@ -46,7 +48,7 @@ class CompileExpressionManager:
         Provoque le dépilage d'un item de mémoire et retour du numéro registre ayant accueilli le retour
         '''
         if len(self.__registerStack) == 0:
-            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
+            raise CompilationError("Pas assez d'opérande dans la pile.")
         register = self.__registerStack[-1]
         if register < 0:
             self.__registerStack.pop()
@@ -63,6 +65,7 @@ class CompileExpressionManager:
         op2 = self.__registerStack[-2]
         self.__registerStack[-1] = op2
         self.__registerStack[-2] = op1
+        self.log += f"Permutation registres (mémoires) {op1} et {op2}\n"
 
     def __addNewOperation(self,operation):
         self.__operationList.append(operation)
@@ -78,6 +81,7 @@ class CompileExpressionManager:
             raise CompilationError("Pas de registre disponible")
         register = self.__availableRegisters.pop()
         self.__registerStack.append(register)
+        self.log += f"Registre r{register} occupé.\n"
         return register
 
     def __UALoutputIsAvailable(self):
@@ -88,6 +92,7 @@ class CompileExpressionManager:
             raise CompilationError("Pas de données en mémoire disponible")
         destinationRegister = self.__getAvailableRegister()
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
+        self.log += f"Mémoire {self.__memoryStackLastIndex} chargée dans r{destinationRegister}\n"
         self.__asmManager.pushLoad(self.__lineNumber, memoryVariable, desinationRegister)
         self.__memoryStackLastIndex -= 1
         return destinationRegister
@@ -111,25 +116,25 @@ class CompileExpressionManager:
         '''
         self.__memoryStackLastIndex +=1
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
+        self.log += f"Registre r{sourceRegister} chargé dans la mémoire {self.__memoryStackLastIndex}\n"
         self.__asmManager.pushStore(self.__lineNumber, sourceRegister, memoryVariable)
 
-    def __freeZeroRegister(self, toMemory):
+    def __freeZeroRegister(self):
         '''
         libère spécifiquement le registre 0, même s'il n'est pas au sommet de la pile
-        spécifie s'il faut le déplacer dans la mémoire
         Aucune opération si registre 0 inoccupé
         '''
         if not 0 in self.__registerStack:
             return
         index0 = self.__registerStack.index(0)
-        if toMemory:
+        if len(self.__availableRegisters) == 0:
             self.__copyRegisterToMemory(0)
             self.__registerStack[index0] = -1
         else:
-            assert len(self.__availableRegisters) > 0
             destinationRegister = self.__availableRegisters.pop()
             self.__registerStack[index0] = destinationRegister
-            self.__asmManager.pushMove(self.__lineNumber, 0, desinationRegister)
+            self.log += f"Libération registre r0 vers r{destinationRegister}\n"
+            self.__asmManager.pushMove(self.__lineNumber, 0, destinationRegister)
 
     ### public
     def resetMemory(self):
@@ -226,10 +231,10 @@ class CompileExpressionManager:
         Déplace le registre 0 s'il est nécessaire pour l'UAL
         déplace les registres vers la mémoire autant que possible ou nécessaire
         '''
-        if needUAL and not self.__UALoutputIsAvailable():
-            self.__freeZeroRegister()
         while cost > len(self.__availableRegisters) and len(self.__availableRegisters) < self.__registersNumber:
             self.__moveTopStackRegisterToMemory()
+        if needUAL and not self.__UALoutputIsAvailable():
+            self.__freeZeroRegister()
 
     def stringMemoryUsage(self):
         strAvailableRegisters = ", ".join(["r"+str(it) for it in self.__availableRegisters])
