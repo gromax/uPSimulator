@@ -11,7 +11,7 @@ class Node:
         return False
 
     def needUAL(self):
-        return True
+        return False
 
     def getRegisterCost(self, engine):
         return 1
@@ -146,7 +146,7 @@ class UnaryNode(Node):
         return UnaryNode(operator, cloneOperand)
 
 class BinaryNode(Node):
-    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '^', '<', '>', '<=', '>=', '==')
+    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '^', '<', '>', '<=', '>=', '==', '!=')
     __symetricOperators = ('+', '*', '&', '|', '^')
     __logicalOperators = ("and", "or")
     __comparaisonOperators = ("<=", "<", ">=", ">", "==", "!=")
@@ -204,7 +204,7 @@ class BinaryNode(Node):
             newOp2 = op2.adjustConditionClone(csl)
             return BinaryNode(self.__operator, newOp1, newOp2)
         if self.__operator in self.__comparaisonOperators and not self.__operator in csl:
-            miroir = { "<":">", ">":"<", "<=":"=>", ">=":"<=" }
+            miroir = { "<":">", ">":"<", "<=":"=>", ">=":"<=", "!=":"!=", "==":"==" }
             inverse = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
             inverseMiroir = { "<":"<=", ">":">=", "<=":"<", ">=":">", "==":"!=", "!=":"==" }
             op1, op2 = self.__operands
@@ -278,6 +278,11 @@ class BinaryNode(Node):
 
     def needUAL(self):
         return True
+
+    def getComparaisonSymbol(self):
+        if self.__operator in self.__comparaisonOperators:
+            return self.__operator
+        return None
 
     def calcCompile(self, CEMObject):
         '''
