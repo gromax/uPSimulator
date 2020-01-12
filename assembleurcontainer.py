@@ -20,11 +20,15 @@ class AssembleurContainer:
         item = Variable ou Litteral
         ajoute si nécessaire l'item à la liste
         '''
-        assert isinstance(item,Variable) or isinstance(item,Litteral)
+        assert isinstance(item, Variable) or isinstance(item, Litteral)
         for item_memory in self.__memoryData:
             if str(item_memory) == str(item):
                 return
-        self.__memoryData.append(item)
+        # on place les littéraux devant
+        if isinstance(item, Variable):
+            self.__memoryData.append(item)
+        else:
+            self.__memoryData.insert(0,item)
 
     def __memoryToBinary(self):
         '''
@@ -85,7 +89,7 @@ class AssembleurContainer:
                     self.__lines.append(AsmLitteralLine(self, lineNumber, source))
                     return
             self.__pushMemory(source)
-            self.pushLoad(source, destination)
+            self.pushLoad(lineNumber, source, destination)
             return
         opcode = self.__engine.getOpcode("move")
         asmCommand = self.__engine.getAsmCommand("move")
@@ -215,9 +219,14 @@ class AssembleurContainer:
     def __str__(self):
         listStr = [str(item) for item in self.__lines]
         codePart = "\n".join(listStr)
-        variablesStr = [str(item) + "\tDATA" for item in self.__memoryData if isinstance(item,Variable)]
-        litterauxStr = [str(item) + "\t" + str(item.getValue()) for item in self.__memoryData if isinstance(item,Litteral)]
-        return codePart + "\n" + "\n".join(litterauxStr + variablesStr)
+        memStr = []
+        for item in self.__memoryData:
+            if isinstance(item,Variable):
+                strLine = str(item) + "\tDATA"
+            else:
+                strLine = str(item) + "\t" + str(item)
+            memStr.append(strLine)
+        return codePart + "\n" + "\n".join(memStr)
 
     def getLineLabel(self, label):
         index = 0
@@ -244,7 +253,6 @@ if __name__=="__main__":
     AsmCont.pushInput(Variable("x"))
     AsmCont.pushPrint(1)
     AsmCont.pushHalt()
-
 
     print(str(AsmCont))
     print()
