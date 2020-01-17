@@ -211,7 +211,7 @@ class ExpressionParser:
                 polishStack.append(token)
             elif isinstance(token, TokenParenthesis) and not token.isOpening():
                 while len(waitingStack)>0 and not isinstance(waitingStack[-1], TokenParenthesis):
-                    # forcément une parenthèse ouvrante
+                    # forcément une parenthèse fermante
                     polishStack.append(waitingStack.pop())
             elif isinstance(token, TokenParenthesis):
                 # donc un parenthèse ouvrante
