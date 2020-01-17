@@ -327,7 +327,7 @@ class BinaryNode(Node):
 class ValueNode(Node):
     def __init__(self,value):
         '''
-        value de type int ou Variable
+        value de type Litteral ou Variable
         '''
         self.__value = value
 
