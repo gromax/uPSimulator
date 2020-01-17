@@ -204,7 +204,7 @@ class BinaryNode(Node):
             newOp2 = op2.adjustConditionClone(csl)
             return BinaryNode(self.__operator, newOp1, newOp2)
         if self.__operator in self.__comparaisonOperators and not self.__operator in csl:
-            miroir = { "<":">", ">":"<", "<=":"=>", ">=":"<=", "!=":"!=", "==":"==" }
+            miroir = { "<":">", ">":"<", "<=":">=", ">=":"<=", "!=":"!=", "==":"==" }
             inverse = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
             inverseMiroir = { "<":"<=", ">":">=", "<=":"<", ">=":">", "==":"!=", "!=":"==" }
             op1, op2 = self.__operands
