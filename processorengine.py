@@ -220,7 +220,12 @@ class ProcessorEngine:
         nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
         if nbits <=0:
             raise AttributeError(f"Pas assez de place pour un littéral dans {commandDesc}.")
-        return 2**nbits - 2
+        if self.bigLitteralIsNextLine():
+            # Dans ce cas, le code 1...1 signifie que le littéral est placé en ligne suivante et donc la valeur max est réservée
+            return 2**nbits - 2
+        # sinon, on peut aller jusqu'à la pleine échelle
+        return 2**nbits - 1
+
 
     def getComparaisonSymbolsAvailables(self):
         '''
