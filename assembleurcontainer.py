@@ -173,7 +173,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("print")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour print dans le modèle de processeur.")
-        self.__lines.append(AsmPrintLine(self, lineNumber, "", opcode, asmCommand, source))
+        self.__lines.append(AsmStdLine(self, lineNumber, "", opcode, asmCommand, (source,)))
 
     def pushJump(self, lineNumber, cible, operator = None):
         '''

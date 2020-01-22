@@ -202,35 +202,6 @@ class AsmInputLine(AsmLine):
         memAbsolutePosition = self._parent.getMemAbsPos(dest)
         return self.formatBinary(wordSize, [(memAbsolutePosition, 0)])
 
-class AsmPrintLine(AsmLine):
-    def __init__(self, parent, lineNumber, label, opcode, asmCommand, source):
-        '''
-        parent = objet AssembleurContainer parent
-        lineNumber = int = numéro de la ligne d'origine
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        source = int (registre)
-        '''
-        assert isinstance(source, int)
-        self._parent = parent
-        self._lineNumber = lineNumber
-        self._label = str(label)
-        self._opcode = opcode
-        self._asmCommand = asmCommand
-        self._source = source
-
-    def __str__(self):
-        return self._label+"\t" + self._asmCommand+" r" + str(self._source)
-
-    def getBinary(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
-        source = self._source
-        return self.formatBinary(wordSize, [(source, regSize)])
-
 class AsmLitteralLine(AsmLine):
     def __init__(self, parent, lineNumber, litteral):
         '''
