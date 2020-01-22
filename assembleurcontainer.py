@@ -195,7 +195,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("halt")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour halt dans le modèle de processeur.")
-        self.__lines.append(AsmHaltLine(self, "", opcode, asmCommand))
+        self.__lines.append(AsmStdLine(self, -1, "", opcode, asmCommand, None))
 
     def pushLabel(self, lineNumber, label):
         '''

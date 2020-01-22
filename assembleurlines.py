@@ -108,24 +108,20 @@ class AsmStdLine(AsmLine):
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
-        operands = tuple non vide avec les opérandes, la dernière pouvant être un Litteral
+        operands = tuple avec les opérandes, la dernière pouvant être un Litteral, ou None
         '''
-        assert len(operands) != 0
         self._parent = parent
         self._lineNumber = lineNumber
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
-        self._operands = operands
+        if operands == None :
+            self._operands = ()
+        else:
+            self._operands = operands
 
     def __str__(self):
-        lastOperand = self._operands[-1]
-        if isinstance(lastOperand, Litteral):
-            strLastOperand = str(lastOperand)
-        else:
-            strLastOperand = "r"+str(lastOperand)
-        strOperands = ["r"+str(ope) for ope in self._operands[:-1]]
-        strOperands.append(strLastOperand)
+        strOperands = [ self.stringifyOperand(ope) for ope in self._operands]
         return self._label+"\t"+self._asmCommand+" "+", ".join(strOperands)
 
     def getBinary(self, wordSize, regSize):
@@ -234,29 +230,6 @@ class AsmPrintLine(AsmLine):
         '''
         source = self._source
         return self.formatBinary(wordSize, [(source, regSize)])
-
-class AsmHaltLine(AsmLine):
-    def __init__(self, parent, label, opcode, asmCommand):
-        '''
-        parent = objet AssembleurContainer parent
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        '''
-        self._parent = parent
-        self._label = str(label)
-        self._opcode = opcode
-        self._asmCommand = asmCommand
-
-    def __str__(self):
-        return self._label + "\t" + self._asmCommand
-
-    def getBinary(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
-        return self.formatBinary(wordSize, [])
 
 class AsmLitteralLine(AsmLine):
     def __init__(self, parent, lineNumber, litteral):
