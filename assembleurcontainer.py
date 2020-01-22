@@ -23,7 +23,9 @@ class AssembleurContainer:
         '''
         isLitteral = False
         if isinstance(item, Litteral):
-            item = Variable(str(item), item.getValue())
+            itemValue = item.getValue()
+            itemName = str(itemValue)
+            item = Variable(itemName, itemValue)
             isLitteral = True
         assert isinstance(item, Variable)
         for item_memory in self.__memoryData:
