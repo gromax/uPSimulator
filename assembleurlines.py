@@ -92,7 +92,7 @@ class AsmJumpLine(AsmLine):
             raise CompilationError(f"Label {self._cible} introuvable !")
         return self.formatBinary(wordSize, [(lineCible, 0)])
 
-class AsmUalLine(AsmLine):
+class AsmStdLine(AsmLine):
     def __init__(self, parent, lineNumber, label, opcode, asmCommand, operands):
         '''
         parent = objet AssembleurContainer parent
