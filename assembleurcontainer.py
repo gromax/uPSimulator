@@ -19,16 +19,23 @@ class AssembleurContainer:
         '''
         item = Variable ou Litteral
         ajoute si nécessaire l'item à la liste
+        retourne l'item en mémoire
         '''
-        assert isinstance(item, Variable) or isinstance(item, Litteral)
+        isLitteral = False
+        if isinstance(item, Litteral):
+            item = Variable(str(item), item.getValue())
+            isLitteral = True
+        assert isinstance(item, Variable)
         for item_memory in self.__memoryData:
             if str(item_memory) == str(item):
-                return
+                return item_memory
+
         # on place les littéraux devant
-        if isinstance(item, Variable):
-            self.__memoryData.append(item)
-        else:
+        if isLitteral:
             self.__memoryData.insert(0,item)
+        else:
+            self.__memoryData.append(item)
+        return item
 
     def __memoryToBinary(self):
         '''
@@ -50,9 +57,9 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("store")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour store dans le modèle de processeur.")
-        asmLine = AsmMemoryLine(self, lineNumber, "", opcode, asmCommand, source, destination)
+        memoryItem = self.__pushMemory(destination)
+        asmLine = AsmMemoryLine(self, lineNumber, "", opcode, asmCommand, source, memoryItem)
         self.__lines.append(asmLine)
-        self.__pushMemory(destination)
 
     def pushLoad(self, lineNumber, source, destination):
         '''
@@ -66,9 +73,9 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("load")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour load dans le modèle de processeur.")
-        asmLine = AsmMemoryLine(self, lineNumber, "", opcode, asmCommand, destination, source)
+        memoryItem = self.__pushMemory(source)
+        asmLine = AsmMemoryLine(self, lineNumber, "", opcode, asmCommand, destination, memoryItem)
         self.__lines.append(asmLine)
-        self.__pushMemory(source)
 
     def pushMove(self, lineNumber, source, destination):
         '''
@@ -90,7 +97,6 @@ class AssembleurContainer:
                     self.__lines.append(AsmStdLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
                     self.__lines.append(AsmLitteralLine(self, lineNumber, source))
                     return
-            self.__pushMemory(source)
             self.pushLoad(lineNumber, source, destination)
             return
         opcode = self.__engine.getOpcode("move")
@@ -224,13 +230,7 @@ class AssembleurContainer:
     def __str__(self):
         listStr = [str(item) for item in self.__lines]
         codePart = "\n".join(listStr)
-        memStr = []
-        for item in self.__memoryData:
-            if isinstance(item,Variable):
-                strLine = str(item) + "\tDATA"
-            else:
-                strLine = str(item) + "\t" + str(item)
-            memStr.append(strLine)
+        memStr = [str(item) + "\t" + str(item.getValue()) for item in self.__memoryData]
         return codePart + "\n" + "\n".join(memStr)
 
     def getLineLabel(self, label):

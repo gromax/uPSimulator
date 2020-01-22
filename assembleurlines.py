@@ -146,10 +146,10 @@ class AsmMemoryLine(AsmLine):
         opcode = chaine de caractère
         asmCommand = chaine de caractère
         register = entier
-        memory = Variable ou Litteral
+        memory = Variable
         '''
         assert isinstance(register,int)
-        assert isinstance(memory, Variable) or isinstance(memory, Litteral)
+        assert isinstance(memory, Variable)
         self._parent = parent
         self._lineNumber = lineNumber
         self._label = str(label)
