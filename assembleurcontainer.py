@@ -112,17 +112,19 @@ class AssembleurContainer:
             raise CompilationError(f"Calcul {operator} stocké dans le registre {destination}.")
         if not self.__engine.ualOutputIsFree():
             destination = None
+        if destination != None:
+            operands = (destination,) + operands
         if isinstance(lastOperand, Litteral):
             opcode = self.__engine.getOpcode(operator+"_l")
             asmCommand = self.__engine.getAsmCommand(operator+"_l")
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator+"_l")
                 if lastOperand.isBetween(0,maxSize):
-                    self.__lines.append(AsmUalLine(self, lineNumber, "", opcode, asmCommand, destination, operands))
+                    self.__lines.append(AsmUalLine(self, lineNumber, "", opcode, asmCommand, operands))
                     return
                 if self.__engine.bigLitteralIsNextLine():
                     operands = operands[:-1]+(Litteral(None),)
-                    self.__lines.append(AsmUalLine(self, lineNumber, "", opcode, asmCommand, destination, operands))
+                    self.__lines.append(AsmUalLine(self, lineNumber, "", opcode, asmCommand, operands))
                     self.__lines.append(AsmLitteralLine(self, lineNumber, lastOperand))
                     return
                 raise CompilationError(f"Litteral trop grand pour {operator}")
@@ -131,7 +133,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == None or opcode == None:
             raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
-        self.__lines.append(AsmUalLine(self, lineNumber, "", opcode, asmCommand, destination, operands))
+        self.__lines.append(AsmUalLine(self, lineNumber, "", opcode, asmCommand, operands))
 
     def pushCmp(self, lineNumber, operand1, operand2):
         '''

@@ -123,14 +123,13 @@ class AsmCmpLine(AsmLine):
 
 
 class AsmUalLine(AsmLine):
-    def __init__(self, parent, lineNumber, label, opcode, asmCommand, destination, operands):
+    def __init__(self, parent, lineNumber, label, opcode, asmCommand, operands):
         '''
         parent = objet AssembleurContainer parent
         lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
-        destination = int (registre) ou None si pas nécessaire
         operands = tuple non vide avec les opérandes, la dernière pouvant être un Litteral
         '''
         assert len(operands) != 0
@@ -139,7 +138,6 @@ class AsmUalLine(AsmLine):
         self._label = str(label)
         self._opcode = opcode
         self._asmCommand = asmCommand
-        self._destination = destination
         self._operands = operands
 
     def __str__(self):
@@ -150,9 +148,7 @@ class AsmUalLine(AsmLine):
             strLastOperand = "r"+str(lastOperand)
         strOperands = ["r"+str(ope) for ope in self._operands[:-1]]
         strOperands.append(strLastOperand)
-        if self._destination == None:
-            return self._label+"\t"+self._asmCommand+" "+", ".join(strOperands)
-        return self._label+"\t"+self._asmCommand+" r"+str(self._destination)+", "+", ".join(strOperands)
+        return self._label+"\t"+self._asmCommand+" "+", ".join(strOperands)
 
     def getBinary(self, wordSize, regSize):
         '''
@@ -160,8 +156,6 @@ class AsmUalLine(AsmLine):
         wordSize = int : nbre de bits pour l'ensemble
         '''
         items = []
-        if self._destination != None:
-            items.append((self._destination, regSize))
         for op in self._operands:
             if isinstance(op, Litteral):
                 items.append((op, 0))
