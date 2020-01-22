@@ -86,10 +86,10 @@ class AssembleurContainer:
         source = int (registre) ou Litteral
         '''
         if isinstance(source, Litteral):
-            opcode = self.__engine.getOpcode("move_l")
-            asmCommand = self.__engine.getAsmCommand("move_l")
+            opcode = self.__engine.getLitteralOpcode("move")
+            asmCommand = self.__engine.getLitteralAsmCommand("move")
             if opcode != None and asmCommand != None:
-                maxSize = self.__engine.getLitteralMaxSizeIn("move_l")
+                maxSize = self.__engine.getLitteralMaxSizeIn("move")
                 if source.isBetween(0,maxSize):
                     moveOperands = (destination, source)
                     self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
@@ -126,10 +126,10 @@ class AssembleurContainer:
         if destination != None:
             operands = (destination,) + operands
         if isinstance(lastOperand, Litteral):
-            opcode = self.__engine.getOpcode(operator+"_l")
-            asmCommand = self.__engine.getAsmCommand(operator+"_l")
+            opcode = self.__engine.getLitteralOpcode(operator)
+            asmCommand = self.__engine.getLitteralAsmCommand(operator)
             if opcode != None and asmCommand != None:
-                maxSize = self.__engine.getLitteralMaxSizeIn(operator+"_l")
+                maxSize = self.__engine.getLitteralMaxSizeIn(operator)
                 if lastOperand.isBetween(0,maxSize):
                     self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
                     return

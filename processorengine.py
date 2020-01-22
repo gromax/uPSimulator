@@ -6,62 +6,68 @@ ENGINE_COLLECTION = {
         "free_ual_output": True,
         "bigLitteralIsNextLine": True,
         "data_bits": 16,
-        "halt":   { "opcode":"00000", "asm":"HALT", "opnumber":0 },
-        "goto":   { "opcode":"00001", "asm":"JMP", "opnumber":1 },
-        "!=":    { "opcode":"0001000", "asm":"BNE", "opnumber":1 },
-        "==":    { "opcode":"0001001", "asm":"BEQ", "opnumber":1 },
-        "<":    { "opcode":"0001010", "asm":"BLT", "opnumber":1 },
-        ">":    { "opcode":"0001011", "asm":"BGT", "opnumber":1 },
-        "cmp":    { "opcode":"00011", "asm":"CMP", "opnumber":2 },
-        "print":  { "opcode":"00100", "asm":"PRINT", "opnumber":1 },
-        "input":  { "opcode":"00101", "asm":"INPUT", "opnumber":1 },
-        "load":   { "opcode":"0011", "asm":"LOAD", "opnumber":2 },
-        "move":   { "opcode":"01000", "asm":"MOVE", "opnumber":2 },
-        "move_l": { "opcode":"01001", "asm":"MOVE", "opnumber":2 },
-        "neg":    { "opcode":"010100", "asm":"NEG", "opnumber":2},
-        "~":      { "opcode":"010101", "asm":"NOT", "opnumber":2},
-        "neg_l":  { "opcode":"010110", "asm":"NEG", "opnumber":2},
-        "~_l":    { "opcode":"010111", "asm":"NOT", "opnumber":2},
-        "+":      { "opcode":"0110000", "asm":"ADD", "opnumber":3},
-        "-":      { "opcode":"0110001", "asm":"SUB", "opnumber":3},
-        "*":      { "opcode":"0110010", "asm":"MULT", "opnumber":3},
-        "/":      { "opcode":"0110011", "asm":"DIV", "opnumber":3},
-        "%":      { "opcode":"0110100", "asm":"MOD", "opnumber":3},
-        "&":      { "opcode":"0110101", "asm":"AND", "opnumber":3},
-        "|":      { "opcode":"0110110", "asm":"OR", "opnumber":3},
-        "^":      { "opcode":"0110111", "asm":"XOR", "opnumber":3},
-        "store":  { "opcode":"0111", "asm":"STORE", "opnumber":2},
-        "+_l":    { "opcode":"1000", "asm":"ADD", "opnumber":3},
-        "-_l":    { "opcode":"1001", "asm":"SUB", "opnumber":3},
-        "*_l":    { "opcode":"1010", "asm":"MULT", "opnumber":3},
-        "/_l":    { "opcode":"1011", "asm":"DIV", "opnumber":3},
-        "%_l":    { "opcode":"1100", "asm":"MOD", "opnumber":3},
-        "&_l":    { "opcode":"1101", "asm":"AND", "opnumber":3},
-        "|_l":    { "opcode":"1110", "asm":"OR", "opnumber":3},
-        "^_l":    { "opcode":"1111", "asm":"XOR", "opnumber":3}
+        "litteralCommands":{
+            "neg":  { "opcode":"010110", "asm":"NEG", "opnumber":2},
+            "move": { "opcode":"01001", "asm":"MOVE", "opnumber":2 },
+            "+":    { "opcode":"1000", "asm":"ADD", "opnumber":3},
+            "-":    { "opcode":"1001", "asm":"SUB", "opnumber":3},
+            "*":    { "opcode":"1010", "asm":"MULT", "opnumber":3},
+            "/":    { "opcode":"1011", "asm":"DIV", "opnumber":3},
+            "%":    { "opcode":"1100", "asm":"MOD", "opnumber":3},
+            "&":    { "opcode":"1101", "asm":"AND", "opnumber":3},
+            "|":    { "opcode":"1110", "asm":"OR", "opnumber":3},
+            "^":    { "opcode":"1111", "asm":"XOR", "opnumber":3},
+            "~":    { "opcode":"010111", "asm":"NOT", "opnumber":2}
+        },
+        "commands": {
+            "halt":   { "opcode":"00000", "asm":"HALT" },
+            "goto":   { "opcode":"00001", "asm":"JMP" },
+            "!=":     { "opcode":"0001000", "asm":"BNE" },
+            "==":     { "opcode":"0001001", "asm":"BEQ" },
+            "<":      { "opcode":"0001010", "asm":"BLT" },
+            ">":      { "opcode":"0001011", "asm":"BGT" },
+            "cmp":    { "opcode":"00011", "asm":"CMP" },
+            "print":  { "opcode":"00100", "asm":"PRINT" },
+            "input":  { "opcode":"00101", "asm":"INPUT" },
+            "load":   { "opcode":"0011", "asm":"LOAD" },
+            "move":   { "opcode":"01000", "asm":"MOVE" },
+            "neg":    { "opcode":"010100", "asm":"NEG"},
+            "~":      { "opcode":"010101", "asm":"NOT"},
+            "+":      { "opcode":"0110000", "asm":"ADD"},
+            "-":      { "opcode":"0110001", "asm":"SUB"},
+            "*":      { "opcode":"0110010", "asm":"MULT"},
+            "/":      { "opcode":"0110011", "asm":"DIV"},
+            "%":      { "opcode":"0110100", "asm":"MOD"},
+            "&":      { "opcode":"0110101", "asm":"AND"},
+            "|":      { "opcode":"0110110", "asm":"OR"},
+            "^":      { "opcode":"0110111", "asm":"XOR"},
+            "store":  { "opcode":"0111", "asm":"STORE"}
+        }
     },
     "12bits": {
         "register_bits":2,
         "data_bits": 12,
-        "halt":   { "opcode":"0000", "asm":"HALT", "opnumber":0 },
-        "goto":   { "opcode":"0001", "asm":"JMP", "opnumber":1 },
-        "==":    { "opcode":"0010", "asm":"BEQ", "opnumber":1 },
-        "<":    { "opcode":"0011", "asm":"BLT", "opnumber":1 },
-        "cmp":    { "opcode":"11110101", "asm":"CMP", "opnumber":2 },
-        "print":  { "opcode":"0100", "asm":"PRINT", "opnumber":1 },
-        "input":  { "opcode":"0101", "asm":"INPUT", "opnumber":1 },
-        "load":   { "opcode":"100", "asm":"LOAD", "opnumber":2 },
-        "move":   { "opcode":"11110110", "asm":"MOVE", "opnumber":2 },
-        "~":      { "opcode":"11110111", "asm":"NOT", "opnumber":1},
-        "+":      { "opcode":"11111000", "asm":"ADD", "opnumber":2},
-        "-":      { "opcode":"11111001", "asm":"SUB", "opnumber":2},
-        "*":      { "opcode":"11111010", "asm":"MULT", "opnumber":2},
-        "/":      { "opcode":"11111011", "asm":"DIV", "opnumber":2},
-        "%":      { "opcode":"11111100", "asm":"MOD", "opnumber":2},
-        "&":      { "opcode":"11111101", "asm":"AND", "opnumber":2},
-        "|":      { "opcode":"11111110", "asm":"OR", "opnumber":2},
-        "^":      { "opcode":"11111111", "asm":"XOR", "opnumber":2},
-        "store":  { "opcode":"101", "asm":"STORE", "opnumber":2},
+        "commands": {
+            "halt":   { "opcode":"0000", "asm":"HALT" },
+            "goto":   { "opcode":"0001", "asm":"JMP" },
+            "==":    { "opcode":"0010", "asm":"BEQ" },
+            "<":    { "opcode":"0011", "asm":"BLT" },
+            "cmp":    { "opcode":"11110101", "asm":"CMP" },
+            "print":  { "opcode":"0100", "asm":"PRINT" },
+            "input":  { "opcode":"0101", "asm":"INPUT" },
+            "load":   { "opcode":"100", "asm":"LOAD" },
+            "move":   { "opcode":"11110110", "asm":"MOVE" },
+            "~":      { "opcode":"11110111", "asm":"NOT" },
+            "+":      { "opcode":"11111000", "asm":"ADD" },
+            "-":      { "opcode":"11111001", "asm":"SUB" },
+            "*":      { "opcode":"11111010", "asm":"MULT" },
+            "/":      { "opcode":"11111011", "asm":"DIV" },
+            "%":      { "opcode":"11111100", "asm":"MOD" },
+            "&":      { "opcode":"11111101", "asm":"AND" },
+            "|":      { "opcode":"11111110", "asm":"OR" },
+            "^":      { "opcode":"11111111", "asm":"XOR" },
+            "store":  { "opcode":"101", "asm":"STORE" }
+        }
     }
 }
 
@@ -75,20 +81,42 @@ class Register:
 
 class ProcessorEngine:
     def __init__(self, name = "default"):
-      '''
-      name = string = nom du modèle
-      '''
-      if not name in ENGINE_COLLECTION:
+        '''
+        name = string = nom du modèle
+        '''
+        if not name in ENGINE_COLLECTION:
           name = "default"
-      self.__attributes = ENGINE_COLLECTION[name]
-      assert self.__checkAttributes() == True
+        self.__attributes = ENGINE_COLLECTION[name]
+        if "litteralCommands" in self.__attributes:
+          self.__litteralsCommands = self.__attributes["litteralCommands"]
+        else:
+          self.__litteralsCommands = {}
+        if "commands" in self.__attributes:
+          self.__commands = self.__attributes["commands"]
+        else:
+          self.__commands = {}
+
+        assert self.__checkAttributes() == True
 
     def __checkAttributes(self):
-      if not "register_bits" in self.__attributes or not isinstance(self.__attributes["register_bits"],int) or self.__attributes["register_bits"] < 1:
-        raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
-      if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
-        raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
-      return True
+        if not "register_bits" in self.__attributes or not isinstance(self.__attributes["register_bits"],int) or self.__attributes["register_bits"] < 1:
+          raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
+        if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
+          raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
+        for item in self.__litteralsCommands.values():
+          if not "opnumber" in item:
+              raise AttributeError("Toutes les commandes acceptant un litteral doivent avoir un attribut opnumber")
+          if not "opcode" in item:
+              raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
+          if not "asm" in item:
+              raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
+        for item in self.__commands.values():
+          if not "opcode" in item:
+              raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
+          if not "asm" in item:
+              raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
+
+        return True
 
     def registersNumber(self):
         return 2**self.__attributes["register_bits"]
@@ -97,10 +125,10 @@ class ProcessorEngine:
         return "free_ual_output" in self.__attributes and (self.__attributes["free_ual_output"] == True or self.__attributes["free_ual_output"] == 1)
 
     def hasNEG(self):
-        return "neg" in self.__attributes
+        return "neg" in self.__commands
 
     def hasOperator(self, operator):
-        return operator in self.__attributes
+        return operator in self.__commands
 
     def getRegisterList(self):
         '''
@@ -120,9 +148,9 @@ class ProcessorEngine:
         commandDesc = chaîne de caractère décrivant un type de commande
         sortie = string pour asm, None si n'existe pas
         '''
-        if not commandDesc in self.__attributes:
+        if not commandDesc in self.__commands:
             return None
-        itemAttribute = self.__attributes[commandDesc]
+        itemAttribute = self.__commands[commandDesc]
         return itemAttribute["asm"]
 
     def getOpcode(self, commandDesc):
@@ -130,9 +158,29 @@ class ProcessorEngine:
         commandDesc = chaîne de caractère décrivant un type de commande
         sortie = string pour opcode, None si n'existe pas
         '''
-        if not commandDesc in self.__attributes:
+        if not commandDesc in self.__commands:
             return None
-        itemAttribute = self.__attributes[commandDesc]
+        itemAttribute = self.__commands[commandDesc]
+        return itemAttribute["opcode"]
+
+    def getLitteralAsmCommand(self, commandDesc):
+        '''
+        commandDesc = chaîne de caractère décrivant un type de commande, version littéral
+        sortie = string pour asm, None si n'existe pas
+        '''
+        if not commandDesc in self.__litteralsCommands:
+            return None
+        itemAttribute = self.__litteralsCommands[commandDesc]
+        return itemAttribute["asm"]
+
+    def getLitteralOpcode(self, commandDesc):
+        '''
+        commandDesc = chaîne de caractère décrivant un type de commande, version littéral
+        sortie = string pour opcode, None si n'existe pas
+        '''
+        if not commandDesc in self.__litteralsCommands:
+            return None
+        itemAttribute = self.__litteralsCommands[commandDesc]
         return itemAttribute["opcode"]
 
     def litteralOperatorAvailable(self, operator, litteral):
@@ -144,12 +192,11 @@ class ProcessorEngine:
         Le cas où ce ne serait pas possible serait celui où le littéral
         serait trop grand et que l'on ne prévoirait pas de le placer à la ligne suivante.
         '''
-        operatorForLitteral = operator + "_l"
-        if not operatorForLitteral in self.__attributes:
+        if not operator in self.__litteralsCommands:
             return False
         if self.bigLitteralIsNextLine():
             return True
-        maxLitteralSize = self.getLitteralMaxSizeIn(operatorForLitteral)
+        maxLitteralSize = self.getLitteralMaxSizeIn(operator)
         return litteral.isBetween(0, maxLitteralSize)
 
     def bigLitteralIsNextLine(self):
@@ -162,14 +209,14 @@ class ProcessorEngine:
         commandDesc = chaîne de caractère décrivant un type de commande
         retourne la taille du litteral maximum dans une commande
         '''
-        assert commandDesc in self.__attributes
-        commandAttributes = self.__attributes[commandDesc]
+        assert commandDesc in self.__litteralsCommands
+        commandAttributes = self.__litteralsCommands[commandDesc]
         # on suppose toujours que le littéral peut occuper toute la place restante
         # il faut calculer la place disponible
         nbits_total = self.__attributes["data_bits"]
         nbits_reg = self.__attributes["register_bits"]
-        nb_reg_operands = self.__attributes[commandDesc]["opnumber"] - 1
-        opcode = self.__attributes[commandDesc]["opcode"]
+        nb_reg_operands = commandAttributes["opnumber"] - 1
+        opcode = commandAttributes["opcode"]
         nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
         if nbits <=0:
             raise AttributeError(f"Pas assez de place pour un littéral dans {commandDesc}.")
@@ -180,7 +227,7 @@ class ProcessorEngine:
         Retourne la liste des symbole de comparaison disponibles dans le modèle
         '''
         symbols = ["<=", "<", ">=", ">", "==", "!="]
-        return [item for item in symbols if item in self.__attributes]
+        return [item for item in symbols if item in self.__commands]
 
     def getRegBits(self):
         return self.__attributes["register_bits"]
