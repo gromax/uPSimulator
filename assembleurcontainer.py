@@ -169,7 +169,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("input")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour input dans le modèle de processeur.")
-        self.__lines.append(AsmInputLine(self, lineNumber, "", opcode, asmCommand, destination))
+        self.__lines.append(AsmStdLine(self, lineNumber, "", opcode, asmCommand, (destination,)))
 
     def pushPrint(self, lineNumber, source):
         '''
