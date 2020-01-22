@@ -90,15 +90,11 @@ class AssembleurContainer:
             asmCommand = self.__engine.getLitteralAsmCommand("move")
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn("move")
-                if source.isBetween(0,maxSize):
-                    moveOperands = (destination, source)
-                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
-                    return
-                if self.__engine.bigLitteralIsNextLine():
-                    moveOperands = (destination, Litteral(None))
-                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
-                    self.__lines.append(AsmLitteralLine(self, lineNumber, source))
-                    return
+                if not source.isBetween(0,maxSize):
+                    source.setBig()
+                moveOperands = (destination, source)
+                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
+                return
             self.pushLoad(lineNumber, source, destination)
             return
         opcode = self.__engine.getOpcode("move")
@@ -130,15 +126,12 @@ class AssembleurContainer:
             asmCommand = self.__engine.getLitteralAsmCommand(operator)
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator)
-                if lastOperand.isBetween(0,maxSize):
-                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
-                    return
-                if self.__engine.bigLitteralIsNextLine():
-                    operands = operands[:-1]+(Litteral(None),)
-                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
-                    self.__lines.append(AsmLitteralLine(self, lineNumber, lastOperand))
-                    return
-                raise CompilationError(f"Litteral trop grand pour {operator}")
+                if not lastOperand.isBetween(0,maxSize):
+                    if not self.__engine.bigLitteralIsNextLine():
+                        raise CompilationError(f"Litteral trop grand pour {operator}")
+                    lastOperand.setBig()
+                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
+                return
             raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur")
         opcode = self.__engine.getOpcode(operator)
         asmCommand = self.__engine.getAsmCommand(operator)
@@ -225,7 +218,7 @@ class AssembleurContainer:
         return [int(item,2) for item in binaryLines]
 
     def getAsmSize(self):
-        return len([item for item in self.__lines if not item.isEmpty()])
+        return sum([item.getSizeInMemory() for item in self.__lines])
 
     def getMemAbsPos(self,item):
         nameList = [str(var) for var in self.__memoryData]
@@ -246,8 +239,7 @@ class AssembleurContainer:
         for item in self.__lines:
             if item.getLabel() == label:
                 return lineAdresse
-            if not item.isEmpty():
-                lineAdresse += 1
+            lineAdresse += item.getSizeInMemory()
         return None
 
 if __name__=="__main__":

@@ -51,10 +51,13 @@ class AsmLine:
         '''
         if self.isEmpty():
             return ""
+        bigLitteralToAddNext = None
         items = []
         for op in self._operands:
             if isinstance(op, Litteral):
                 items.append((op, 0))
+                if op.isBig():
+                    bigLitteralToAddNext = op
             elif isinstance(op,Variable):
                 memAbsolutePosition = self._parent.getMemAbsPos(op)
                 if memAbsolutePosition == None:
@@ -69,7 +72,10 @@ class AsmLine:
             else:
                 # registre
                 items.append((op,regSize))
-        return self.formatBinary(wordSize, items)
+        outStr = self.formatBinary(wordSize, items)
+        if bigLitteralToAddNext == None:
+            return outStr
+        return outStr+"\n"+bigLitteralToAddNext.getBinary(wordSize)
 
     def __str__(self):
         strOperands = [ self.stringifyOperand(ope) for ope in self._operands]
@@ -102,29 +108,20 @@ class AsmLine:
     def getLabel(self):
         return self._label
 
-
-class AsmLitteralLine(AsmLine):
-    def __init__(self, parent, lineNumber, litteral):
+    def getSizeInMemory(self):
         '''
-        parent = objet AssembleurContainer parent
-        lineNumber = int = numéro de la ligne d'origine
-        litteral = Litteral object
+        retourne le ligne mémoire que nécessitera cette ligne :
+        - 0 pour ligne vide
+        - 1 pour ligne ordinaire
+        - 2 pour une commande plaçant un littéral à la suite
         '''
-        assert isinstance(litteral,Litteral)
-        self._parent = parent
-        self._lineNumber = lineNumber
-        self._litteral = litteral
+        if self.isEmpty():
+            return 0
+        if len(self._operands)== 0:
+            return 1
+        lastOperand = self._operands[-1]
+        if not isinstance(lastOperand, Litteral) or not lastOperand.isBig():
+            return 1
+        return 2
 
-    def isEmpty(self):
-        return False
-
-    def __str__(self):
-        return "\t"+str(self._litteral)
-
-    def getBinary(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
-        return self._litteral.getBinary(wordSize)
 
