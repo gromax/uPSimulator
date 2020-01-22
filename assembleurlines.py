@@ -108,7 +108,7 @@ class AsmStdLine(AsmLine):
         label = chaîne de caractère
         opcode = chaine de caractère
         asmCommand = chaine de caractère
-        operands = tuple avec les opérandes, la dernière pouvant être un Litteral, ou None
+        operands = None ou  tuple avec les opérandes, la dernière pouvant être un Litteral ou Variable
         '''
         self._parent = parent
         self._lineNumber = lineNumber
@@ -133,44 +133,12 @@ class AsmStdLine(AsmLine):
         for op in self._operands:
             if isinstance(op, Litteral):
                 items.append((op, 0))
+            elif isinstance(op,Variable):
+                memAbsolutePosition = self._parent.getMemAbsPos(op)
+                items.append((memAbsolutePosition,0))
             else:
                 items.append((op,regSize))
         return self.formatBinary(wordSize, items)
-
-class AsmMemoryLine(AsmLine):
-    def __init__(self, parent, lineNumber, label, opcode, asmCommand, register, memory):
-        '''
-        parent = objet AssembleurContainer parent
-        lineNumber = int = numéro de la ligne d'origine
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        register = entier
-        memory = Variable
-        '''
-        assert isinstance(register,int)
-        assert isinstance(memory, Variable)
-        self._parent = parent
-        self._lineNumber = lineNumber
-        self._label = str(label)
-        self._opcode = opcode
-        self._asmCommand = asmCommand
-        self._register = register
-        self._memory = memory
-
-    def __str__(self):
-        return self._label + "\t" + self._asmCommand + " r" + str(self._register) + ", " + str(self._memory)
-
-    def getBinary(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
-        register = self._register
-        memory = self._memory
-        memAbsolutePosition = self._parent.getMemAbsPos(memory)
-        return self.formatBinary(wordSize, [(register, regSize), (memAbsolutePosition, 0)])
-
 
 class AsmInputLine(AsmLine):
     def __init__(self, parent, lineNumber, label, opcode, asmCommand, destination):

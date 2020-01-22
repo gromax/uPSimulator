@@ -60,7 +60,7 @@ class AssembleurContainer:
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour store dans le modèle de processeur.")
         memoryItem = self.__pushMemory(destination)
-        asmLine = AsmMemoryLine(self, lineNumber, "", opcode, asmCommand, source, memoryItem)
+        asmLine = AsmStdLine(self, lineNumber, "", opcode, asmCommand, (source, memoryItem))
         self.__lines.append(asmLine)
 
     def pushLoad(self, lineNumber, source, destination):
@@ -76,7 +76,7 @@ class AssembleurContainer:
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour load dans le modèle de processeur.")
         memoryItem = self.__pushMemory(source)
-        asmLine = AsmMemoryLine(self, lineNumber, "", opcode, asmCommand, destination, memoryItem)
+        asmLine = AsmStdLine(self, lineNumber, "", opcode, asmCommand, (destination, memoryItem))
         self.__lines.append(asmLine)
 
     def pushMove(self, lineNumber, source, destination):
