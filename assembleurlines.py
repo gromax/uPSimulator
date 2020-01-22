@@ -10,6 +10,14 @@ from variable import Variable
 class AsmLine:
     _label = ""
     _lineNumber = -1
+    def stringifyOperand(self, operand):
+        if isinstance(operand, Litteral) or isinstance(operand, Variable):
+            return str(operand)
+        elif isinstance(operand, int):
+            # registre
+            return "r"+str(operand)
+        return "?"
+
     def getBinary(self, wordSize, regSize):
         '''
         regSize = int : nbre de bits pour les registres
