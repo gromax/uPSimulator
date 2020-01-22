@@ -133,42 +133,6 @@ class AsmStdLine(AsmLine):
                 items.append((op,regSize))
         return self.formatBinary(wordSize, items)
 
-class AsmMoveLine(AsmLine):
-    def __init__(self, parent, lineNumber, label, opcode, asmCommand, source, destination):
-        '''
-        parent = objet AssembleurContainer parent
-        lineNumber = int = numéro de la ligne d'origine
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        source = entier (registre) ou Litteral
-        destination = entier (registre)
-        '''
-        assert isinstance(source,int) or isinstance(source,Litteral)
-        self._parent = parent
-        self._lineNumber = lineNumber
-        self._label = str(label)
-        self._opcode = opcode
-        self._asmCommand = asmCommand
-        self._source = source
-        self._destination = destination
-
-    def __str__(self):
-        if isinstance(self._source, Litteral):
-            return self._label + "\t" + self._asmCommand + " r" + str(self._destination) + ", " + str(self._source)
-        return self._label + "\t" + self._asmCommand + " r" + str(self._destination) + ", r"+str(self._source)
-
-    def getBinary(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
-        source = self._source
-        dest = self._destination
-        if isinstance(self._source, Litteral):
-            return self.formatBinary(wordSize, [(dest, regSize), (source, 0)])
-        return self.formatBinary(wordSize, [(dest, regSize), (source, regSize)])
-
 class AsmMemoryLine(AsmLine):
     def __init__(self, parent, lineNumber, label, opcode, asmCommand, register, memory):
         '''

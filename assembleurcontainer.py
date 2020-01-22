@@ -82,10 +82,12 @@ class AssembleurContainer:
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn("move_l")
                 if source.isBetween(0,maxSize):
-                    self.__lines.append(AsmMoveLine(self, lineNumber, "", opcode, asmCommand, source, destination))
+                    moveOperands = (destination, source)
+                    self.__lines.append(AsmStdLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
                     return
                 if self.__engine.bigLitteralIsNextLine():
-                    self.__lines.append(AsmMoveLine(self, lineNumber, "", opcode, asmCommand, Litteral(None), destination))
+                    moveOperands = (destination, Litteral(None))
+                    self.__lines.append(AsmStdLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
                     self.__lines.append(AsmLitteralLine(self, lineNumber, source))
                     return
             self.__pushMemory(source)
@@ -95,7 +97,8 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("move")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour move dans le modèle de processeur.")
-        self.__lines.append(AsmMoveLine(self, lineNumber, "", opcode, asmCommand, source, destination))
+        moveOperands = (destination, source)
+        self.__lines.append(AsmStdLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
 
     def pushUal(self, lineNumber, operator, destination, operands):
         '''
