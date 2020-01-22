@@ -1,6 +1,6 @@
 x=0
 y=0
-while (x < 10 or y < 100):
+while (x < 10 or y < 10000):
     x=x+1
     y=y+x
 print(y)
