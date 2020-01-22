@@ -146,7 +146,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("cmp")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour cmp dans le modèle de processeur.")
-        self.__lines.append(AsmCmpLine(self, lineNumber, "", opcode, asmCommand, (operand1, operand2)))
+        self.__lines.append(AsmUalLine(self, lineNumber, "", opcode, asmCommand, (operand1, operand2)))
 
     def pushInput(self, lineNumber, destination):
         '''

@@ -92,36 +92,6 @@ class AsmJumpLine(AsmLine):
             raise CompilationError(f"Label {self._cible} introuvable !")
         return self.formatBinary(wordSize, [(lineCible, 0)])
 
-class AsmCmpLine(AsmLine):
-    def __init__(self, parent, lineNumber, label, opcode, asmCommand, operands):
-        '''
-        parent = objet AssembleurContainer parent
-        lineNumber = int = numéro de la ligne d'origine
-        label = chaîne de caractère
-        opcode = chaine de caractère
-        asmCommand = chaine de caractère
-        operands = tuple de 2 opérandes
-        '''
-        assert len(operands) == 2
-        self._parent = parent
-        self._lineNumber = lineNumber
-        self._label = str(label)
-        self._opcode = opcode
-        self._asmCommand = asmCommand
-        self._operands = operands
-    def __str__(self):
-        strOperands = ["r"+str(ope) for ope in self._operands]
-        return self._label+"\t"+self._asmCommand+" "+", ".join(strOperands)
-
-    def getBinary(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
-        r1, r2 = self._operands
-        return self.formatBinary(wordSize, [(r1, regSize), (r2, regSize)])
-
-
 class AsmUalLine(AsmLine):
     def __init__(self, parent, lineNumber, label, opcode, asmCommand, operands):
         '''
