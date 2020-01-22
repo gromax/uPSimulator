@@ -26,3 +26,6 @@ class Variable:
         else:
             valueToCode = self.__value
         return format(valueToCode, '0'+str(wordSize)+'b')
+
+    def getValue(self):
+        return self.__value

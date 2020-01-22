@@ -33,6 +33,11 @@ class Litteral:
     def isBetween(self, minValue, maxValue):
         return self.__value == None or minValue <= self.__value <= maxValue
 
+    def getValue(self):
+        if self.__value == None:
+            return 0
+        return self.__value
+
     def __str__(self):
         if self.__value == None:
             return "#Next line"
