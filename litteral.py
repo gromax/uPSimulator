@@ -25,7 +25,12 @@ class Litteral:
         self.__big = True
         return self
 
-    def isBig(self):
+    def isBig(self, bitSize):
+        '''
+        Dans le cas d'un déplacement d'un grand littéral vers la ligne suivante,
+        détermine si ce littéral logera dans l'espace prévu
+        '''
+        return
         return self.__big
 
     def getBinary(self, wordSize):
@@ -42,6 +47,15 @@ class Litteral:
         if len(outStr) > wordSize:
             return "1"*wordSize
         return outStr
+
+    def getBinaryForPos(self, wordSize):
+        '''
+        Retourne la version binaire du littéral
+        S'il est trop grand ou négatif, retourne une chaîne de 1
+        '''
+        if self.__value < 0:
+            return "1".wordSize
+        return self.getBinary(wordSize)
 
     def isBetween(self, minValue, maxValue):
         return minValue <= self.__value <= maxValue
