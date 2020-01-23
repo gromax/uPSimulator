@@ -5,20 +5,20 @@ objet contenant une variable mémoire
 from errors import *
 
 class Variable:
-    def __init__(self, nom, value = 0):
+    def __init__(self, nom:str, value:int = 0):
         self.__nom = nom
         self.__value = value
 
-    def getName(self):
+    def getName(self) -> str:
         return self.__nom
 
-    def clone(self):
-    	return Variable(self.__nom)
+    def clone(self) -> 'Variable':
+        return Variable(self.__nom)
 
-    def __str__(self):
+    def __str__(self) -> 'str':
         return "@"+self.__nom
 
-    def getBinary(self, wordSize):
+    def getBinary(self, wordSize:int) -> 'str':
         '''
         Retourne chaîne de caractère représentant le code CA2 de self.__value
         '''
@@ -32,5 +32,5 @@ class Variable:
             raise CompilationError(f"{self} : Variable de valeur trop grande !")
         return outStr
 
-    def getValue(self):
+    def getValue(self) -> int:
         return self.__value
