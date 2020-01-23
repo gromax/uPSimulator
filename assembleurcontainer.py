@@ -209,7 +209,8 @@ class AssembleurContainer:
     def getBinary(self):
         regSize = self.__engine.getRegBits()
         wordSize = self.__engine.getDataBits()
-        binaryList = [item.getBinary(wordSize, regSize) for item in self.__lines if not item.isEmpty()]
+        bigLitteralNext = self.__engine.bigLitteralIsNextLine()
+        binaryList = [item.getBinary(wordSize, regSize, bigLitteralNext) for item in self.__lines if not item.isEmpty()]
         memoryBinary = self.__memoryToBinary()
         return "\n".join(binaryList + memoryBinary)
 
@@ -218,7 +219,10 @@ class AssembleurContainer:
         return [int(item,2) for item in binaryLines]
 
     def getAsmSize(self):
-        return sum([item.getSizeInMemory() for item in self.__lines])
+        regSize = self.__engine.getRegBits()
+        wordSize = self.__engine.getDataBits()
+        bigLitteralNext = self.__engine.bigLitteralIsNextLine()
+        return sum([item.getSizeInMemory(wordSize, regSize, bigLitteralNext) for item in self.__lines])
 
     def getMemAbsPos(self,item):
         nameList = [str(var) for var in self.__memoryData]
@@ -235,11 +239,14 @@ class AssembleurContainer:
         return codePart + "\n" + "\n".join(memStr)
 
     def getLineLabel(self, label):
+        regSize = self.__engine.getRegBits()
+        wordSize = self.__engine.getDataBits()
+        bigLitteralNext = self.__engine.bigLitteralIsNextLine()
         lineAdresse = 0
         for item in self.__lines:
             if item.getLabel() == label:
                 return lineAdresse
-            lineAdresse += item.getSizeInMemory()
+            lineAdresse += item.getSizeInMemory(wordSize, regSize, bigLitteralNext)
         return None
 
 if __name__=="__main__":

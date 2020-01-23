@@ -59,30 +59,28 @@ class AsmLine:
         if len(self._operands) == 0:
             return self.__zeroPadding(self._opcode, wordSize)
         # construction liste des items à coder
-        bitsForLast = wordSize - len(self._opcode) - (len(self._operands)-1) * regSize
-        if bitsForLast <= 0:
-            raise CompilationError(f"{self} : Plus assez de place pour le dernier opérande !")
+        bitsForLast = self.__getLastOperandSize(wordSize,regSize)
         items = [ (op,regSize) for op in self._operands[:-1] ]
         lastOperand = self._operands[-1]
 
         if isinstance(lastOperand, Litteral):
-            items.append((op, bitsForLast))
+            items.append((lastOperand, bitsForLast))
         elif isinstance(lastOperand,Variable):
-            memAbsolutePosition = self._parent.getMemAbsPos(op)
+            memAbsolutePosition = self._parent.getMemAbsPos(lastOperand)
             if memAbsolutePosition == None:
-                raise CompilationError(f"Mémoire {op} introuvable !")
+                raise CompilationError(f"Mémoire {lastOperand} introuvable !")
             items.append((memAbsolutePosition,bitsForLast))
         elif isinstance(lastOperand,str):
             # label
-            lineCible = self._parent.getLineLabel(op)
+            lineCible = self._parent.getLineLabel(lastOperand)
             if lineCible == None:
-                raise CompilationError(f"Label {op} introuvable !")
+                raise CompilationError(f"Label {lastOperand} introuvable !")
             items.append((lineCible, bitsForLast))
         else:
             # registre
             if bitsForLast < regSize:
                 raise CompilationError(f"{self} : Plus assez de place pour le dernier opérande !")
-            items.append((op,regSize))
+            items.append((lastOperand,regSize))
         outStr = self.formatBinary(wordSize, items)
 
         # il faut prévoir d'ajouter un item en ligne suivante si nécessaire
@@ -119,19 +117,31 @@ class AsmLine:
             if size < 0:
                 raise CompilationError("Place allouée à un code binaire négative !")
             if isinstance(valeur, Litteral):
-                strItems += valeur.getBinaryForPositif(size)
+                strItems += valeur.getBinaryForPos(size)
             else:
                 strItems += format(valeur, '0'+str(size)+'b')
-        unusedBits = sizeForItems - len(strItems)
-        if unusedBits < 0:
-            raise CompilationError(f"Le code {code} dépasse la taille limit de {wordSize} bits.")
-        return self._opcode + strItems + "0"*unusedBits
+        return self.__zeroPadding(self._opcode + strItems, wordSize)
 
     def getLabel(self):
         return self._label
 
-    def getSizeInMemory(self):
+    def __getLastOperandSize(self, wordSize, regSize):
         '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        '''
+        if len(self._operands) == 0:
+            return 0
+        bitsForLast = wordSize - len(self._opcode) - (len(self._operands)-1) * regSize
+        if bitsForLast <= 0:
+            raise CompilationError(f"{self} : Plus assez de place pour le dernier opérande !")
+        return bitsForLast
+
+    def getSizeInMemory(self, wordSize, regSize, bigLitteralNext):
+        '''
+        regSize = int : nbre de bits pour les registres
+        wordSize = int : nbre de bits pour l'ensemble
+        bigLitteralNext : Booléen. En cas de littéral, peut-on le décaler à la ligne suivante ?
         retourne le ligne mémoire que nécessitera cette ligne :
         - 0 pour ligne vide
         - 1 pour ligne ordinaire
@@ -139,10 +149,11 @@ class AsmLine:
         '''
         if self.isEmpty():
             return 0
-        if len(self._operands)== 0:
+        if len(self._operands)== 0 or not bigLitteralNext:
             return 1
         lastOperand = self._operands[-1]
-        if not isinstance(lastOperand, Litteral) or not lastOperand.isBig():
+        bitsForLast = self.__getLastOperandSize(wordSize, regSize)
+        if not isinstance(lastOperand, Litteral) or not lastOperand.isBig(bitsForLast):
             return 1
         return 2
 
