@@ -54,7 +54,7 @@ class Litteral:
         S'il est trop grand ou négatif, retourne une chaîne de 1
         '''
         if self.__value < 0:
-            return "1".wordSize
+            return "1"*wordSize
         return self.getBinary(wordSize)
 
     def isBetween(self, minValue, maxValue):
