@@ -112,9 +112,7 @@ class AsmLine:
         strItems = ""
         sizeForItems = wordSize - len(self._opcode)
         for valeur, size in items:
-            if size == 0:
-                size = sizeForItems - len(strItems)
-            if size < 0:
+            if size <= 0:
                 raise CompilationError("Place allouée à un code binaire négative !")
             if isinstance(valeur, Litteral):
                 strItems += valeur.getBinaryForPos(size)
