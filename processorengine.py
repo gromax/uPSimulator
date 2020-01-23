@@ -4,7 +4,6 @@ ENGINE_COLLECTION = {
     "default": {
         "register_bits":3,
         "free_ual_output": True,
-        "bigLitteralIsNextLine": True,
         "data_bits": 16,
         "litteralCommands":{
             "neg":  { "opcode":"010110", "asm":"NEG" },
@@ -213,15 +212,8 @@ class ProcessorEngine:
         '''
         if not operator in self.__litteralsCommands:
             return False
-        if self.bigLitteralIsNextLine():
-            return True
         maxLitteralSize = self.getLitteralMaxSizeIn(operator)
         return litteral.isBetween(0, maxLitteralSize)
-
-    def bigLitteralIsNextLine(self):
-        if "bigLitteralIsNextLine" in self.__attributes:
-            return self.__attributes["bigLitteralIsNextLine"] == True
-        return False
 
     def getLitteralMaxSizeIn(self, commandDesc):
         '''
@@ -239,10 +231,6 @@ class ProcessorEngine:
         nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
         if nbits <=0:
             raise AttributeError(f"Pas assez de place pour un littéral dans {commandDesc}.")
-        if self.bigLitteralIsNextLine():
-            # Dans ce cas, le code 1...1 signifie que le littéral est placé en ligne suivante et donc la valeur max est réservée
-            return 2**nbits - 2
-        # sinon, on peut aller jusqu'à la pleine échelle
         return 2**nbits - 1
 
 

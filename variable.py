@@ -28,7 +28,7 @@ class Variable:
         else:
             valueToCode = self.__value
         outStr = format(valueToCode, '0'+str(wordSize)+'b')
-        if len(outStr) > wordSize:
+        if len(outStr) > wordSize or self.__value > 0 and outStr[1] == '1':
             raise CompilationError(f"{self} : Variable de valeur trop grande !")
         return outStr
 

@@ -125,7 +125,7 @@ class AssembleurContainer:
             asmCommand = self.__engine.getLitteralAsmCommand(operator)
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator)
-                if not lastOperand.isBetween(0,maxSize) and not self.__engine.bigLitteralIsNextLine():
+                if not lastOperand.isBetween(0,maxSize):
                     raise CompilationError(f"Litteral trop grand pour {operator}")
                 self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
                 return
@@ -204,10 +204,9 @@ class AssembleurContainer:
         self.__lines.append(AsmLine(self, lineNumber, label, "", "", None))
 
     def getBinary(self):
-        regSize = self.__engine.getRegBits()
         wordSize = self.__engine.getDataBits()
-        bigLitteralNext = self.__engine.bigLitteralIsNextLine()
-        binaryList = [item.getBinary(wordSize, regSize, bigLitteralNext) for item in self.__lines if not item.isEmpty()]
+        regSize = self.__engine.getRegBits()
+        binaryList = [item.getBinary(wordSize, regSize) for item in self.__lines if not item.isEmpty()]
         memoryBinary = self.__memoryToBinary()
         return "\n".join(binaryList + memoryBinary)
 
@@ -216,10 +215,7 @@ class AssembleurContainer:
         return [int(item,2) for item in binaryLines]
 
     def getAsmSize(self):
-        regSize = self.__engine.getRegBits()
-        wordSize = self.__engine.getDataBits()
-        bigLitteralNext = self.__engine.bigLitteralIsNextLine()
-        return sum([item.getSizeInMemory(wordSize, regSize, bigLitteralNext) for item in self.__lines])
+        return sum([item.getSizeInMemory() for item in self.__lines])
 
     def getMemAbsPos(self,item):
         nameList = [str(var) for var in self.__memoryData]
@@ -236,14 +232,11 @@ class AssembleurContainer:
         return codePart + "\n" + "\n".join(memStr)
 
     def getLineLabel(self, label):
-        regSize = self.__engine.getRegBits()
-        wordSize = self.__engine.getDataBits()
-        bigLitteralNext = self.__engine.bigLitteralIsNextLine()
         lineAdresse = 0
         for item in self.__lines:
             if item.getLabel() == label:
                 return lineAdresse
-            lineAdresse += item.getSizeInMemory(wordSize, regSize, bigLitteralNext)
+            lineAdresse += item.getSizeInMemory()
         return None
 
 if __name__=="__main__":
