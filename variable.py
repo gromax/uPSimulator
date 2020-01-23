@@ -2,6 +2,8 @@
 objet contenant une variable mémoire
 '''
 
+from errors import *
+
 class Variable:
     def __init__(self, nom, value = 0):
         self.__nom = nom
@@ -25,7 +27,10 @@ class Variable:
             valueToCode = (~(-self.__value) + 1) & (2**wordSize - 1)
         else:
             valueToCode = self.__value
-        return format(valueToCode, '0'+str(wordSize)+'b')
+        outStr = format(valueToCode, '0'+str(wordSize)+'b')
+        if len(outStr) > wordSize:
+            raise CompilationError(f"{self} : Variable de valeur trop grande !")
+        return outStr
 
     def getValue(self):
         return self.__value
