@@ -90,11 +90,10 @@ class AssembleurContainer:
             asmCommand = self.__engine.getLitteralAsmCommand("move")
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn("move")
-                if not source.isBetween(0,maxSize):
-                    source.setBig()
-                moveOperands = (destination, source)
-                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
-                return
+                if source.isBetween(0,maxSize):
+                    moveOperands = (destination, source)
+                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
+                    return
             self.pushLoad(lineNumber, source, destination)
             return
         opcode = self.__engine.getOpcode("move")
@@ -126,10 +125,8 @@ class AssembleurContainer:
             asmCommand = self.__engine.getLitteralAsmCommand(operator)
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator)
-                if not lastOperand.isBetween(0,maxSize):
-                    if not self.__engine.bigLitteralIsNextLine():
-                        raise CompilationError(f"Litteral trop grand pour {operator}")
-                    lastOperand.setBig()
+                if not lastOperand.isBetween(0,maxSize) and not self.__engine.bigLitteralIsNextLine():
+                    raise CompilationError(f"Litteral trop grand pour {operator}")
                 self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
                 return
             raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur")
