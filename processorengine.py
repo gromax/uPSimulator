@@ -121,18 +121,19 @@ class ProcessorEngine:
             raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
         if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
             raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
+
         for (name, attr) in self.__litteralsCommands.items():
             if not name in self.__opNumber:
                 raise AttributeError(f"La commande {name} n'est pas une commande littérale valide.")
             if not "opcode" in attr:
-              raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
+                raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
             if not "asm" in attr:
-              raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
+                raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
         for item in self.__commands.values():
             if not "opcode" in item:
-              raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
+                raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
             if not "asm" in item:
-              raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
+                raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
 
         return True
 
