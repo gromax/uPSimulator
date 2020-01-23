@@ -3,35 +3,25 @@ Objet contenant un littéral
 '''
 
 class Litteral:
-    def __init__(self, value, big=False):
+    def __init__(self, value):
         '''
         value = int
-        big = True si au moment de la compilation on a décidé coder le littéral sur une pleine ligne
         '''
         assert isinstance(value,int)
         self.__value = value
-        self.__big = (big == True)
 
     def clone(self):
-        return Litteral(self.__value, self.__big)
+        return Litteral(self.__value)
 
     def negClone(self):
-        return Litteral(-self.__value, self.__big)
-
-    def setBig(self):
-        '''
-        met à True le marqueur indiquant que ce littéral devra occuper une ligne entière dans le codage final
-        '''
-        self.__big = True
-        return self
+        return Litteral(-self.__value)
 
     def isBig(self, bitSize):
         '''
         Dans le cas d'un déplacement d'un grand littéral vers la ligne suivante,
         détermine si ce littéral logera dans l'espace prévu
         '''
-        return
-        return self.__big
+        return not self.isBetween(0,2**bitSize-2)
 
     def getBinary(self, wordSize):
         '''
