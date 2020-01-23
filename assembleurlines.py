@@ -29,6 +29,11 @@ class AsmLine:
             self._operands = ()
         else:
             self._operands = operands
+        if len(self._operands) > 0:
+            for op in self._operands[:-1]:
+                assert isinstance(op,int)
+            lastOpe = self._operands[-1]
+            assert isinstance(lastOpe,int) or isinstance(lastOpe,str) or isinstance(lastOpe,Variable) or isinstance(lastOpe,Litteral)
 
     def isEmpty(self):
         return self._asmCommand == "" or self._opcode == ""
@@ -39,43 +44,60 @@ class AsmLine:
         elif isinstance(operand, int):
             # registre
             return "r"+str(operand)
-        elif isinstance(operand, str):
+        else:
             # label
             return operand
-        return "?"
 
-    def getBinary(self, wordSize, regSize):
+    def getBinary(self, wordSize, regSize, bigLitteralNext):
         '''
         regSize = int : nbre de bits pour les registres
         wordSize = int : nbre de bits pour l'ensemble
+        bigLitteralNext = Booléen, indique si un grand booléen doit être placé à la suite
         '''
         if self.isEmpty():
             return ""
-        bigLitteralToAddNext = None
-        items = []
-        for op in self._operands:
-            if isinstance(op, Litteral):
-                items.append((op, 0))
-                if op.isBig():
-                    bigLitteralToAddNext = op
-            elif isinstance(op,Variable):
-                memAbsolutePosition = self._parent.getMemAbsPos(op)
-                if memAbsolutePosition == None:
-                    raise CompilationError(f"Mémoire {op} introuvable !")
-                items.append((memAbsolutePosition,0))
-            elif isinstance(op,str):
-                # label
-                lineCible = self._parent.getLineLabel(op)
-                if lineCible == None:
-                    raise CompilationError(f"Label {op} introuvable !")
-                items.append((lineCible, 0))
-            else:
-                # registre
-                items.append((op,regSize))
+        if len(self._operands) == 0:
+            return self.__zeroPadding(self._opcode, wordSize)
+        # construction liste des items à coder
+        bitsForLast = wordSize - len(self._opcode) - (len(self._operands)-1) * regSize
+        if bitsForLast <= 0:
+            raise CompilationError(f"{self} : Plus assez de place pour le dernier opérande !")
+        items = [ (op,regSize) for op in self._operands[:-1] ]
+        lastOperand = self._operands[-1]
+
+        if isinstance(lastOperand, Litteral):
+            items.append((op, bitsForLast))
+        elif isinstance(lastOperand,Variable):
+            memAbsolutePosition = self._parent.getMemAbsPos(op)
+            if memAbsolutePosition == None:
+                raise CompilationError(f"Mémoire {op} introuvable !")
+            items.append((memAbsolutePosition,bitsForLast))
+        elif isinstance(lastOperand,str):
+            # label
+            lineCible = self._parent.getLineLabel(op)
+            if lineCible == None:
+                raise CompilationError(f"Label {op} introuvable !")
+            items.append((lineCible, bitsForLast))
+        else:
+            # registre
+            if bitsForLast < regSize:
+                raise CompilationError(f"{self} : Plus assez de place pour le dernier opérande !")
+            items.append((op,regSize))
         outStr = self.formatBinary(wordSize, items)
-        if bigLitteralToAddNext == None:
-            return outStr
-        return outStr+"\n"+bigLitteralToAddNext.getBinary(wordSize)
+
+        # il faut prévoir d'ajouter un item en ligne suivante si nécessaire
+        if bigLitteralNext and isinstance(lastOperand, Litteral) and not lastOperand.isBetween(0,2**bitsForLast-2):
+            return outStr+"\n"+lastOperand.getBinary(wordSize)
+        return outStr
+
+    def __zeroPadding(self, binaryCode, wordSize):
+        '''
+        retourne une version de binaryCode complétée par des 0
+        '''
+        unusedBits = wordSize - len(binaryCode)
+        if unusedBits < 0:
+            raise CompilationError(f"{self} : code binaire trop long !")
+        return binaryCode + "0"*unusedBits
 
     def __str__(self):
         strOperands = [ self.stringifyOperand(ope) for ope in self._operands]
@@ -97,7 +119,7 @@ class AsmLine:
             if size < 0:
                 raise CompilationError("Place allouée à un code binaire négative !")
             if isinstance(valeur, Litteral):
-                strItems += valeur.getBinary(size)
+                strItems += valeur.getBinaryForPositif(size)
             else:
                 strItems += format(valeur, '0'+str(size)+'b')
         unusedBits = sizeForItems - len(strItems)
