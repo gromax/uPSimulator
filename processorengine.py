@@ -7,17 +7,17 @@ ENGINE_COLLECTION = {
         "bigLitteralIsNextLine": True,
         "data_bits": 16,
         "litteralCommands":{
-            "neg":  { "opcode":"010110", "asm":"NEG", "opnumber":2},
-            "move": { "opcode":"01001", "asm":"MOVE", "opnumber":2 },
-            "+":    { "opcode":"1000", "asm":"ADD", "opnumber":3},
-            "-":    { "opcode":"1001", "asm":"SUB", "opnumber":3},
-            "*":    { "opcode":"1010", "asm":"MULT", "opnumber":3},
-            "/":    { "opcode":"1011", "asm":"DIV", "opnumber":3},
-            "%":    { "opcode":"1100", "asm":"MOD", "opnumber":3},
-            "&":    { "opcode":"1101", "asm":"AND", "opnumber":3},
-            "|":    { "opcode":"1110", "asm":"OR", "opnumber":3},
-            "^":    { "opcode":"1111", "asm":"XOR", "opnumber":3},
-            "~":    { "opcode":"010111", "asm":"NOT", "opnumber":2}
+            "neg":  { "opcode":"010110", "asm":"NEG" },
+            "move": { "opcode":"01001", "asm":"MOVE" },
+            "+":    { "opcode":"1000", "asm":"ADD" },
+            "-":    { "opcode":"1001", "asm":"SUB" },
+            "*":    { "opcode":"1010", "asm":"MULT" },
+            "/":    { "opcode":"1011", "asm":"DIV" },
+            "%":    { "opcode":"1100", "asm":"MOD" },
+            "&":    { "opcode":"1101", "asm":"AND" },
+            "|":    { "opcode":"1110", "asm":"OR" },
+            "^":    { "opcode":"1111", "asm":"XOR" },
+            "~":    { "opcode":"010111", "asm":"NOT" }
         },
         "commands": {
             "halt":   { "opcode":"00000", "asm":"HALT" },
@@ -96,24 +96,42 @@ class ProcessorEngine:
         else:
           self.__commands = {}
 
+        if self.ualOutputIsFree():
+            destReg = 1
+        else:
+            destReg = 0
+        self.__opNumber = {
+            "neg":  1 + destReg,
+            "move": 2,
+            "+":    2 + destReg,
+            "-":    2 + destReg,
+            "*":    2 + destReg,
+            "/":    2 + destReg,
+            "%":    2 + destReg,
+            "&":    2 + destReg,
+            "|":    2 + destReg,
+            "^":    2 + destReg,
+            "~":    1 + destReg
+        }
+
         assert self.__checkAttributes() == True
 
     def __checkAttributes(self):
         if not "register_bits" in self.__attributes or not isinstance(self.__attributes["register_bits"],int) or self.__attributes["register_bits"] < 1:
-          raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
+            raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
         if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
-          raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
-        for item in self.__litteralsCommands.values():
-          if not "opnumber" in item:
-              raise AttributeError("Toutes les commandes acceptant un litteral doivent avoir un attribut opnumber")
-          if not "opcode" in item:
+            raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
+        for (name, attr) in self.__litteralsCommands.items():
+            if not name in self.__opNumber:
+                raise AttributeError(f"La commande {name} n'est pas une commande littérale valide.")
+            if not "opcode" in attr:
               raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
-          if not "asm" in item:
+            if not "asm" in attr:
               raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
         for item in self.__commands.values():
-          if not "opcode" in item:
+            if not "opcode" in item:
               raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
-          if not "asm" in item:
+            if not "asm" in item:
               raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
 
         return True
@@ -215,7 +233,7 @@ class ProcessorEngine:
         # il faut calculer la place disponible
         nbits_total = self.__attributes["data_bits"]
         nbits_reg = self.__attributes["register_bits"]
-        nb_reg_operands = commandAttributes["opnumber"] - 1
+        nb_reg_operands = self.__opNumber[commandDesc] - 1
         opcode = commandAttributes["opcode"]
         nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
         if nbits <=0:
