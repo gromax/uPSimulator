@@ -171,7 +171,7 @@ class CompileExpressionManager:
             self.__asmManager.pushCmp(self.__lineNumber, op1, op2)
         else:
             registreDestination = self.__getAvailableRegister()
-            self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (op1, op2))
+            self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (op1, op2), None)
 
     def pushBinaryOperatorWithLitteral(self, operator, litteral):
         '''
@@ -186,7 +186,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand, litteral))
+        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand,), litteral)
 
     def pushUnaryOperator(self, operator):
         '''
@@ -200,7 +200,7 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand,))
+        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand,), None)
 
     def pushUnaryOperatorWithLitteral(self, operator, litteral):
         '''
@@ -210,7 +210,7 @@ class CompileExpressionManager:
         occupe le premier registre libre pour le résultat
         '''
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (litteral,))
+        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (), litteral)
 
     def pushValue(self, value):
         '''
@@ -219,7 +219,7 @@ class CompileExpressionManager:
         '''
         registreDestination = self.__getAvailableRegister()
         if isinstance(value, Litteral):
-            self.__asmManager.pushMove(self.__lineNumber, value, registreDestination)
+            self.__asmManager.pushMoveLitteral(self.__lineNumber, value, registreDestination)
         else:
             self.__asmManager.pushLoad(self.__lineNumber, value, registreDestination)
 
