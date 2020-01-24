@@ -354,7 +354,7 @@ class ValueNode(Node):
         '''
         Retourne un clone de l'objet et de son arborescence
         '''
-        return ValueNode(self.__value.clone())
+        return ValueNode(self.__value)
 
 if __name__=="__main__":
     from variable import Variable
