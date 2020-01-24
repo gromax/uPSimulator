@@ -4,7 +4,7 @@
    :synopsis: définition d'un objet contenant une ligne du code assembleur
 """
 
-from typing import Optional, Tuple, Any, Union
+from typing import Tuple, Union
 
 from errors import *
 from litteral import Litteral
