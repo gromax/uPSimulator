@@ -1,6 +1,10 @@
-'''
-Classe contenant le code assembleur et permettant des sorties sous diverse formes
-'''
+"""
+.. module:: AsmLine
+   :platform: Unix, Windows
+   :synopsis: définition d'un objet contenant une ligne du code assembleur
+"""
+
+from typing import Optional, Tuple, Any, Union
 
 from errors import *
 from litteral import Litteral
@@ -10,43 +14,34 @@ class AsmLine:
     __label = ""
     __lineNumber = -1
 
-    def __init__(self, parent, lineNumber, label, opcode, asmCommand, operands):
+    def __init__(self, parent, lineNumber:int, label:str, opcode:str, asmCommand:str, regOperands:Tuple[int,...], specialOperand:Union[Variable, str, Litteral, None]):
         '''
         parent = objet AssembleurContainer parent
         lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         opcode = chaine de caractère - vide pour ligne vide
         asmCommand = chaine de caractère - vide pour ligne vide
-        operands = None ou  tuple avec les opérandes, la dernière pouvant être un Litteral ou Variable ou string (label)
+        regOperands = tuple avec les opérandes de type registre
+        specialOperand = opérande spéciale : str pour label, Variable pour échange mémoire, Litteral. None si aucune.
         '''
         self.__parent = parent
         self.__lineNumber = lineNumber
         self.__label = str(label)
         self.__opcode = opcode
         self.__asmCommand = asmCommand
-        if operands == None :
-            self.__operands = ()
-        else:
-            self.__operands = operands
-        if len(self.__operands) > 0:
-            for op in self.__operands[:-1]:
-                assert isinstance(op,int)
-            lastOpe = self.__operands[-1]
-            assert isinstance(lastOpe,int) or isinstance(lastOpe,str) or isinstance(lastOpe,Variable) or isinstance(lastOpe,Litteral)
+        self.__specialOperand = specialOperand
+        self.__regOperands = regOperands
+        for op in self.__regOperands:
+            assert isinstance(op,int)
+        if specialOperand != None:
+            assert isinstance(specialOperand,str) or isinstance(specialOperand,Variable) or isinstance(specialOperand,Litteral)
 
-    def __stringifyOperand(self, operand):
-        if isinstance(operand, Litteral) or isinstance(operand, Variable):
-            return str(operand)
-        elif isinstance(operand, int):
-            # registre
-            return "r"+str(operand)
-        else:
-            # label
-            return operand
+    def __stringifyRegOperand(self, operand:int) -> str:
+        return "r"+str(operand)
 
-    def __formatBinary(self, item):
+    def __formatBinary(self, item:Tuple[int,int]) -> str:
         '''
-        item = tuple avec (valeur, taille), valeur = int ou Litteral
+        item = tuple avec (valeur, taille), valeur
         Erreur si le code final dépasse la taille donné
         '''
         value, size = item
@@ -61,75 +56,82 @@ class AsmLine:
             raise CompilationError(f"{self} -> binaire : valeur à coder trop grande !")
         return strItem
 
-    def __zeroPadding(self, binaryCode, wordSize):
-        '''
-        retourne une version de binaryCode complétée par des 0
-        '''
+    def __zeroPadding(self, binaryCode:str, wordSize:int) -> str:
+        """Retourne le code binaire complété par des 0 si nécessaire
+        Args:
+           binaryCode (str): code binaire à compléter
+           wordSize (int): taille du mot une fois complété
+
+        Returns:
+           str.
+
+        Raises:
+            CompilationError
+        """
+
         unusedBits = wordSize - len(binaryCode)
         if unusedBits < 0:
             raise CompilationError(f"{self} : code binaire trop long !")
         return binaryCode + "0"*unusedBits
 
-    def __getLastOperandSize(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
-        if len(self.__operands) == 0:
-            return 0
-        bitsForLast = wordSize - len(self.__opcode) - (len(self.__operands)-1) * regSize
-        if bitsForLast <= 0:
-            raise CompilationError(f"{self} : Plus assez de place pour le dernier opérande !")
-        return bitsForLast
+    def __getLastOperandSize(self, wordSize:int, regSize:int) -> int:
+        """Retourne le nombre de bits laissés pour le codage binaire d'un éventuel dernier argument spécial (Litteral, Variable ou str pour label)
+        Args:
+           wordSize (int): taille du mot en mémoire
+           wordSize (regSize): taille des opérandes de type registre
 
-    def __str__(self):
-        strOperands = [ self.__stringifyOperand(ope) for ope in self.__operands]
+        Returns:
+           int.
+        """
+        return wordSize - len(self.__opcode) - len(self.__regOperands) * regSize
+
+    def __str__(self) -> str:
+        strOperands = [ self.__stringifyRegOperand(ope) for ope in self.__regOperands]
+        if self.__specialOperand != None:
+            strOperands.append(str(self.__specialOperand))
         return self.__label+"\t"+self.__asmCommand+" "+", ".join(strOperands)
 
-    def getBinary(self, wordSize, regSize):
-        '''
-        regSize = int : nbre de bits pour les registres
-        wordSize = int : nbre de bits pour l'ensemble
-        '''
+    def getBinary(self, wordSize:int, regSize:int) -> str:
+        """Retourne le code binaire correspondant à cette commande assembleur
+
+        :param wordSize: taille du mot en mémoire
+        :type wordSize: int
+        :param regSize: taille des opérandes de type registre
+        :type regSize: int
+        :rtype: str
+        """
         if self.isEmpty():
             return ""
-        if len(self.__operands) == 0:
-            return self.__zeroPadding(self.__opcode, wordSize)
         # construction liste des items à coder
-        bitsForLast = self.__getLastOperandSize(wordSize,regSize)
-        items = [ (op,regSize) for op in self.__operands[:-1] ]
-        lastOperand = self.__operands[-1]
+        items = [ (reg,regSize) for reg in self.__regOperands ]
+        if self.__specialOperand != None:
+            bitsForLast = self.__getLastOperandSize(wordSize,regSize)
 
-        if isinstance(lastOperand, Litteral):
-            items.append((lastOperand.getValue(), bitsForLast))
-        elif isinstance(lastOperand,Variable):
-            memAbsolutePosition = self.__parent.getMemAbsPos(lastOperand)
-            if memAbsolutePosition == None:
-                raise CompilationError(f"Mémoire {lastOperand} introuvable !")
-            items.append((memAbsolutePosition,bitsForLast))
-        elif isinstance(lastOperand,str):
-            # label
-            lineCible = self.__parent.getLineLabel(lastOperand)
-            if lineCible == None:
-                raise CompilationError(f"Label {lastOperand} introuvable !")
-            items.append((lineCible, bitsForLast))
-        else:
-            # registre
-            if bitsForLast < regSize:
-                raise CompilationError(f"{self} : Plus assez de place pour le dernier opérande !")
-            items.append((lastOperand,regSize))
+            if isinstance(self.__specialOperand, Litteral):
+                valueToCode = self.__specialOperand.getValue()
+            elif isinstance(self.__specialOperand,Variable):
+                valueToCode = self.__parent.getMemAbsPos(self.__specialOperand)
+                if valueToCode == None:
+                    raise CompilationError(f"Mémoire {self.__specialOperand} introuvable !")
+            else:
+                # label
+                valueToCode = self.__parent.getLineLabel(self.__specialOperand)
+                if valueToCode == None:
+                    raise CompilationError(f"Label {self.__specialOperand} introuvable !")
+            valueToCodeAndSize = (valueToCode, bitsForLast)
+            items.append(valueToCodeAndSize)
 
         listStrItems = [self.__formatBinary(item) for item in items]
         strItems = "".join(listStrItems)
         return self.__zeroPadding(self.__opcode + strItems, wordSize)
 
-    def isEmpty(self):
+    def isEmpty(self) -> bool:
         return self.__asmCommand == "" or self.__opcode == ""
 
-    def getLabel(self):
+    def getLabel(self) -> str:
         return self.__label
 
-    def getSizeInMemory(self):
+    def getSizeInMemory(self) -> int:
         '''
         retourne le ligne mémoire que nécessitera cette ligne :
         - 0 pour ligne vide

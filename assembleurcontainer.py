@@ -60,7 +60,7 @@ class AssembleurContainer:
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour store dans le modèle de processeur.")
         memoryItem = self.__pushMemory(destination)
-        asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (source, memoryItem))
+        asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (source,), memoryItem)
         self.__lines.append(asmLine)
 
     def pushLoad(self, lineNumber, source, destination):
@@ -76,7 +76,7 @@ class AssembleurContainer:
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour load dans le modèle de processeur.")
         memoryItem = self.__pushMemory(source)
-        asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (destination, memoryItem))
+        asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (destination,), memoryItem)
         self.__lines.append(asmLine)
 
     def pushMove(self, lineNumber, source, destination):
@@ -92,7 +92,7 @@ class AssembleurContainer:
                 maxSize = self.__engine.getLitteralMaxSizeIn("move")
                 if source.isBetween(0,maxSize):
                     moveOperands = (destination, source)
-                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
+                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (destination,), source))
                     return
             self.pushLoad(lineNumber, source, destination)
             return
@@ -101,7 +101,7 @@ class AssembleurContainer:
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour move dans le modèle de processeur.")
         moveOperands = (destination, source)
-        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands))
+        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands, None))
 
     def pushUal(self, lineNumber, operator, destination, operands):
         '''
@@ -127,14 +127,14 @@ class AssembleurContainer:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator)
                 if not lastOperand.isBetween(0,maxSize):
                     raise CompilationError(f"Litteral trop grand pour {operator}")
-                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
+                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands[:-1], lastOperand))
                 return
             raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur")
         opcode = self.__engine.getOpcode(operator)
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == None or opcode == None:
             raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
-        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands))
+        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands, None))
 
     def pushCmp(self, lineNumber, operand1, operand2):
         '''
@@ -147,7 +147,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("cmp")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour cmp dans le modèle de processeur.")
-        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (operand1, operand2)))
+        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (operand1, operand2), None))
 
     def pushInput(self, lineNumber, destination):
         '''
@@ -159,7 +159,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("input")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour input dans le modèle de processeur.")
-        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (destination,)))
+        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (), destination))
 
     def pushPrint(self, lineNumber, source):
         '''
@@ -171,7 +171,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("print")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour print dans le modèle de processeur.")
-        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (source,)))
+        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (source,), None))
 
     def pushJump(self, lineNumber, cible, operator = None):
         '''
@@ -187,21 +187,21 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == None or opcode == None:
             raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
-        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (cible,)))
+        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (), cible))
 
     def pushHalt(self):
         opcode = self.__engine.getOpcode("halt")
         asmCommand = self.__engine.getAsmCommand("halt")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour halt dans le modèle de processeur.")
-        self.__lines.append(AsmLine(self, -1, "", opcode, asmCommand, None))
+        self.__lines.append(AsmLine(self, -1, "", opcode, asmCommand, (), None))
 
     def pushLabel(self, lineNumber, label):
         '''
         lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         '''
-        self.__lines.append(AsmLine(self, lineNumber, label, "", "", None))
+        self.__lines.append(AsmLine(self, lineNumber, label, "", "", (), None))
 
     def getBinary(self):
         wordSize = self.__engine.getDataBits()
