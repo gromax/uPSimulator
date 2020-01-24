@@ -2,6 +2,8 @@
 Classe contenant le code assembleur et permettant des sorties sous diverse formes
 '''
 
+from typing import Union, Tuple, Optional, List
+
 from litteral import Litteral
 from variable import Variable
 from assembleurlines import *
@@ -15,7 +17,7 @@ class AssembleurContainer:
         self.__lines = []
         self.__memoryData = []
 
-    def __pushMemory(self, item):
+    def __pushMemory(self, item:Union[Variable,Litteral]) -> Variable:
         '''
         item = Variable ou Litteral
         ajoute si nécessaire l'item à la liste
@@ -39,15 +41,15 @@ class AssembleurContainer:
             self.__memoryData.append(item)
         return item
 
-    def __memoryToBinary(self):
+    def __memoryToBinary(self) -> List[str]:
         '''
         les variables donnent une chaîne de 0
         les littéraux donnent un entienr en CA2
         '''
         wordSize = self.__engine.getDataBits()
-        return [ item.getBinary(wordSize) for item in self.__memoryData]
+        return [ item.getValueBinary(wordSize) for item in self.__memoryData]
 
-    def pushStore(self, lineNumber, source, destination):
+    def pushStore(self, lineNumber:int, source:int, destination:Variable) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         source = int (registre)
@@ -63,11 +65,11 @@ class AssembleurContainer:
         asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (source,), memoryItem)
         self.__lines.append(asmLine)
 
-    def pushLoad(self, lineNumber, source, destination):
+    def pushLoad(self, lineNumber:int, source:Union[Variable,Litteral], destination:int) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         destination = int (registre)
-        source = objet Variable
+        source = objet Variable ou Litteral
         Ajoute une ligne pour le store
         Ajoute la variable à la zone mémoire
         '''
@@ -79,23 +81,29 @@ class AssembleurContainer:
         asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (destination,), memoryItem)
         self.__lines.append(asmLine)
 
-    def pushMove(self, lineNumber, source, destination):
+    def pushMoveLitteral(self, lineNumber:int, source:Litteral, destination:int) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         destination = int (registre)
-        source = int (registre) ou Litteral
+        source = Litteral
         '''
-        if isinstance(source, Litteral):
-            opcode = self.__engine.getLitteralOpcode("move")
-            asmCommand = self.__engine.getLitteralAsmCommand("move")
-            if opcode != None and asmCommand != None:
-                maxSize = self.__engine.getLitteralMaxSizeIn("move")
-                if source.isBetween(0,maxSize):
-                    moveOperands = (destination, source)
-                    self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (destination,), source))
-                    return
-            self.pushLoad(lineNumber, source, destination)
-            return
+        assert isinstance(source, Litteral)
+        opcode = self.__engine.getLitteralOpcode("move")
+        asmCommand = self.__engine.getLitteralAsmCommand("move")
+        if opcode != None and asmCommand != None:
+            maxSize = self.__engine.getLitteralMaxSizeIn("move")
+            if source.isBetween(0,maxSize):
+                moveOperands = (destination, source)
+                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (destination,), source))
+                return
+        self.pushLoad(lineNumber, source, destination)
+
+    def pushMove(self, lineNumber:int, source:int, destination:int) -> None:
+        '''
+        lineNumber = int = numéro de la ligne d'origine
+        destination = int (registre)
+        source = int (registre)
+        '''
         opcode = self.__engine.getOpcode("move")
         asmCommand = self.__engine.getAsmCommand("move")
         if asmCommand == None or opcode == None:
@@ -103,40 +111,37 @@ class AssembleurContainer:
         moveOperands = (destination, source)
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands, None))
 
-    def pushUal(self, lineNumber, operator, destination, operands):
+    def pushUal(self, lineNumber:int, operator:str, destination:int, regOperands:Tuple[int,...], littOperand:Optional[Litteral] = None) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         destination = int (registre)
         operator = string, décrit l'opérateur
-        operands = tuple non vide avec int (registre) et éventuellement pour le dernier, litteral
+        regOperands = tuple de int (registre)
+        littOperand = None (si absent) ou opérande Litteral
         '''
-        assert len(operands) > 0
-        for ope in operands[:-1]:
+        for ope in regOperands:
             assert isinstance(ope,int)
-        lastOperand = operands[-1]
         if destination !=0 and not self.__engine.ualOutputIsFree():
             raise CompilationError(f"Calcul {operator} stocké dans le registre {destination}.")
-        if not self.__engine.ualOutputIsFree():
-            destination = None
-        if destination != None:
-            operands = (destination,) + operands
-        if isinstance(lastOperand, Litteral):
+        if self.__engine.ualOutputIsFree():
+            regOperands = (destination,) + regOperands
+        if isinstance(littOperand, Litteral):
             opcode = self.__engine.getLitteralOpcode(operator)
             asmCommand = self.__engine.getLitteralAsmCommand(operator)
             if opcode != None and asmCommand != None:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator)
-                if not lastOperand.isBetween(0,maxSize):
+                if not littOperand.isBetween(0,maxSize):
                     raise CompilationError(f"Litteral trop grand pour {operator}")
-                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands[:-1], lastOperand))
+                self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, regOperands, littOperand))
                 return
             raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur")
         opcode = self.__engine.getOpcode(operator)
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == None or opcode == None:
             raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
-        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, operands, None))
+        self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, regOperands, None))
 
-    def pushCmp(self, lineNumber, operand1, operand2):
+    def pushCmp(self, lineNumber:int, operand1:int, operand2:int) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         operand1 et operand2 = int (registre)
@@ -149,7 +154,7 @@ class AssembleurContainer:
             raise AttributeError("Pas de commande pour cmp dans le modèle de processeur.")
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (operand1, operand2), None))
 
-    def pushInput(self, lineNumber, destination):
+    def pushInput(self, lineNumber:int, destination:Variable) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         destination = Variable
@@ -161,7 +166,7 @@ class AssembleurContainer:
             raise AttributeError("Pas de commande pour input dans le modèle de processeur.")
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (), destination))
 
-    def pushPrint(self, lineNumber, source):
+    def pushPrint(self, lineNumber:int, source:int) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         source = int (registre)
@@ -173,7 +178,7 @@ class AssembleurContainer:
             raise AttributeError("Pas de commande pour print dans le modèle de processeur.")
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (source,), None))
 
-    def pushJump(self, lineNumber, cible, operator = None):
+    def pushJump(self, lineNumber:int, cible:str, operator:Optional[str] = None) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         cible = string (label)
@@ -189,35 +194,35 @@ class AssembleurContainer:
             raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (), cible))
 
-    def pushHalt(self):
+    def pushHalt(self) -> None:
         opcode = self.__engine.getOpcode("halt")
         asmCommand = self.__engine.getAsmCommand("halt")
         if asmCommand == None or opcode == None:
             raise AttributeError("Pas de commande pour halt dans le modèle de processeur.")
         self.__lines.append(AsmLine(self, -1, "", opcode, asmCommand, (), None))
 
-    def pushLabel(self, lineNumber, label):
+    def pushLabel(self, lineNumber:int, label:str) -> None:
         '''
         lineNumber = int = numéro de la ligne d'origine
         label = chaîne de caractère
         '''
         self.__lines.append(AsmLine(self, lineNumber, label, "", "", (), None))
 
-    def getBinary(self):
+    def getBinary(self) -> str:
         wordSize = self.__engine.getDataBits()
         regSize = self.__engine.getRegBits()
         binaryList = [item.getBinary(wordSize, regSize) for item in self.__lines if not item.isEmpty()]
         memoryBinary = self.__memoryToBinary()
         return "\n".join(binaryList + memoryBinary)
 
-    def getDecimal(self):
+    def getDecimal(self) -> List[int]:
         binaryLines = self.getBinary().split("\n")
         return [int(item,2) for item in binaryLines]
 
-    def getAsmSize(self):
+    def getAsmSize(self) -> int:
         return sum([item.getSizeInMemory() for item in self.__lines])
 
-    def getMemAbsPos(self,item):
+    def getMemAbsPos(self,item:Variable) -> Union[int,None]:
         nameList = [str(var) for var in self.__memoryData]
         nameSearched = str(item)
         if nameSearched in nameList:
@@ -225,13 +230,13 @@ class AssembleurContainer:
         else:
             return None
 
-    def __str__(self):
+    def __str__(self) -> str:
         listStr = [str(item) for item in self.__lines]
         codePart = "\n".join(listStr)
         memStr = [str(item) + "\t" + str(item.getValue()) for item in self.__memoryData]
         return codePart + "\n" + "\n".join(memStr)
 
-    def getLineLabel(self, label):
+    def getLineLabel(self, label:str) -> Union[int,None]:
         lineAdresse = 0
         for item in self.__lines:
             if item.getLabel() == label:
@@ -247,13 +252,13 @@ if __name__=="__main__":
 
     engine = ProcessorEngine()
     AsmCont = AssembleurContainer(engine)
-    AsmCont.pushMove(2,1)
-    AsmCont.pushMove(Litteral(2),1)
-    AsmCont.pushUal("+",2,(3,Litteral(1089)))
-    AsmCont.pushStore(1,Variable("x"))
-    AsmCont.pushLoad(Variable("x"),3)
-    AsmCont.pushInput(Variable("x"))
-    AsmCont.pushPrint(1)
+    AsmCont.pushMove(0,2,1)
+    AsmCont.pushMoveLitteral(0,Litteral(2),1)
+    AsmCont.pushUal(0,"+",2,(3,), Litteral(19))
+    AsmCont.pushStore(0,1,Variable("x"))
+    AsmCont.pushLoad(0,Variable("x"),3)
+    AsmCont.pushInput(0,Variable("x"))
+    AsmCont.pushPrint(0,1)
     AsmCont.pushHalt()
 
     print(str(AsmCont))
