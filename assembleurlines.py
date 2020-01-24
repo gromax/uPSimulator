@@ -98,7 +98,17 @@ class AsmLine:
         :type wordSize: int
         :param regSize: taille des opérandes de type registre
         :type regSize: int
+        :return:code binaire
         :rtype: str
+
+        :Example:
+
+        >>> 2+2
+        4
+
+        .. seealso:: blabla
+        .. warning:: Attention
+        .. note:: une note
         """
         if self.isEmpty():
             return ""
