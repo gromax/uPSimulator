@@ -1,4 +1,8 @@
+from typing import Union, List, Dict
+
+
 from errors import *
+from litteral import Litteral
 
 ENGINE_COLLECTION = {
     "default": {
@@ -70,30 +74,32 @@ ENGINE_COLLECTION = {
     }
 }
 
-class Register:
-    def __init__(self, index, isUalOnlyOutput):
-        self.__index = index
-        self.isUalOnlyOutput = __isUalOnlyOutput == True
-
-    def __str__(self):
-        return "r"+str(self.__index)
-
 class ProcessorEngine:
-    def __init__(self, name = "default"):
+    __register_address_bits = 1
+    __data_bits = 0
+    __freeUalOutput = False
+    def __init__(self, name:str = "default"):
         '''
         name = string = nom du modèle
         '''
         if not name in ENGINE_COLLECTION:
           name = "default"
-        self.__attributes = ENGINE_COLLECTION[name]
-        if "litteralCommands" in self.__attributes:
-          self.__litteralsCommands = self.__attributes["litteralCommands"]
+        attributes = ENGINE_COLLECTION[name]
+        if "register_bits" in attributes and isinstance(attributes["register_bits"],int):
+            self.__register_address_bits = attributes["register_bits"]
+        if "data_bits" in attributes and isinstance(attributes["data_bits"],int):
+            self.__data_bits = attributes["data_bits"]
+        if "free_ual_output" in attributes:
+            self.__freeUalOutput = (attributes["free_ual_output"] == True)
+
+        if "litteralCommands" in attributes:
+          self.__litteralsCommands = attributes["litteralCommands"]  # type : Dict
         else:
-          self.__litteralsCommands = {}
-        if "commands" in self.__attributes:
-          self.__commands = self.__attributes["commands"]
+          self.__litteralsCommands = {}  # type : Dict
+        if "commands" in attributes:
+          self.__commands = attributes["commands"] # type: Dict
         else:
-          self.__commands = {}
+          self.__commands = {} # type : Dict
 
         if self.ualOutputIsFree():
             destReg = 1
@@ -115,10 +121,10 @@ class ProcessorEngine:
 
         assert self.__checkAttributes() == True
 
-    def __checkAttributes(self):
-        if not "register_bits" in self.__attributes or not isinstance(self.__attributes["register_bits"],int) or self.__attributes["register_bits"] < 1:
+    def __checkAttributes(self) -> bool:
+        if self.__register_address_bits < 1:
             raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
-        if not "data_bits" in self.__attributes or not isinstance(self.__attributes["data_bits"],int) or self.__attributes["data_bits"] < 1:
+        if self.__data_bits <= 0:
             raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
 
         for (name, attr) in self.__litteralsCommands.items():
@@ -136,32 +142,19 @@ class ProcessorEngine:
 
         return True
 
-    def registersNumber(self):
-        return 2**self.__attributes["register_bits"]
+    def registersNumber(self) -> int:
+        return 2**self.__register_address_bits
 
-    def ualOutputIsFree(self):
-        return "free_ual_output" in self.__attributes and (self.__attributes["free_ual_output"] == True or self.__attributes["free_ual_output"] == 1)
+    def ualOutputIsFree(self) -> bool:
+        return self.__freeUalOutput
 
-    def hasNEG(self):
+    def hasNEG(self) -> bool:
         return "neg" in self.__commands
 
-    def hasOperator(self, operator):
+    def hasOperator(self, operator:str) -> bool:
         return operator in self.__commands
 
-    def getRegisterList(self):
-        '''
-        génère une liste de registre disponibles à usage d'un manager de compilation
-        '''
-        if self.ualOutputIsFree():
-            r0 = Register(0,False)
-        else:
-            r0 = Register(0,True)
-        regs = [r0]
-        for i in range(1,self.registersNumber()):
-            regs.append(Register(i,False))
-        return regs.reverse()
-
-    def getAsmCommand(self, commandDesc):
+    def getAsmCommand(self, commandDesc:str) -> Union[None, str]:
         '''
         commandDesc = chaîne de caractère décrivant un type de commande
         sortie = string pour asm, None si n'existe pas
@@ -171,7 +164,7 @@ class ProcessorEngine:
         itemAttribute = self.__commands[commandDesc]
         return itemAttribute["asm"]
 
-    def getOpcode(self, commandDesc):
+    def getOpcode(self, commandDesc:str):
         '''
         commandDesc = chaîne de caractère décrivant un type de commande
         sortie = string pour opcode, None si n'existe pas
@@ -181,7 +174,7 @@ class ProcessorEngine:
         itemAttribute = self.__commands[commandDesc]
         return itemAttribute["opcode"]
 
-    def getLitteralAsmCommand(self, commandDesc):
+    def getLitteralAsmCommand(self, commandDesc:str) -> Union[None, str]:
         '''
         commandDesc = chaîne de caractère décrivant un type de commande, version littéral
         sortie = string pour asm, None si n'existe pas
@@ -191,7 +184,7 @@ class ProcessorEngine:
         itemAttribute = self.__litteralsCommands[commandDesc]
         return itemAttribute["asm"]
 
-    def getLitteralOpcode(self, commandDesc):
+    def getLitteralOpcode(self, commandDesc:str) -> Union[None, str]:
         '''
         commandDesc = chaîne de caractère décrivant un type de commande, version littéral
         sortie = string pour opcode, None si n'existe pas
@@ -201,7 +194,7 @@ class ProcessorEngine:
         itemAttribute = self.__litteralsCommands[commandDesc]
         return itemAttribute["opcode"]
 
-    def litteralOperatorAvailable(self, operator, litteral):
+    def litteralOperatorAvailable(self, operator:str, litteral:Litteral) -> bool:
         '''
         operator = nom d'une opération arithmétique ou logique
         litteral = objet Litteral
@@ -215,7 +208,7 @@ class ProcessorEngine:
         maxLitteralSize = self.getLitteralMaxSizeIn(operator)
         return litteral.isBetween(0, maxLitteralSize)
 
-    def getLitteralMaxSizeIn(self, commandDesc):
+    def getLitteralMaxSizeIn(self, commandDesc:str) -> int:
         '''
         commandDesc = chaîne de caractère décrivant un type de commande
         retourne la taille du litteral maximum dans une commande
@@ -224,8 +217,8 @@ class ProcessorEngine:
         commandAttributes = self.__litteralsCommands[commandDesc]
         # on suppose toujours que le littéral peut occuper toute la place restante
         # il faut calculer la place disponible
-        nbits_total = self.__attributes["data_bits"]
-        nbits_reg = self.__attributes["register_bits"]
+        nbits_total = self.__data_bits
+        nbits_reg = self.__register_address_bits
         nb_reg_operands = self.__opNumber[commandDesc] - 1
         opcode = commandAttributes["opcode"]
         nbits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
@@ -234,18 +227,18 @@ class ProcessorEngine:
         return 2**nbits - 1
 
 
-    def getComparaisonSymbolsAvailables(self):
+    def getComparaisonSymbolsAvailables(self) -> List[str]:
         '''
         Retourne la liste des symbole de comparaison disponibles dans le modèle
         '''
         symbols = ["<=", "<", ">=", ">", "==", "!="]
         return [item for item in symbols if item in self.__commands]
 
-    def getRegBits(self):
-        return self.__attributes["register_bits"]
+    def getRegBits(self) -> int:
+        return self.__register_address_bits
 
-    def getDataBits(self):
-        return self.__attributes["data_bits"]
+    def getDataBits(self) -> int:
+        return self.__data_bits
 
 
 if __name__=="__main__":
