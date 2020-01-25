@@ -1,30 +1,50 @@
+"""
+.. module:: structuresnodes
+   :synopsis: définition des noeuds constituant le programme dans sa version structurée : Instructions simples, conditions, boucles. Contribue à la transformation d'une version où les conditions et boucles sont assurés par des sauts inconditionnels / conditionnels. Cette version est qualifiée de version linéaire.
+"""
+from typing import List
+
 from expression import Expression
 from variable import Variable
 
 class StructureNode:
-    _lineNumber= 0
-    def __str__(self):
+    _lineNumber = 0 # type : int
+    def __str__(self) -> str:
+        """Transtypage -> str
+        :return : chaîne par défaut, 'noeud de structure'
+        :rtype: str
+        """
         return "noeud de structure"
 
-    def getLinearStructureList(self, csl):
-        '''
-        retourne une liste correspondant à une version linéaire de la structure : if et while remplacés par des branchements
-        csl = liste de string : symboles de comparaisons disponibles - utile seulement pour IfNode et héritiers
-        '''
+    def getLinearStructureList(self, csl:List['str']) -> List['StructureNode']:
+        """Fonction récursive produisant la version linéaire
+        :param csl:Liste des comparaisons permises par le processeur utilisé
+        :type csl:List[str]
+        :return : Liste des noeuds de la version linéaire
+        :rtype: List[StructureNode]
+        """
+
         return [ self ]
 
-    def getLineNumber(self):
+    def getLineNumber(self) -> int:
+        """Accesseur pour le numéro de ligne d'origine de cet élément
+        :return : numéro de ligne d'origine
+        :rtype: int
+        """
         return self._lineNumber
 
 class IfNode(StructureNode):
     @classmethod
-    def _recursiveLinearStructureListOnChildren(cls, csl, childrenList):
-        '''
-        cls = la classe elle-même
-        csl = liste de string : symboles de comparaisons disponibles - utile seulement pour IfNode et héritiers
-        childrenList = Liste de StructureNode
-        Sortie = Liste d'items en version linéaire
-        '''
+    def _recursiveLinearStructureListOnChildren(cls, csl:List[str], childrenList:List['StructureNode']) -> List['StructureNode']:
+        """Propage le calcul de la version linéaire aux enfants
+        :param csl:Liste des comparaisons permises par le processeur utilisé
+        :type csl:List[str]
+        :param childrenList:Liste des noeuds enfants à considérer
+        :type childrenList:List[StructureNode]
+        :return : Liste enfant en version linéaire
+        :rtype: List[StructureNode]
+        """
+
         outList = []
         for node in childrenList:
             nodeLinear = node.getLinearStructureList(csl)
@@ -32,21 +52,27 @@ class IfNode(StructureNode):
         return outList
 
     @classmethod
-    def _childrenStr(cls, childrenList):
-        '''
-        childrenList = Liste de StructureNode
-        Sortie = Chaîne de caractère représentant la liste enfant
-        '''
+    def _childrenStr(cls, childrenList:List['StructureNode']) -> str:
+        """Propage le transtypage -> str aux enfants
+        :param childrenList:Liste des noeuds enfants à considérer
+        :type childrenList:List[StructureNode]
+        :return : Liste enfant transtypée en chaîne de caractères
+        :rtype: str
+        """
+
         childrenStrList = [ str(node) for node in childrenList ]
         return "\n".join(childrenStrList)
 
-    def __init__(self, lineNumber, condition, children):
-        '''
-        Entrées :
-          lineNumber = int, numéro ligne d'origine
-          condition est un objet Expression
-          children = éléments enfants
-        '''
+    def __init__(self, lineNumber:int, condition:Expression, children:List[StructureNode]):
+        """Constructeur d'un noeud If
+        :param lineNumber:Numéro de ligne dans le programme d'origine
+        :type lineNumber:int
+        :param condition:Expression logique du test de ce if.
+        :type condition:Expression
+        :param children:Liste des objets enfants
+        :type children:List[StructureNode]
+        """
+
         assert isinstance(condition, Expression)
         self._condition = condition
         assert condition.getType() == 'bool'
@@ -55,11 +81,15 @@ class IfNode(StructureNode):
         self._children = children
         self._lineNumber = lineNumber
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Transtypage -> str
+        :return:Version chaîne de caractères de ce noeud et de ses enfants
+        :rtype:str
+        """
         childrenStr = self._childrenStr(self._children)
         return "if "+str(self._condition)+" {\n"+childrenStr+"\n}"
 
-    def _decomposeCondition(self, csl, cibleOUI, cibleNON):
+    def _decomposeCondition(self, csl:List[str], cibleOUI:'LabelNode', cibleNON:'LabelNode') -> List['StructureNode']:
         '''
         csl = liste de string : symboles de comparaisons disponibles
         cibleOUI, cibleNON : cible LabelNode en cas de OUI et en cas de NON
