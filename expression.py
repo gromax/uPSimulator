@@ -65,14 +65,6 @@ class Expression:
         '''
         return str(self.__rootNode)
 
-    def getRegisterCost(self):
-        '''
-        Calcul du cout de calcul d'une expression:
-        Entrée: Arbre représentant l'expression
-        Sortie: Entier
-        '''
-        return self.__rootNode.getRegisterCost()
-
     def negToSubClone(self):
         newRootNode = self.__rootNode.negToSubClone()
         return Expression(newRootNode)
