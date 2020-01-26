@@ -1,102 +1,220 @@
+"""
+.. module:: structuresnodes
+   :synopsis: définition des noeuds constituant le programme dans sa version structurée : Instructions simples, conditions, boucles. Contribue à la transformation d'une version où les conditions et boucles sont assurés par des sauts inconditionnels / conditionnels. Cette version est qualifiée de version linéaire.
+
+   .. note::
+
+    Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
+"""
+
+from typing import List, Optional, Tuple
+
 from errors import *
 from litteral import Litteral
-
-'''
-Les noeuds ne sont jamais modifiés.
-toute modification entraîne la création de clones
-'''
+from processorengine import ProcessorEngine
+from compileexpressionmanager import CompileExpressionManager
 
 class Node:
-    def isLitteral(self):
+    """Noeud parent garantissant l'existence de certaines fonctions pour tous les noeuds.
+    """
+    def isLitteral(self) -> bool:
+        """Le noeud est-il un littéral ?
+        :return:Vrai si le noeud est un simple littéral
+        :rtype:bool
+        """
         return False
 
-    def needUAL(self):
+    def needUAL(self) -> bool:
+        """L'évaluation de ce noeud nécessitera-t-elle l'utilisation de l'UAL ?
+        :return:Vrai si l'UAL est nécessaire.
+        :rtype:bool
+        """
         return False
 
-    def getRegisterCost(self, engine):
+    def getRegisterCost(self, engine:ProcessorEngine) -> int:
+        """Calcul le nombre de registre nécessaire pour l'évaluation d'un noeud
+        :return:nombre de registres
+        :rtype:int
+        """
         return 1
 
-    def calcCompile(self, CEMObject):
-        '''
-        CEMObject = objet CompileExpressionManager
-        '''
+    def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
+        """Exécute la compilation
+        :param CEMObject:Gestionnaire de compilation pour une expression
+        :type CEMObject:CompileExpressionManager
+        :return:None
+        """
         engine = CEMObject.getEngine()
         myCost = self.getRegisterCost(engine)
         needUAL =self.needUAL()
         CEMObject.getNeededRegisterSpace(myCost, needUAL)
 
-    def isComplexeCondition(self):
+    def isComplexeCondition(self) -> bool:
+        """S'agit-il d'une condition composée de and, or, not ?
+        :return:Vrai si c'est une condition logique contenant des and, or, not
+        :rtype:bool
+        """
+
         return False
 
-    def getComparaisonSymbol(self):
-        '''
-        Utile seulement pour BinaryNode avec opérateur <, <=, ==, =>, >, !=
-        '''
+    def getComparaisonSymbol(self) -> Optional[List[str]]:
+        """Symbols de comparaisons utilisés dans l'expression
+        :return:None dans le cas général
+        :rtype:None
+
+        .. note::
+
+        Ne sert que pour BinaryNode, dans le cas d'une expression logique
+        """
+
         return None
 
-    def adjustConditionClone(self,csl):
-        '''
-        csl = liste de string : symboles de comparaisons disponibles
-        modification seulement pour condition élémentaire
-        '''
+    def adjustConditionClone(self, csl:List[str]) -> 'Node':
+        """Dans le cas d'une expression contenant des symboles de comparaisons,
+        adapte l'expression pour qu'elle ne contienne qu'une liste de symboles autorisés.
+        Crée un clone pour accueillir la modification si nécessaire.
+
+        :param csl:Liste des symboles de comparaison autorisés
+        :type csl:List[str]
+        :return:Noeud original ou clone avec les modifications faites
+        :rtype:Node
+
+        .. note::
+
+        Sert pour BinaryNode, dans le cas d'une expression logique avec symboles de comparaison
+
+        Si pas de modification, le noeud original est conservé.
+        """
+
         return self
 
-    def negToSubClone(self):
-        '''
-        modifie les - unaires de l'arborescence en - binaire
-        Seuls les UnaryNode et BinaryNode, qui peuvent être affectés
-        par une telle modification, sont clonés
-        '''
+    def negToSubClone(self) -> 'Node':
+        """Adapte l'expression pour l'éventualité de l'absence d'une commande NEG, c'est à dire un - unaire.
+        Si une modification est nécessaire, un clone est créé.
+
+        :return:Noeud original ou clone avec les modifications faites
+        :rtype:Node
+
+        .. note::
+
+        Sert pour UnaryNode, dans le cas d'une opération -
+        """
+
         return self
 
-    def logicNegateClone(self):
-        '''
-        retourne un clone avec négation logique s'il y a lieu
-        '''
+    def logicNegateClone(self) -> 'Node':
+        """Calcul la négation logique de l'expression.
+        Si nécessaire un clone est créé.
+        Dans le cas d'une opération arithmétique, on se contente de retourner le noeud sans modification.
+
+        :return:Noeud original ou clone avec les modifications faites
+        :rtype:Node
+        """
+
         return self
 
 class UnaryNode(Node):
-    __knownOperators = ('not', '~', '-')
-    def __init__(self,operator,operand):
-        '''
-        operator = not, ~, - (moins autant qu'opérateur unaire)
-        operand : Node
-        '''
+    __knownOperators = ('not', '~', '-') # type : Tuple[str]
+    def __init__(self, operator:str, operand:Node):
+        """Constructeur
+        :param operator:Opérateur parmi not, ~ et - (unaire)
+        :type operator:str
+        :param operand:Opérande
+        :type operand:Node
+        """
+
         assert operator in self.__knownOperators
         assert isinstance(operand,Node)
         self.__operator = operator
         self.__operand = operand
 
-    def isComplexeCondition(self):
+    def isComplexeCondition(self) -> bool:
+        """S'agit-il d'une condition composée de not ?
+        :return:Vrai si c'est un opérateur not
+        :rtype:bool
+
+        .. note::
+
+        Inutile de vérifier les enfants car si ce n'est pas not,
+        les enfants sont forcément de type arithmétique.
+        """
+
         return self.__operator == "not"
 
-    def boolDecompose(self):
-        '''
-        Sortie : tuple avec "not" et operand si c'est not
-        None sinon
-        '''
+    def boolDecompose(self) -> Optional[Tuple[str,Node]]:
+        """Renvoie les éléments structurant une condition complexe
+        afin de traitement pour orgniser les sauts conditionnels qui feront exécuteront cette condition.
+
+        None si ce n'est pas un not.
+        :return:tuple formé de "not" et du noeud enfant, None si pas not.
+        :rtype:tuple(str,Node) ou None
+        """
+
         if self.__operator != "not":
             return None
         return "not", self.__operand
 
-    def logicNegateClone(self):
-        '''
-        retourne un clone avec négation logique s'il y a lieu
-        '''
+    def logicNegateClone(self) -> Node:
+        """Calcul la négation logique de l'expression.
+        Dans le cas not, consiste à enlever le not.
+
+        Si pas un not, alors c'est un noeud arithmétique qui n'est pas modifié.
+        :return:clone pour obtenir une négation logique
+        :rtype:Node
+
+        .. note::
+
+        Un clone est systèmatiquement créé
+        """
+
         if self.__operator == "not":
             return self.__operand.clone()
         return self.clone()
 
-    def adjustConditionClone(self,csl):
-        '''
-        csl = liste de string : symboles de comparaisons disponibles
-        '''
+    def adjustConditionClone(self, csl:List[str]) -> Node:
+        """Ajuste les symboles de comparaison des enfants pour les adapter aux symboles autorisés
+        Crée un clone pour accueillir la modification si nécessaire.
+
+        :param csl:Liste des symboles de comparaison autorisés
+        :type csl:List[str]
+        :return:clone avec les modifications faites
+        :rtype:Node
+
+        .. note::
+
+        Si le noeud est un not, les enfants contiendront des symboles de comparaison.
+        On propage alors au noeud enfant.
+
+        La modification du noeud enfant peut emboîter un not supplémentaire (!= transformé en not ==)
+        Cela est sans importance : les not sont exécutés par un jeu de branchement de sauts.
+        L'enchainement de deux not conduit seulement à inverser deux fois de suites les cibles d'un branchement
+        ce qui ne crée aucune complication.
+
+        Si le noeud n'est pas un not, l'enfant est forcément arithmétique et donc il est inutile d'aller plus loin.
+        """
+
         if self.__operator != "not":
             return self
         newOp = self.__operand.adjustConditionClone(csl)
         return UnaryNode("not", newOp)
 
-    def getType(self):
+    def getType(self) -> str:
+        """Type d'expression
+
+        :return:'bool' ou 'int'
+        :rtype:str
+
+        .. note::
+
+        Les variables et littéraux sont arithmétiques ainsi que tous les calculs exécutés sur eux.
+
+        Les comparaisons telles que ==, <... produisent des quantités booléennes.
+
+        Les opérateur not, and, or ne peuvent s'appliquer qu'à des opérandes de type booléens.
+
+        Les opérateurs &, |... sont bitwises et à ce titre sont considérés comme arithmétiques.
+        """
+
         operandType = self.__operand.getType()
         if operandType == None or (self.__operator == '~' and operandType=='bool'):
             return None
@@ -104,31 +222,67 @@ class UnaryNode(Node):
             return 'bool'
         return 'int'
 
-    def negToSubClone(self):
-        '''
-        Si -, c'est un - unaire remplacé par une soustraction (binaire)
-        retourne un clone avec les modifications s'il y a lieu
-        '''
+    def negToSubClone(self) -> Node:
+        """Adapte l'expression pour l'éventualité de l'absence d'une commande NEG, c'est à dire un - unaire.
+
+        Ainsi, si l'opérateur est -, le noeud est transformé en l'opération 0 - ... de façon à remplacer le - unaire - binaire
+
+        :return:Noeud original ou clone avec les modifications faites
+        :rtype:Node
+
+        .. note::
+
+        La demande de modification est propagée au noeud enfant.
+        """
+
+
         newOperand = self.__operand.negToSubClone()
         if not self.__operator == "-":
             return UnaryNode(self.__operator, newOperand)
         zero = ValueNode(Litteral(0))
         return BinaryNode("-", zero, newOperand)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Transtypage -> str
+        :return:Représentation du noeud sous forme d'une chaîne de caractères
+        :rtype:str
+
+        .. note::
+
+        L'expression est entièrement parenthèsée.
+        """
         strOperand = str(self.__operand)
         return self.__operator+"("+strOperand+")"
 
-    def getRegisterCost(self, engine):
+    def getRegisterCost(self, engine:ProcessorEngine) -> int:
+        """Calcul le nombre de registre nécessaire pour l'évaluation d'un noeud
+        :return:nombre de registres
+        :rtype:int
+
+        .. note::
+
+        L'opérande étant placée dans un registre, on peut envisager de placer le résultat au même endroit.
+        L'opération ne nécessite alors pas de registres supplémentaire.
+        """
+
         return self.__operand.getRegisterCost(engine)
 
-    def needUAL(self):
+    def needUAL(self) -> bool:
+        """L'évaluation de ce noeud nécessitera l'ual.
+
+        :return:Vrai
+        :rtype:bool
+        """
+
         return True
 
-    def calcCompile(self, CEMObject):
-        '''
-        CEMObject = objet CompileExpressionManager
-        '''
+    def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
+        """Exécute la compilation
+        :param CEMObject:Gestionnaire de compilation pour une expression
+        :type CEMObject:CompileExpressionManager
+        :return:None
+        """
+
         if self.__operator == "not":
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
         super(UnaryNode,self).calcCompile(CEMObject)
@@ -140,7 +294,15 @@ class UnaryNode(Node):
             self.__operand.calcCompile(CEMObject)
             CEMObject.pushUnaryOperator(self.__operator)
 
-    def clone(self):
+    def clone(self) -> 'UnaryNode':
+        """Crée un noeud clone
+        :return:clone
+        :rtype:UnaryNode
+
+        .. note::
+
+        l'aborescence enfant est également clonée.
+        """
         cloneOperand = self.__operand.clone()
         operator = self.__operator
         return UnaryNode(operator, cloneOperand)
