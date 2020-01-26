@@ -14,7 +14,7 @@ from litteral import Litteral
 from processorengine import ProcessorEngine
 from compileexpressionmanager import CompileExpressionManager
 
-class Node:
+class ExpressionNode:
     """Noeud parent garantissant l'existence de certaines fonctions pour tous les noeuds.
     """
     def isLitteral(self) -> bool:
@@ -49,6 +49,21 @@ class Node:
         needUAL =self.needUAL()
         CEMObject.getNeededRegisterSpace(myCost, needUAL)
 
+    def isSimpleCondition(self) -> bool:
+        """
+        :return:Vrai si l'expression est de type 'bool' et sans opérateur and, or, not
+        :rtype:bool
+        """
+        return self.getType() == 'bool' and not self.isComplexeCondition()
+
+    def getType(self) -> str:
+        """Renvoie le type. 'int' par défaut
+        :return: type de l'expression, 'bool' pour booléen et 'int' pour arithmétique
+        :rtype:str
+        """
+
+        return 'int'
+
     def isComplexeCondition(self) -> bool:
         """S'agit-il d'une condition composée de and, or, not ?
         :return:Vrai si c'est une condition logique contenant des and, or, not
@@ -69,7 +84,7 @@ class Node:
 
         return None
 
-    def adjustConditionClone(self, csl:List[str]) -> 'Node':
+    def adjustConditionClone(self, csl:List[str]) -> 'ExpressionNode':
         """Dans le cas d'une expression contenant des symboles de comparaisons,
         adapte l'expression pour qu'elle ne contienne qu'une liste de symboles autorisés.
         Crée un clone pour accueillir la modification si nécessaire.
@@ -77,7 +92,7 @@ class Node:
         :param csl:Liste des symboles de comparaison autorisés
         :type csl:List[str]
         :return:Noeud original ou clone avec les modifications faites
-        :rtype:Node
+        :rtype:ExpressionNode
 
         .. note::
 
@@ -88,12 +103,12 @@ class Node:
 
         return self
 
-    def negToSubClone(self) -> 'Node':
+    def negToSubClone(self) -> 'ExpressionNode':
         """Adapte l'expression pour l'éventualité de l'absence d'une commande NEG, c'est à dire un - unaire.
         Si une modification est nécessaire, un clone est créé.
 
         :return:Noeud original ou clone avec les modifications faites
-        :rtype:Node
+        :rtype:ExpressionNode
 
         .. note::
 
@@ -102,29 +117,29 @@ class Node:
 
         return self
 
-    def logicNegateClone(self) -> 'Node':
+    def logicNegateClone(self) -> 'ExpressionNode':
         """Calcul la négation logique de l'expression.
         Si nécessaire un clone est créé.
         Dans le cas d'une opération arithmétique, on se contente de retourner le noeud sans modification.
 
         :return:Noeud original ou clone avec les modifications faites
-        :rtype:Node
+        :rtype:ExpressionNode
         """
 
         return self
 
-class UnaryNode(Node):
+class UnaryNode(ExpressionNode):
     __knownOperators = ('not', '~', '-') # type : Tuple[str]
-    def __init__(self, operator:str, operand:Node):
+    def __init__(self, operator:str, operand:ExpressionNode):
         """Constructeur
         :param operator:Opérateur parmi not, ~ et - (unaire)
         :type operator:str
         :param operand:Opérande
-        :type operand:Node
+        :type operand:ExpressionNode
         """
 
         assert operator in self.__knownOperators
-        assert isinstance(operand,Node)
+        assert isinstance(operand,ExpressionNode)
         self.__operator = operator
         self.__operand = operand
 
@@ -141,26 +156,26 @@ class UnaryNode(Node):
 
         return self.__operator == "not"
 
-    def boolDecompose(self) -> Optional[Tuple[str,Node]]:
+    def boolDecompose(self) -> Optional[Tuple[str,ExpressionNode]]:
         """Renvoie les éléments structurant une condition complexe
         afin de traitement pour orgniser les sauts conditionnels qui feront exécuteront cette condition.
 
         None si ce n'est pas un not.
         :return:tuple formé de "not" et du noeud enfant, None si pas not.
-        :rtype:tuple(str,Node) ou None
+        :rtype:tuple(str,ExpressionNode) ou None
         """
 
         if self.__operator != "not":
             return None
         return "not", self.__operand
 
-    def logicNegateClone(self) -> Node:
+    def logicNegateClone(self) -> ExpressionNode:
         """Calcul la négation logique de l'expression.
         Dans le cas not, consiste à enlever le not.
 
         Si pas un not, alors c'est un noeud arithmétique qui n'est pas modifié.
         :return:clone pour obtenir une négation logique
-        :rtype:Node
+        :rtype:ExpressionNode
 
         .. note::
 
@@ -171,14 +186,14 @@ class UnaryNode(Node):
             return self.__operand.clone()
         return self.clone()
 
-    def adjustConditionClone(self, csl:List[str]) -> Node:
+    def adjustConditionClone(self, csl:List[str]) -> ExpressionNode:
         """Ajuste les symboles de comparaison des enfants pour les adapter aux symboles autorisés
         Crée un clone pour accueillir la modification si nécessaire.
 
         :param csl:Liste des symboles de comparaison autorisés
         :type csl:List[str]
         :return:clone avec les modifications faites
-        :rtype:Node
+        :rtype:ExpressionNode
 
         .. note::
 
@@ -222,13 +237,13 @@ class UnaryNode(Node):
             return 'bool'
         return 'int'
 
-    def negToSubClone(self) -> Node:
+    def negToSubClone(self) -> ExpressionNode:
         """Adapte l'expression pour l'éventualité de l'absence d'une commande NEG, c'est à dire un - unaire.
 
         Ainsi, si l'opérateur est -, le noeud est transformé en l'opération 0 - ... de façon à remplacer le - unaire - binaire
 
         :return:Noeud original ou clone avec les modifications faites
-        :rtype:Node
+        :rtype:ExpressionNode
 
         .. note::
 
@@ -307,7 +322,7 @@ class UnaryNode(Node):
         operator = self.__operator
         return UnaryNode(operator, cloneOperand)
 
-class BinaryNode(Node):
+class BinaryNode(ExpressionNode):
     __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '^', '<', '>', '<=', '>=', '==', '!=')
     __symetricOperators = ('+', '*', '&', '|', '^')
     __logicalOperators = ("and", "or")
@@ -315,11 +330,11 @@ class BinaryNode(Node):
     def __init__(self,operator,operand1, operand2):
         '''
         operator : dans +, -, *, /, %, and, or, &, |
-        operand1 et operand2 : objet de type Node
+        operand1 et operand2 : objet de type ExpressionNode
         '''
         assert operator in self.__knownOperators
-        assert isinstance(operand1,Node)
-        assert isinstance(operand2,Node)
+        assert isinstance(operand1,ExpressionNode)
+        assert isinstance(operand2,ExpressionNode)
         self.__operator = operator
         self.__operands = operand1, operand2
 
@@ -486,15 +501,12 @@ class BinaryNode(Node):
         operator = self.__operator
         return BinaryNode(operator, cloneOp1, cloneOp2)
 
-class ValueNode(Node):
+class ValueNode(ExpressionNode):
     def __init__(self,value):
         '''
         value de type Litteral ou Variable
         '''
         self.__value = value
-
-    def getType(self):
-        return 'int'
 
     def __str__(self):
         return str(self.__value)
