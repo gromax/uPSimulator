@@ -13,7 +13,7 @@ class Expression:
         return self.__rootNode.isComplexeCondition()
 
     def isSimpleCondition(self):
-        return self.getType() == 'bool' and not self.isComplexeCondition()
+        return self.__rootNode.isSimpleCondition()
 
     def boolDecompose(self):
         '''
