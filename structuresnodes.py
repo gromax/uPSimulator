@@ -4,7 +4,7 @@
 """
 from typing import List, Optional
 
-from expression import Expression
+from expressionnodes import ExpressionNode
 from variable import Variable
 
 class StructureNode:
@@ -63,17 +63,17 @@ class IfNode(StructureNode):
         childrenStrList = [ str(node) for node in childrenList ]
         return "\n".join(childrenStrList)
 
-    def __init__(self, lineNumber:int, condition:Expression, children:List[StructureNode]):
+    def __init__(self, lineNumber:int, condition:ExpressionNode, children:List[StructureNode]):
         """Constructeur d'un noeud If
         :param lineNumber:Numéro de ligne dans le programme d'origine
         :type lineNumber:int
-        :param condition:Expression logique du test de ce if.
-        :type condition:Expression
+        :param condition:expression logique du test de ce if.
+        :type condition:ExpressionNode
         :param children:Liste des objets enfants
         :type children:List[StructureNode]
         """
 
-        assert isinstance(condition, Expression)
+        assert isinstance(condition, ExpressionNode)
         self._condition = condition
         assert condition.getType() == 'bool'
         for node in children:
@@ -109,11 +109,11 @@ class IfNode(StructureNode):
         conditionInverse = conditionInverse.adjustConditionClone(csl)
         return self._recursiveDecomposeComplexeCondition(conditionInverse, cibleOUI, cibleNON)
 
-    def _recursiveDecomposeComplexeCondition(self, conditionSaut:Expression, cibleDirecte:'LabelNode', cibleSautCond:'LabelNode') -> List['StructureNode']:
+    def _recursiveDecomposeComplexeCondition(self, conditionSaut:ExpressionNode, cibleDirecte:'LabelNode', cibleSautCond:'LabelNode') -> List['StructureNode']:
         """Fonction auxiliaire et récursive pour la décoposition d'une condition complexe
         en un ensemble de branchement et de condition élémentaire
         :param conditionSaut: condition du saut conditionnel
-        :type csl:Expression
+        :type conditionSaut:ExpressionNode
         :param cibleDirecte: cible en déroulement normal, càd condition fausse => pas de saut
         :type cibleDirecte:LabelNode
         :param cibleSautCond: cible du saut conditionnel, si la condition est vraie
@@ -166,14 +166,14 @@ class IfNode(StructureNode):
         return outputList
 
 class IfElseNode(IfNode):
-    def __init__(self, ifLineNumber:int, condition:Expression, ifChildren:List[StructureNode], elseLineNumber:int, elseChildren:List[StructureNode]):
+    def __init__(self, ifLineNumber:int, condition:ExpressionNode, ifChildren:List[StructureNode], elseLineNumber:int, elseChildren:List[StructureNode]):
         """Constructeur d'un noeud IfElse
         :param ifLineNumber:Numéro de ligne dans le programme d'origine
         :type ifLineNumber:int
         :param elseLineNumber:Numéro de ligne dans le programme d'origine pour le Else
         :type elseLineNumber:int
-        :param condition:Expression logique du test de ce if.
-        :type condition:Expression
+        :param condition:expression logique du test de ce if.
+        :type condition:ExpressionNode
         :param ifChildren:Liste des objets enfants pour le bloc If
         :type ifChildren:List[StructureNode]
         :param elseChildren:Liste des objets enfants pour le bloc Else
@@ -285,7 +285,7 @@ class LabelNode(StructureNode):
         return "l"+str(self.__index)
 
 class AffectationNode(StructureNode):
-    def __init__(self, lineNumber:int, variableCible:Variable, expression:Expression):
+    def __init__(self, lineNumber:int, variableCible:Variable, expression:ExpressionNode):
         """Noeud représentant une affectation de forme variable <- expression
 
         :param lineNumber: numéro de ligne dans le programme d'origine
@@ -293,20 +293,20 @@ class AffectationNode(StructureNode):
         :param variableCible:variable qui sera affectée
         :type variableCible:Variable
         :param expression:expression arithmétique dont le résultat est affecté à la variable
-        :type expression:Expression
+        :type expression:ExpressionNode
         """
-        assert isinstance(expression, Expression)
+        assert isinstance(expression, ExpressionNode)
         assert expression.getType() == 'int'
         assert isinstance(variableCible, Variable)
         self._lineNumber = lineNumber
         self._cible = variableCible
         self._expression = expression
 
-    def getExpression(self) -> Expression:
+    def getExpression(self) -> ExpressionNode:
         """Accesseur : retourne l'expression dont le résultat doit être affecté à la variable cible.
 
-        :return:Expression arithmétique dont le résultat doit être affecté à la variable cible.
-        :rtype:Expression
+        :return:expression arithmétique dont le résultat doit être affecté à la variable cible.
+        :rtype:ExpressionNode
         """
 
         return self._expression
@@ -356,25 +356,25 @@ class InputNode(StructureNode):
         return str(self._cible)+" "+chr(0x2190)+" Input"
 
 class PrintNode(StructureNode):
-    def __init__(self, lineNumber:int, expression:Expression):
+    def __init__(self, lineNumber:int, expression:ExpressionNode):
         """Noeud représentant un print, permettant d'afficher le résultat d'une expression arithmétique
 
         :param lineNumber: numéro de ligne dans le programme d'origine
         :type lineNumber:int
         :param expression:expression arithmétique dont le résultat est affecté à la variable
-        :type expression:Expression
+        :type expression:ExpressionNode
         """
 
-        assert isinstance(expression, Expression)
+        assert isinstance(expression, ExpressionNode)
         assert expression.getType() == 'int'
         self._lineNumber = lineNumber
         self._expression = expression
 
-    def getExpression(self) -> Expression:
+    def getExpression(self) -> ExpressionNode:
         """Accesseur : retourne l'expression dont le résultat doit être affiché.
 
-        :return:Expression arithmétique dont le résultat doit être affiché.
-        :rtype:Expression
+        :return:expression arithmétique dont le résultat doit être affiché.
+        :rtype:ExpressionNode
         """
         return self._expression
 
@@ -387,7 +387,7 @@ class PrintNode(StructureNode):
         return str(self._expression)+" "+chr(0x2192)+" Affichage"
 
 class JumpNode(StructureNode):
-    def __init__(self, lineNumber:int, cible:LabelNode, condition:Optional[Expression] = None):
+    def __init__(self, lineNumber:int, cible:LabelNode, condition:Optional[ExpressionNode] = None):
         """Noeud représentant un saut conditionnel ou inconditionnel.
 
         :param lineNumber: numéro de ligne dans le programme d'origine,
@@ -395,11 +395,11 @@ class JumpNode(StructureNode):
         :param cible:cible du saut,
         :type cible:LabelNode
         :param condition:expression booléenne exprimant à quelle condition le saut est effectué. None si le saut est inconditionnel.
-        :type expression:Expression / None
+        :type expression:ExpressionNode / None
         """
 
         assert isinstance(cible, LabelNode)
-        assert condition == None or isinstance(condition,Expression) and condition.isSimpleCondition()
+        assert condition == None or isinstance(condition,ExpressionNode) and condition.isSimpleCondition()
         self._condition = condition
         self._lineNumber = lineNumber
         self._cible = cible
@@ -424,11 +424,11 @@ class JumpNode(StructureNode):
 
         return self._cible
 
-    def getCondition(self) -> Optional[Expression]:
+    def getCondition(self) -> Optional[ExpressionNode]:
         """Accesseur
 
         :return:condition du saut
-        :rtype:Expression / None
+        :rtype:ExpressionNode / None
         """
 
         return self._condition
