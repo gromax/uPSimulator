@@ -139,7 +139,7 @@ class CompilationManager:
 
     def __pushExpressionAsm(self, lineNumber, expression):
         '''
-        expression : objet Expression
+        expression : objet ExpressionNode
         '''
         if not self.__engine.hasNEG():
             expression = expression.negToSubClone()

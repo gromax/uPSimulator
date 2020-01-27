@@ -13,8 +13,8 @@ class LineParser: # Définition classe
         indentation : contient le nombre d'espace pour l'indentation
         emptyLine   : True si ligne est vide, False sinon
         type        : correspond au motif identifié (if, elif, while, else, print, input, affectation)
-        condition   : contient un objet Expression de type bool pout les motifs attendant une condition
-        expression  : contient un objet Expression s'il s'agit d'une affectation ou d'un print
+        condition   : contient un objet ExpressionNode de type bool pout les motifs attendant une condition
+        expression  : contient un objet ExpressionNode s'il s'agit d'une affectation ou d'un print
         variable    : contient un objet Variable s'il s'agit d'une affectation ou d'un input
     Une méthode getCaracs() pour retourne le dictionnaire __caracteristiques
     """
@@ -110,7 +110,7 @@ class LineParser: # Définition classe
         if not ExpressionParser.strIsVariableName(variableName):
             raise ParseError(f"La variable <{variableName}> est incorrecte")
         expr = self.__expressionParser.buildExpression(expressionStr)
-        if expr.getType() == None :
+        if expr.getType() == '' :
             raise ParseError(f"L'expression <{expr}> est incorrecte")
             return False
         self.__caracteristiques["type"] = "affectation"

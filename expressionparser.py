@@ -2,9 +2,9 @@
 Module d'analyse des expressions arithmétiques et logiques
 '''
 from errors import *
-from expression import *
 from litteral import Litteral
 from variable import Variable
+from expressionnodes import ExpressionNode, ValueNode, UnaryNode, BinaryNode
 import re
 
 class Token:
@@ -353,7 +353,7 @@ class ExpressionParser:
     def buildExpression(self, originalExpression):
         '''
         Entrée : chaine de caractères expression
-        Sortie : Objet expression
+        Sortie : Objet ExpressionNode
         '''
         expression = originalExpression.strip()
         if not self.strIsExpression(expression):
@@ -366,7 +366,7 @@ class ExpressionParser:
         reversePolishTokensList = self.__buildReversePolishNotation(tokensList)
         rootNodeTree = ExpressionParser.__buildTree(reversePolishTokensList)
 
-        return Expression(rootNodeTree)
+        return rootNodeTree
 
 if __name__=="__main__":
     EP = ExpressionParser()
@@ -383,5 +383,5 @@ if __name__=="__main__":
     ]:
         print("Test de :",strExpression)
         oExpression = EP.buildExpression(strExpression)
-        print(oExpression) # Utilise la conversion to string de Expression
+        print(oExpression) # Utilise la conversion to string de ExpressionNode
         print(oExpression.getType()) # affichage du type, 'bool' 'int' ou None
