@@ -17,6 +17,16 @@ from compileexpressionmanager import CompileExpressionManager
 class ExpressionNode:
     """Noeud parent garantissant l'existence de certaines fonctions pour tous les noeuds.
     """
+    def compile(self, CEMObject:CompileExpressionManager) -> None:
+        """Exécute la compilation
+        :param CEMObject:Gestionnaire de compilation pour une expression
+        :type CEMObject:CompileExpressionManager
+        :return:None
+        """
+        if self.getType() != 'int' and self.isComplexeCondition():
+            raise CompilationError(f"{str(self)} n'est pas une expression arithmétique ou une comparaison simple.")
+        self.calcCompile(CEMObject)
+
     def isLitteral(self) -> bool:
         """Le noeud est-il un littéral ?
         :return:Vrai si le noeud est un simple littéral
@@ -128,6 +138,21 @@ class ExpressionNode:
 
         return self
 
+    def boolDecompose(self) -> Optional[Tuple[str,'ExpressionNode']]:
+        """Décompose une condition complexe pour construire les sauts conditionnels qui réaliseront cette condition.
+
+        :return:tuple contenant l'opérateur et les enfants dans le cas d'une expression not, and, or. None sinon
+        :rtype:tuple(str,ExpressionNode) ou None
+        """
+        return None
+
+    def clone(self) -> 'ExpressionNode':
+        """Fonction par défaut
+        :return:l'objet lui-même
+        :rtype:ExpressionNode
+        """
+        return self
+
 class UnaryNode(ExpressionNode):
     __knownOperators = ('not', '~', '-') # type : Tuple[str]
     def __init__(self, operator:str, operand:ExpressionNode):
@@ -216,7 +241,7 @@ class UnaryNode(ExpressionNode):
     def getType(self) -> str:
         """Type d'expression
 
-        :return:'bool' ou 'int'
+        :return:'bool' ou 'int' ou '' en cas d'erreur
         :rtype:str
 
         .. note::
@@ -232,7 +257,7 @@ class UnaryNode(ExpressionNode):
 
         operandType = self.__operand.getType()
         if operandType == None or (self.__operator == '~' and operandType=='bool'):
-            return None
+            return ''
         elif self.__operator == "not":
             return 'bool'
         return 'int'
