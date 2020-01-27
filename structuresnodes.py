@@ -127,14 +127,14 @@ class IfNode(StructureNode):
             sautOui = JumpNode(self._lineNumber, cibleDirecte)
             return [sautConditionnel, sautOui]
         # sinon il faut décomposer la condition en conditions élémentaires
-        decomposition = conditionSaut.boolDecompose()
-        if decomposition[0] == "not":
+        operator, conditionsEnfants = conditionSaut.boolDecompose()
+        if operator == "not":
             # c'est un not, il faudra inverser OUI et NON et traiter la condition enfant
-            conditionEnfant = decomposition[1]
+            conditionEnfant = conditionsEnfants[0]
             return self._recursiveDecomposeComplexeCondition(conditionEnfant, cibleSautCond, cibleDirecte)
         # c'est un OR ou AND
         cibleInter = LabelNode()
-        operator, conditionEnfant1, conditionEnfant2 = decomposition
+        conditionEnfant1, conditionEnfant2 = conditionsEnfants
         if operator == "and":
             enfant1 = self._recursiveDecomposeComplexeCondition(conditionEnfant1, cibleDirecte, cibleInter)
             enfant2 = self._recursiveDecomposeComplexeCondition(conditionEnfant2, cibleDirecte, cibleSautCond)

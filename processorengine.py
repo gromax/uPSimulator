@@ -1,10 +1,25 @@
 from typing import Union, List, Dict
+from typing_extensions import TypedDict
+
+Commands = TypedDict('Commands', {
+    'opcode': str,
+    'asm': str
+})
+
+EngineAttributes = TypedDict('EngineAttributes', {
+    'register_bits': int,
+    'data_bits': int,
+    'free_ual_output':bool,
+    'litteralCommands':Dict[str,Commands],
+    'commands':Dict[str,Commands]
+})
+
 
 
 from errors import *
 from litteral import Litteral
 
-ENGINE_COLLECTION = {
+ENGINE_COLLECTION: Dict[str,EngineAttributes] = {
     "default": {
         "register_bits":3,
         "free_ual_output": True,
@@ -49,7 +64,9 @@ ENGINE_COLLECTION = {
     },
     "12bits": {
         "register_bits":2,
+        "free_ual_output": False,
         "data_bits": 12,
+        "litteralCommands": {},
         "commands": {
             "halt":   { "opcode":"0000", "asm":"HALT" },
             "goto":   { "opcode":"0001", "asm":"JMP" },
@@ -78,13 +95,16 @@ class ProcessorEngine:
     __register_address_bits = 1
     __data_bits = 0
     __freeUalOutput = False
+    __litteralsCommands:Dict[str,Commands] = {}
+    __commands:Dict[str,Commands] = {}
+
     def __init__(self, name:str = "default"):
         '''
         name = string = nom du modèle
         '''
         if not name in ENGINE_COLLECTION:
           name = "default"
-        attributes = ENGINE_COLLECTION[name]
+        attributes: EngineAttributes = ENGINE_COLLECTION[name]
         if "register_bits" in attributes and isinstance(attributes["register_bits"],int):
             self.__register_address_bits = attributes["register_bits"]
         if "data_bits" in attributes and isinstance(attributes["data_bits"],int):
@@ -93,13 +113,9 @@ class ProcessorEngine:
             self.__freeUalOutput = (attributes["free_ual_output"] == True)
 
         if "litteralCommands" in attributes:
-          self.__litteralsCommands = attributes["litteralCommands"]  # type : Dict
-        else:
-          self.__litteralsCommands = {}  # type : Dict
+          self.__litteralsCommands = attributes["litteralCommands"]
         if "commands" in attributes:
-          self.__commands = attributes["commands"] # type: Dict
-        else:
-          self.__commands = {} # type : Dict
+          self.__commands = attributes["commands"]
 
         if self.ualOutputIsFree():
             destReg = 1

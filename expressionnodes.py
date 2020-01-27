@@ -7,10 +7,11 @@
     Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Sequence, Union
 
 from errors import *
 from litteral import Litteral
+from variable import Variable
 from processorengine import ProcessorEngine
 from compileexpressionmanager import CompileExpressionManager
 
@@ -82,8 +83,8 @@ class ExpressionNode:
 
         return False
 
-    def getComparaisonSymbol(self) -> Optional[List[str]]:
-        """Symbols de comparaisons utilisés dans l'expression
+    def getComparaisonSymbol(self) -> Optional[str]:
+        """Symbole de comparaisons utilisé dans une comparaison simple
         :return:None dans le cas général
         :rtype:None
 
@@ -138,13 +139,13 @@ class ExpressionNode:
 
         return self
 
-    def boolDecompose(self) -> Optional[Tuple[str,'ExpressionNode']]:
+    def boolDecompose(self) -> Tuple[str,Sequence['ExpressionNode']]:
         """Décompose une condition complexe pour construire les sauts conditionnels qui réaliseront cette condition.
 
-        :return:tuple contenant l'opérateur et les enfants dans le cas d'une expression not, and, or. None sinon
-        :rtype:tuple(str,ExpressionNode) ou None
+        :return:Par défaut ('',())
+        :rtype:tuple(str,empty tuple)
         """
-        return None
+        return ('',())
 
     def clone(self) -> 'ExpressionNode':
         """Fonction par défaut
@@ -153,8 +154,15 @@ class ExpressionNode:
         """
         return self
 
+    def getValue(self) -> Union[None,Variable,Litteral]:
+        """Fonction par défaut. Utilisée dans ValueNode
+        :return:None par défaut
+        :rtype:None
+        """
+        return None
+
 class UnaryNode(ExpressionNode):
-    __knownOperators = ('not', '~', '-') # type : Tuple[str]
+    __knownOperators:Sequence[str] = ('not', '~', '-')
     def __init__(self, operator:str, operand:ExpressionNode):
         """Constructeur
         :param operator:Opérateur parmi not, ~ et - (unaire)
@@ -181,18 +189,17 @@ class UnaryNode(ExpressionNode):
 
         return self.__operator == "not"
 
-    def boolDecompose(self) -> Optional[Tuple[str,ExpressionNode]]:
+    def boolDecompose(self) -> Tuple[str,Sequence[ExpressionNode]]:
         """Renvoie les éléments structurant une condition complexe
         afin de traitement pour orgniser les sauts conditionnels qui feront exécuteront cette condition.
 
-        None si ce n'est pas un not.
-        :return:tuple formé de "not" et du noeud enfant, None si pas not.
-        :rtype:tuple(str,ExpressionNode) ou None
+        :return:tuple ("not",(noeud enfant)) ou ('',())
+        :rtype:tuple(str,tuple(ExpressionNode))
         """
 
         if self.__operator != "not":
-            return None
-        return "not", self.__operand
+            return ('',())
+        return "not", (self.__operand,)
 
     def logicNegateClone(self) -> ExpressionNode:
         """Calcul la négation logique de l'expression.
@@ -348,11 +355,11 @@ class UnaryNode(ExpressionNode):
         return UnaryNode(operator, cloneOperand)
 
 class BinaryNode(ExpressionNode):
-    __knownOperators = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '^', '<', '>', '<=', '>=', '==', '!=')
-    __symetricOperators = ('+', '*', '&', '|', '^')
-    __logicalOperators = ("and", "or")
-    __comparaisonOperators = ("<=", "<", ">=", ">", "==", "!=")
-    def __init__(self,operator,operand1, operand2):
+    __knownOperators:Sequence[str] = ('+', '-', '*', '/', '%', 'and', 'or', '&', '|', '^', '<', '>', '<=', '>=', '==', '!=')
+    __symetricOperators:Sequence[str] = ('+', '*', '&', '|', '^')
+    __logicalOperators:Sequence[str] = ("and", "or")
+    __comparaisonOperators:Sequence[str] = ("<=", "<", ">=", ">", "==", "!=")
+    def __init__(self, operator:str, operand1:ExpressionNode, operand2:ExpressionNode):
         '''
         operator : dans +, -, *, /, %, and, or, &, |
         operand1 et operand2 : objet de type ExpressionNode
@@ -363,19 +370,19 @@ class BinaryNode(ExpressionNode):
         self.__operator = operator
         self.__operands = operand1, operand2
 
-    def isComplexeCondition(self):
+    def isComplexeCondition(self) -> bool:
         return self.__operator == "or" or self.__operator == "and"
 
-    def boolDecompose(self):
+    def boolDecompose(self) -> Tuple[str,Sequence[ExpressionNode]]:
         '''
         Sortie : si and, or, tuple avec le nom "and" ou "or", et les deux enfants.
         None sinon
         '''
         if self.__operator != "or" and self.__operator != "and":
-            return None
-        return self.__operator, self.__operands[0], self.__operands[1]
+            return ('',())
+        return self.__operator, (self.__operands[0], self.__operands[1])
 
-    def logicNegateClone(self):
+    def logicNegateClone(self) -> 'BinaryNode':
         '''
         retourne une copie en négation logique s'il y a lieu
         '''
@@ -396,7 +403,7 @@ class BinaryNode(ExpressionNode):
         # Sinon, pas de modification -> pas besoin de cloner
         return self
 
-    def adjustConditionClone(self,csl):
+    def adjustConditionClone(self,csl:List[str]) -> Union['BinaryNode',UnaryNode]:
         '''
         csl = liste de string : symboles de comparaisons disponibles
         '''
@@ -421,29 +428,29 @@ class BinaryNode(ExpressionNode):
             raise AttributeError(f"Aucun opérateur pour {self.__operator} dans le modèle de processeur.")
         return self
 
-    def getType(self):
+    def getType(self) -> str:
         '''
         Sortie =
           'bool' si opération de type booléen
           'int' si opération de type entier
-          None si construction invalide
+          '' si construction invalide
         '''
         operand1Type = self.__operands[0].getType()
         operand2Type = self.__operands[1].getType()
-        if operand1Type != operand2Type or operand1Type == None or operand2Type == None:
-            return None
+        if operand1Type != operand2Type or operand1Type == '' or operand2Type == '':
+            return ''
         elif operand1Type == 'bool' and self.__operator in "+-*/%&|":
             # cas opérateur entier agissant sur opérandes logiques
-            return None
+            return ''
         elif operand1Type == 'bool' and self.__operator in "and;or":
             # cas opérateur logique agissant sur opérandes logiques
             return 'bool'
         elif operand1Type == 'bool':
             # cas ==, <=...
-            return None
+            return ''
         elif self.__operator in "and;or":
             # cas opérateur logique agissant sur entiers
-            return None
+            return ''
         elif self.__operator in "+-*/%&|":
             # cas opérateur entier agissant sur entier
             return 'int'
@@ -451,7 +458,7 @@ class BinaryNode(ExpressionNode):
             # cas == <=... agissant sur entier
             return 'bool'
 
-    def negToSubClone(self):
+    def negToSubClone(self) -> 'BinaryNode':
         '''
         modifie les - unaires de l'arborescence en - binaire
         '''
@@ -460,14 +467,14 @@ class BinaryNode(ExpressionNode):
         newOp2 = op2.negToSubClone()
         return BinaryNode(self.__operator, newOp1, newOp2)
 
-    def __str__(self):
+    def __str__(self) -> str:
         strOperand1 = str(self.__operands[0])
         strOperand2 = str(self.__operands[1])
         return "(" + strOperand1 + " " + self.__operator + " " + strOperand2 + ")"
 
-    def getRegisterCost(self, engine):
+    def getRegisterCost(self, engine:ProcessorEngine) -> int:
         op1, op2 = self.__operands
-        if  op2.isLitteral() and engine.litteralOperatorAvailable(self.__operator, op2.getValue()):
+        if op2.isLitteral() and engine.litteralOperatorAvailable(self.__operator, op2.getValue()):
             return op1.getRegisterCost(engine)
         if self.isSymetric() and op1.isLitteral() and engine.litteralOperatorAvailable(self.__operator, op1.getValue()):
             return op2.getRegisterCost(engine)
@@ -475,18 +482,18 @@ class BinaryNode(ExpressionNode):
         costOperand2 = op2.getRegisterCost(engine)
         return min(max(costOperand1, costOperand2+1), max(costOperand1+1, costOperand2))
 
-    def isSymetric(self):
+    def isSymetric(self) -> bool:
         return self.__operator in self.__symetricOperators
 
-    def needUAL(self):
+    def needUAL(self) -> bool:
         return True
 
-    def getComparaisonSymbol(self):
+    def getComparaisonSymbol(self) -> Optional[str]:
         if self.__operator in self.__comparaisonOperators:
             return self.__operator
         return None
 
-    def calcCompile(self, CEMObject):
+    def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
         '''
         CEMObject = objet CompileExpressionManager
         '''
@@ -516,7 +523,7 @@ class BinaryNode(ExpressionNode):
             secondToCalc.calcCompile(CEMObject)
             CEMObject.pushBinaryOperator(operator, firstToCalc == op1)
 
-    def clone(self):
+    def clone(self) -> 'BinaryNode':
         '''
         Retourne un clone de l'objet et de son arborescence
         '''
@@ -533,23 +540,27 @@ class ValueNode(ExpressionNode):
         '''
         self.__value = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.__value)
 
-    def isLitteral(self):
+    def isLitteral(self) -> bool:
         return isinstance(self.__value, Litteral)
 
-    def getValue(self):
+    def getValue(self) -> Union[Variable,Litteral]:
+        """Accesseur
+        :return:valeur
+        :rtype:Litteral ou Variable
+        """
         return self.__value
 
-    def calcCompile(self, CEMObject):
+    def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
         '''
         CEMObject = objet CompileExpressionManager
         '''
         super(ValueNode,self).calcCompile(CEMObject)
         CEMObject.pushValue(self.__value)
 
-    def clone(self):
+    def clone(self) -> 'ValueNode':
         '''
         Retourne un clone de l'objet et de son arborescence
         '''
