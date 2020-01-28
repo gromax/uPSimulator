@@ -360,10 +360,15 @@ class BinaryNode(ExpressionNode):
     __logicalOperators:Sequence[str] = ("and", "or")
     __comparaisonOperators:Sequence[str] = ("<=", "<", ">=", ">", "==", "!=")
     def __init__(self, operator:str, operand1:ExpressionNode, operand2:ExpressionNode):
-        '''
-        operator : dans +, -, *, /, %, and, or, &, |
-        operand1 et operand2 : objet de type ExpressionNode
-        '''
+        """Constructeur
+        :param operator:opérateur du noéud, parmi +, -, *, /, %, and, or, &,  |, ^, <, <=, >, >=, ==, !=
+        :type operator:str
+        :param operand1:premier opérande
+        :type operand1:ExpressionNode
+        :param operand2:Deuxième opérande
+        :type operand2:ExpressionNode
+        """
+
         assert operator in self.__knownOperators
         assert isinstance(operand1,ExpressionNode)
         assert isinstance(operand2,ExpressionNode)
@@ -371,21 +376,26 @@ class BinaryNode(ExpressionNode):
         self.__operands = operand1, operand2
 
     def isComplexeCondition(self) -> bool:
+        """Teste s'il s'agit d'une condition composée : opérateur and ou or
+        :return:Vrai si l'opérateur est and ou or
+        :rtype:bool
+        """
         return self.__operator == "or" or self.__operator == "and"
 
     def boolDecompose(self) -> Tuple[str,Sequence[ExpressionNode]]:
-        '''
-        Sortie : si and, or, tuple avec le nom "and" ou "or", et les deux enfants.
-        None sinon
-        '''
+        """Décomposition
+        :return:tuple formé de l'opérateur et des des enfants si and ou or. Vide sinon
+        :rtype:tuple(str,tuple)
+        """
         if self.__operator != "or" and self.__operator != "and":
             return ('',())
         return self.__operator, (self.__operands[0], self.__operands[1])
 
     def logicNegateClone(self) -> 'BinaryNode':
-        '''
-        retourne une copie en négation logique s'il y a lieu
-        '''
+        """Complément
+        :return:noeud dont les l'expression est complémentaire, ou le noeud lui même si pas de changement
+        :rtype:BinaryNode
+        """
         comparaisonNegation = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
         if self.__operator in comparaisonNegation:
             newOperator = comparaisonNegation[self.__operator]
@@ -404,9 +414,12 @@ class BinaryNode(ExpressionNode):
         return self
 
     def adjustConditionClone(self,csl:List[str]) -> Union['BinaryNode',UnaryNode]:
-        '''
-        csl = liste de string : symboles de comparaisons disponibles
-        '''
+        """Ajustement des opérateurs de tests en fonction des symboles de comparaison disponibles
+        :param csl:symboles de comparaison disponibles
+        :type csl:list(str)
+        :return:clone dont l'expression est adaptée
+        :rtype:BinaryNode, UnaryNode
+        """
         if self.__operator in self.__logicalOperators:
             op1, op2 = self.__operands
             newOp1 = op1.adjustConditionClone(csl)
@@ -429,12 +442,14 @@ class BinaryNode(ExpressionNode):
         return self
 
     def getType(self) -> str:
-        '''
-        Sortie =
-          'bool' si opération de type booléen
-          'int' si opération de type entier
-          '' si construction invalide
-        '''
+        """Type du noeud
+        :return:'int' si opération arithmétique, 'bool' si expression logique, '' si erreur
+        :rtype:str
+
+        .. note::
+
+        Un opérateur de comparaison s'applique à des enfants 'int' et est lui même 'bool'. Les opérateurs and et or ne s'appliquent qu'à un 'bool'. Les opérateurs arithmétiques ne s'appliquent qu'à un 'int'.
+        """
         operand1Type = self.__operands[0].getType()
         operand2Type = self.__operands[1].getType()
         if operand1Type != operand2Type or operand1Type == '' or operand2Type == '':
@@ -459,44 +474,72 @@ class BinaryNode(ExpressionNode):
             return 'bool'
 
     def negToSubClone(self) -> 'BinaryNode':
-        '''
-        modifie les - unaires de l'arborescence en - binaire
-        '''
+        """Pour le cas ou le - unaire ne serait pas pris en charge, produit un clone avec les - unaire enlevés
+        :return:noeud clone avec - unaire enlevés
+        :rtype:BinaryNode
+
+        .. note::
+        Cette fonction se propage récursivement à ses enfants.
+        """
         op1, op2 = self.__operands
         newOp1 = op1.negToSubClone()
         newOp2 = op2.negToSubClone()
         return BinaryNode(self.__operator, newOp1, newOp2)
 
     def __str__(self) -> str:
+        """Transtypage -> str
+        :return:noeud sous sa forme str, entièrement parenthèsé
+        :rtype:str
+        """
         strOperand1 = str(self.__operands[0])
         strOperand2 = str(self.__operands[1])
         return "(" + strOperand1 + " " + self.__operator + " " + strOperand2 + ")"
 
     def getRegisterCost(self, engine:ProcessorEngine) -> int:
+        """Calcul du nombre de registre nécessaires pour évaluer ce noeud
+        :return:nombre de registres
+        :rtype:int
+        """
         op1, op2 = self.__operands
-        if op2.isLitteral() and engine.litteralOperatorAvailable(self.__operator, op2.getValue()):
+        op2TryValue = op2.getValue()
+        if isinstance(op2TryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, op2TryValue):
             return op1.getRegisterCost(engine)
-        if self.isSymetric() and op1.isLitteral() and engine.litteralOperatorAvailable(self.__operator, op1.getValue()):
+        op1TryValue = op1.getValue()
+        if self.isSymetric() and isinstance(op1TryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, op1TryValue):
             return op2.getRegisterCost(engine)
         costOperand1 = op1.getRegisterCost(engine)
         costOperand2 = op2.getRegisterCost(engine)
         return min(max(costOperand1, costOperand2+1), max(costOperand1+1, costOperand2))
 
     def isSymetric(self) -> bool:
+        """L'opérateur fait partie des opérateurs symétriques
+        :return:vrai si l'opérateur est symétrique
+        :rtype:bool
+        """
         return self.__operator in self.__symetricOperators
 
     def needUAL(self) -> bool:
+        """L'évaluation nécessitera-t-elle l'ual ?
+        :return:True
+        :rtype:bool
+        """
         return True
 
     def getComparaisonSymbol(self) -> Optional[str]:
+        """Accesseur
+        :return:symbole de comparaison du noeud le cas échéant (None sinon)
+        :rtype:str ou None
+        """
         if self.__operator in self.__comparaisonOperators:
             return self.__operator
         return None
 
     def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
-        '''
-        CEMObject = objet CompileExpressionManager
-        '''
+        """Procédure d'exécution de la compilation
+        :param CEMObject:objet prenant en charge la compilation d'une expression
+        :type CEMObject:CompileExpressionManager
+        :return:None
+        """
         isComparaison = self.getComparaisonSymbol() != None
         if isComparaison:
             operator = "cmp"
@@ -524,9 +567,10 @@ class BinaryNode(ExpressionNode):
             CEMObject.pushBinaryOperator(operator, firstToCalc == op1)
 
     def clone(self) -> 'BinaryNode':
-        '''
-        Retourne un clone de l'objet et de son arborescence
-        '''
+        """Produit un clone de l'objet avec son arborescence
+        :return:clone
+        :rtype:BinaryNode
+        """
         op1, op2 = self.__operands
         cloneOp1 = op1.clone()
         cloneOp2 = op2.clone()
@@ -535,15 +579,24 @@ class BinaryNode(ExpressionNode):
 
 class ValueNode(ExpressionNode):
     def __init__(self,value):
-        '''
-        value de type Litteral ou Variable
-        '''
+        """Constructeur
+        :param value:valeur du noeud
+        :type value:Litteral ou Variable
+        """
         self.__value = value
 
     def __str__(self) -> str:
+        """Transtypage -> str
+        :return:noeud sous forme str
+        :rtype:str
+        """
         return str(self.__value)
 
     def isLitteral(self) -> bool:
+        """Le noeud contient-il un littéral ?
+        :return:vrai si la valeur contenue est un littéral
+        :rtype:bool
+        """
         return isinstance(self.__value, Litteral)
 
     def getValue(self) -> Union[Variable,Litteral]:
@@ -554,16 +607,21 @@ class ValueNode(ExpressionNode):
         return self.__value
 
     def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
-        '''
-        CEMObject = objet CompileExpressionManager
-        '''
+        """Procédure d'exécution de la compilation
+        :param CEMObject:objet prenant en charge la compilation d'une expression
+        :type CEMObject:CompileExpressionManager
+        :return:None
+        """
         super(ValueNode,self).calcCompile(CEMObject)
         CEMObject.pushValue(self.__value)
 
     def clone(self) -> 'ValueNode':
-        '''
-        Retourne un clone de l'objet et de son arborescence
-        '''
+        """Produit un clone de l'objet
+        :return:clone
+        :rtype:BinaryNode
+
+        .. note::la valeur étant un objet ne pouvant être modifié, elle n'est pas clonée.
+        """
         return ValueNode(self.__value)
 
 if __name__=="__main__":
