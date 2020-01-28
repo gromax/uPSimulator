@@ -1,4 +1,9 @@
-from typing import Union, List, Dict
+"""
+.. module:: processorengine
+   :synopsis: classe définissant les attributs d'un modèle de processeur et fournissant les informations utiles aux outils de compilation
+"""
+
+from typing import Union, List, Dict, Optional
 from typing_extensions import TypedDict
 
 Commands = TypedDict('Commands', {
@@ -99,9 +104,11 @@ class ProcessorEngine:
     __commands:Dict[str,Commands] = {}
 
     def __init__(self, name:str = "default"):
-        '''
-        name = string = nom du modèle
-        '''
+        """Constructeur
+        :param name:nom du modèle de processeur utilisé
+        :type name:str
+        """
+        # TODO: chargement d'un modèle dans un fichier texte
         if not name in ENGINE_COLLECTION:
           name = "default"
         attributes: EngineAttributes = ENGINE_COLLECTION[name]
@@ -138,6 +145,10 @@ class ProcessorEngine:
         assert self.__checkAttributes() == True
 
     def __checkAttributes(self) -> bool:
+        """Vérification de la consistance des attributs du modèle de processeur
+        :return:Vrai si les attributs sont corrects
+        :rtype:bool
+        """
         if self.__register_address_bits < 1:
             raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
         if self.__data_bits <= 0:
@@ -159,76 +170,109 @@ class ProcessorEngine:
         return True
 
     def registersNumber(self) -> int:
+        """Calcul le nombre de registres considérant l'adressage disponible
+        :return:Nombre de registre
+        :rtype:int
+        """
         return 2**self.__register_address_bits
 
     def ualOutputIsFree(self) -> bool:
+        """Accesseur
+        :return:Vrai si on peut choisir le registre de sortie de l'UAL
+        :rtype:bool
+        """
         return self.__freeUalOutput
 
     def hasNEG(self) -> bool:
+        """Le modèle de processeur possède-t-il un - unaire ?
+        :return:Vrai s'il en possède un
+        :rtype:bool
+        """
         return "neg" in self.__commands
 
     def hasOperator(self, operator:str) -> bool:
+        """Le modèle de processeur possède-t-il l'opérateur demandé ?
+        :param operator:nom de l'opérateur
+        :type operator:str
+        :return:Vrai s'il le possède
+        :rtype:bool
+        """
         return operator in self.__commands
 
-    def getAsmCommand(self, commandDesc:str) -> Union[None, str]:
-        '''
-        commandDesc = chaîne de caractère décrivant un type de commande
-        sortie = string pour asm, None si n'existe pas
-        '''
+    def getAsmCommand(self, commandDesc:str) -> Optional[str]:
+        """Renvoie le nom de commande assembleur de la commande demandée. None si introuvable.
+        :param commandDesc:nom de la commande
+        :type commandDesc:str
+        :return:commande assembleur
+        :rtype:str
+        """
+
         if not commandDesc in self.__commands:
             return None
         itemAttribute = self.__commands[commandDesc]
         return itemAttribute["asm"]
 
-    def getOpcode(self, commandDesc:str):
-        '''
-        commandDesc = chaîne de caractère décrivant un type de commande
-        sortie = string pour opcode, None si n'existe pas
-        '''
+    def getOpcode(self, commandDesc:str) -> Optional[str]:
+        """Renvoie l'opcode de la commande demandée. None si introuvable.
+        :param commandDesc:nom de la commande
+        :type commandDesc:str
+        :return:opcode sous forme binaire
+        :rtype:str
+        """
+
         if not commandDesc in self.__commands:
             return None
         itemAttribute = self.__commands[commandDesc]
         return itemAttribute["opcode"]
 
-    def getLitteralAsmCommand(self, commandDesc:str) -> Union[None, str]:
-        '''
-        commandDesc = chaîne de caractère décrivant un type de commande, version littéral
-        sortie = string pour asm, None si n'existe pas
-        '''
+    def getLitteralAsmCommand(self, commandDesc:str) -> Optional[str]:
+        """Renvoie le nom de commande assembleur de la commande demandée, dans sa version acceptant un littéral. None si introuvable.
+        :param commandDesc:nom de la commande
+        :type commandDesc:str
+        :return:commande assembleur
+        :rtype:str
+        """
         if not commandDesc in self.__litteralsCommands:
             return None
         itemAttribute = self.__litteralsCommands[commandDesc]
         return itemAttribute["asm"]
 
-    def getLitteralOpcode(self, commandDesc:str) -> Union[None, str]:
-        '''
-        commandDesc = chaîne de caractère décrivant un type de commande, version littéral
-        sortie = string pour opcode, None si n'existe pas
-        '''
+    def getLitteralOpcode(self, commandDesc:str) -> Optional[str]:
+        """Renvoie l'opcode de la commande demandée dans sa version acceptant un littéral. None si introuvable.
+        :param commandDesc:nom de la commande
+        :type commandDesc:str
+        :return:opcode sous forme binaire
+        :rtype:str
+        """
+
         if not commandDesc in self.__litteralsCommands:
             return None
         itemAttribute = self.__litteralsCommands[commandDesc]
         return itemAttribute["opcode"]
 
-    def litteralOperatorAvailable(self, operator:str, litteral:Litteral) -> bool:
-        '''
-        operator = nom d'une opération arithmétique ou logique
-        litteral = objet Litteral
-        Retourne True si l'opérateur existe en version littéral
-        et qu'il est possible de l'utiliser avec ce littéral.
-        Le cas où ce ne serait pas possible serait celui où le littéral
-        serait trop grand et que l'on ne prévoirait pas de le placer à la ligne suivante.
-        '''
-        if not operator in self.__litteralsCommands:
+    def litteralOperatorAvailable(self, commandDesc:str, litteral:Litteral) -> bool:
+        """Teste si la commande peut s'éxécuter dans une version acceptant un littéral, avec ce littéral en particulier. Il faut que la commande accepte les littéraux et que le codage de ce littéral soit possible dans l'espace laissé par cette commande.
+        :param commandDesc:commande à utiliser
+        :type commandDesc:str
+        :param litteral:littéral à utiliser
+        :type litteral:Litteral
+        :return:vrai si la commande est utilisable avec ce littéral
+        :rtype:bool
+        """
+
+        if not commandDesc in self.__litteralsCommands:
             return False
-        maxLitteralSize = self.getLitteralMaxSizeIn(operator)
+        maxLitteralSize = self.getLitteralMaxSizeIn(commandDesc)
         return litteral.isBetween(0, maxLitteralSize)
 
     def getLitteralMaxSizeIn(self, commandDesc:str) -> int:
-        '''
-        commandDesc = chaîne de caractère décrivant un type de commande
-        retourne la taille du litteral maximum dans une commande
-        '''
+        """Considérant une commande, calcule le nombre de bits utilisés par l'encodage des attributs de la commande et déduit le nombre de bits laissés pour le codage en nombre positif d'un éventuel littéral, et donc la taille maximal de ce littéral.
+        :param commandDesc:commande à utiliser
+        :type commandDesc:str
+        :return:valeur maximale acceptable du littéral
+        :rtype:int
+        """
+
         assert commandDesc in self.__litteralsCommands
         commandAttributes = self.__litteralsCommands[commandDesc]
         # on suppose toujours que le littéral peut occuper toute la place restante
@@ -244,16 +288,26 @@ class ProcessorEngine:
 
 
     def getComparaisonSymbolsAvailables(self) -> List[str]:
-        '''
-        Retourne la liste des symbole de comparaison disponibles dans le modèle
-        '''
+        """Accesseur
+        :return:liste des symboles de comparaison disponibles avec ce modèle de processeur
+        :rtype:list(str)
+        """
+
         symbols = ["<=", "<", ">=", ">", "==", "!="]
         return [item for item in symbols if item in self.__commands]
 
     def getRegBits(self) -> int:
+        """Accesseur
+        :return:nombre de bits utilisés pour l'encodage de l'adresse d'un registre
+        :rtype:int
+        """
         return self.__register_address_bits
 
     def getDataBits(self) -> int:
+        """Accesseur
+        :return:nombre de bits utilisés pour l'encodage d'une donnée en mémoire
+        :rtype:int
+        """
         return self.__data_bits
 
 
