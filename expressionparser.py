@@ -1,6 +1,12 @@
-'''
-Module d'analyse des expressions arithmétiques et logiques
-'''
+"""
+.. module:: expressionparser
+   :synopsis: gestion du parse des expressions arithmétiques et logiques
+
+"""
+
+from typing import List, Union
+
+
 from errors import *
 from litteral import Litteral
 from variable import Variable
@@ -8,30 +14,61 @@ from expressionnodes import ExpressionNode, ValueNode, UnaryNode, BinaryNode
 import re
 
 class Token:
+    regex:str
     @classmethod
-    def test(cls, expression):
+    def test(cls, expression:str) -> bool:
+        """Chaque type de noeud est associé à une expression régulière
+        :param expression:expression à tester
+        :type expression:str
+        :return:Vrai si l'expression valide l'expression régulière
+        :rtype:bool
+        """
         return re.match("^"+cls.regex+"$", expression.strip()) != None
 
     def __init__(self,expression):
+        """Constructeur
+        :param expression:expression
+        :type expression:str
+        """
         self.expression = expression.strip()
 
-    def isOperand(self):
+    def isOperand(self) -> bool:
+        """Le token est-il une opérande ?
+        :return:vrai le token est un nombre ou une variable
+        :rtype:bool:
+        """
         return isinstance(self,TokenVariable) or isinstance(self,TokenNumber)
 
-    def isOperator(self):
+    def isOperator(self) -> bool:
+        """Le token est-il une opérateur de calcul ?
+        :return:vrai le token est un opérateur, binaire ou unaire
+        :rtype:bool:
+        """
         return isinstance(self,TokenBinaryOperator) or isinstance(self,TokenUnaryOperator)
 
 
 class TokenBinaryOperator(Token):
-    regex = "<=|==|>=|!=|[\^<>+\-*\/%&|]|and|or"
+    regex:str = "<=|==|>=|!=|[\^<>+\-*\/%&|]|and|or"
 
-    def __init__(self,expression):
-        self.__operator = expression.strip()
+    def __init__(self,operator:str):
+        """Constructeur
+        :param operator:operateur
+        :type operator:str
+        """
+        self.__operator = operator.strip()
 
-    def getOperator(self):
+    def getOperator(self) -> str:
+        """Accesseur
+        :return:opérateur
+        :rtype:str
+        """
         return self.__operator
 
-    def getPriority(self):
+    def getPriority(self) -> int:
+        """
+        :return:priorité de l'opérateur
+        :rtype:int
+        """
         if self.__operator == "and":
             return 3
         elif self.__operator in "<==>":
@@ -48,10 +85,13 @@ class TokenBinaryOperator(Token):
             # cas du or
             return 1
 
-    def toNode(self, operandsList):
-        '''
-        operandsList : liste des opérandes.
-        '''
+    def toNode(self, operandsList:List[ExpressionNode]) -> BinaryNode:
+        """Conversion en objet ExpressionNode
+        :param operandsList:opérandes enfants
+        :type operandsList:list(ExpressionNode)
+        :return:noeud binaire expression correspondant
+        :rtype:BinaryNode
+        """
         if len(operandsList) <2:
             raise ExpressionError(f"Pas assez d'opérandes pour : {self.__operator}")
         operand2 = operandsList.pop()
@@ -59,73 +99,132 @@ class TokenBinaryOperator(Token):
         return BinaryNode(self.__operator, operand1, operand2)
 
 class TokenUnaryOperator(Token):
-    regex = "~|not"
+    regex:str = "~|not"
 
-    def __init__(self,expression):
-        self.__operator = expression.strip()
+    def __init__(self,operator:str):
+        """Constructeur
+        :param operator:operateur
+        :type operator:str
+        """
+        self.__operator = operator.strip()
 
-    def getOperator(self):
+    def getOperator(self) -> str:
+        """Accesseur
+        :return:opérateur
+        :rtype:str
+        """
         return self.__operator
 
-    def getPriority(self):
+    def getPriority(self) -> int:
+        """
+        :return:priorité de l'opérateur
+        :rtype:int
+        """
         if self.__operator == "not":
             return 2
         return 6
 
-    def toNode(self, operandsList):
-        '''
-        operandsList : liste des opérandes.
-        '''
+    def toNode(self, operandsList:List[ExpressionNode]) -> Union[ValueNode,UnaryNode]:
+        """Conversion en objet ExpressionNode
+        :param operandsList:opérandes enfants
+        :type operandsList:list(ExpressionNode,ExpressionNode)
+        :return:noeud unaire ou valeur correspondant
+        :rtype:UnaryNode / ValueNode
+
+        .. note:
+
+        un - unaire sur un littéral est aussitôt convertit en l'opposé de ce littéral
+        """
         if len(operandsList) == 0:
             raise ExpressionError(f"Plus d'opérande pour : {self.__operator}")
         operand = operandsList.pop()
         # Le cas NEG sur litteral devrait se contenter de preondre l'opposé du littéral
-        if self.__operator == "-" and operand.isLitteral():
-            negLitt = operand.getValue().negClone()
+        opTryValue = operand.getValue()
+        if self.__operator == "-" and isinstance(opTryValue,Litteral):
+            negLitt = opTryValue.negClone()
             return ValueNode(negLitt)
         return UnaryNode(self.__operator, operand)
 
 class TokenVariable(Token):
-    regex = "[a-zA-Z][a-zA-Z_0-9]*"
+    regex:str = "[a-zA-Z][a-zA-Z_0-9]*"
 
     @classmethod
-    def test(cls, expression):
-        # les mots and, not or vont matcher avec Variable. Il faut rejeter ces cas
+    def test(cls, expression:str) -> bool:
+        """Teste si l'expression correspond à nom de variable valide
+        :param expression:expression à tester
+        :type expression:str
+        :return:Vrai si l'expression valide l'expression régulière
+        :rtype:bool
+
+        .. note:
+
+        Les mots and, not, or vont valider l'expression régulière mais doivent être rejetés
+        """
+
         expression_stripped = expression.strip()
         if expression_stripped in "and;or;not":
             return False
         return super().test(expression_stripped)
 
-    def getValue(self):
+    def getValue(self) -> str:
+        """Accesseur
+        :return:expression
+        :rtype:str
+        """
         return self.expression
 
     def toNode(self):
+        """Conversion en objet ExpressionNode
+        :return:noeud valeur correspondant
+        :rtype:ValueNode
+
+        .. note::
+
+        Crée un objet Variable correspondant
+        """
         nomVariable = self.expression
         variableObject = Variable(nomVariable)
         return ValueNode(variableObject)
 
 class TokenNumber(Token):
-    regex = "[0-9]+"
+    regex:str = "[0-9]+"
+    __value:int
 
     def __init__(self,expression):
+        """Constructeur
+        :param expression:chaîne de texte représentannt le nombre
+        :type operator:str
+        """
         self.__value = int(expression.strip())
 
-    def negate(self):
-        self.value *= -1
-        return self
-
-    def getValue(self):
+    def getValue(self) -> int:
+        """Accesseur
+        :return:valeur
+        :rtype:int
+        """
         return self.__value
 
     def toNode(self):
+        """Conversion en objet ExpressionNode
+        :return:noeud valeur correspondant
+        :rtype:ValueNode
+
+        .. note::
+
+        Crée un objet Litteral correspondant
+        """
         litteralObject = Litteral(self.__value)
         return ValueNode(litteralObject)
 
 
 class TokenParenthesis(Token):
-    regex = "\(|\)"
+    regex:str = "\(|\)"
 
-    def isOpening(self):
+    def isOpening(self) -> bool:
+        """
+        :return:Vrai si la parenthèse est ouvrante
+        :rtype:bool
+        """
         return self.expression == "("
 
 class ExpressionParser:
