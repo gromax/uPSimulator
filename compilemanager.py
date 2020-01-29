@@ -1,10 +1,21 @@
+"""
+.. module:: compilemanager
+   :synopsis: gestion de la compilation
+
+"""
+from typing import List, Dict, Optional, Tuple
+
 from errors import *
 from structuresnodes import *
-from assembleurcontainer import *
+from assembleurcontainer import AssembleurContainer
 from compileexpressionmanager import CompileExpressionManager
+from processorengine import ProcessorEngine
 
 class CompilationManager:
-    def __init__(self, engine, structureNodeList):
+    __engine:ProcessorEngine
+    __linearList:List[StructureNode]
+    __asm:AssembleurContainer
+    def __init__(self, engine:ProcessorEngine, structureNodeList:List[StructureNode]):
         '''
         engine = ProcessorEngine object
         structureNodeList = List d'items StructureNode
@@ -14,7 +25,7 @@ class CompilationManager:
         self.__linearList = self.__compile(structureNodeList)
         self.__compileASM()
 
-    def __compile(self, structureNodeList):
+    def __compile(self, structureNodeList:List[StructureNode]) -> List[StructureNode]:
         '''
         structureNodeList = List d'items StructureNode
         '''
@@ -28,10 +39,10 @@ class CompilationManager:
         self.__cleanList(linearList)
         return linearList
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "\n".join([str(item) for item in self.__linearList])
 
-    def __delJumpToNextLine(self, linearList):
+    def __delJumpToNextLine(self, linearList:List[StructureNode]) -> bool:
         '''
         linearList = liste de noeuds de types :
             LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
@@ -39,7 +50,7 @@ class CompilationManager:
         '''
         flagActionDone = False
         if len(linearList) < 2:
-            return linearList, False
+            return False
         index = 0
         while index < len(linearList)-1:
             currentNode = linearList[index]
@@ -51,7 +62,7 @@ class CompilationManager:
                 index += 1
         return flagActionDone
 
-    def __delNotUseLabel(self, linearList):
+    def __delNotUseLabel(self, linearList:List[StructureNode]) -> bool:
         '''
         linearList = liste de noeuds de types :
             LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
@@ -66,7 +77,7 @@ class CompilationManager:
                 linearList.pop(indexToDel)
         return flagActionDone
 
-    def __fusionNodeLabel(self, linearList, label, labelToDel):
+    def __fusionNodeLabel(self, linearList:List[StructureNode], label:LabelNode, labelToDel:LabelNode) -> bool:
         '''
         linearList = liste de noeuds de types :
             LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
@@ -87,13 +98,13 @@ class CompilationManager:
             flagActionDone = True
         return flagActionDone
 
-    def __getLabels(self, linearList):
+    def __getLabels(self, linearList:List[StructureNode]) -> Dict[LabelNode,List[JumpNode]]:
         '''
         linearList = liste de noeuds de types :
             LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
         Sortie : dict clé = LabelNode, value = list des JumpNode pointant vers ce LabelNode
         '''
-        labels = {}
+        labels:Dict[LabelNode,List[JumpNode]] = {}
         for node in linearList:
             if isinstance(node,LabelNode):
                 labels[node] = []
@@ -106,7 +117,7 @@ class CompilationManager:
                 labels[cible].append(node)
         return labels
 
-    def __getConsecutivesLabel(self, linearList):
+    def __getConsecutivesLabel(self, linearList:List[StructureNode]) -> Optional[Tuple[LabelNode,LabelNode]]:
         '''
         linearList = liste de noeuds de types :
             LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
@@ -119,7 +130,7 @@ class CompilationManager:
                 return (node,nodeSuivant)
         return None
 
-    def __cleanList(self, linearList):
+    def __cleanList(self, linearList:List[StructureNode]) -> None:
         '''
         linearList = liste de noeuds de types :
             LabelNode, AffectationNode, InputNode, PrintNode, JumpNode
@@ -131,15 +142,16 @@ class CompilationManager:
         while goOnFlag:
             goOnFlag = False
             labelsSuccessifs = self.__getConsecutivesLabel(linearList)
-            if labelsSuccessifs != None:
+            if isinstance(labelsSuccessifs,tuple):
                 label, labelToDel = labelsSuccessifs
                 goOnFlag = self.__fusionNodeLabel(linearList, label, labelToDel)
             goOnFlag = self.__delNotUseLabel(linearList) or goOnFlag
             goOnFlag = self.__delJumpToNextLine(linearList) or goOnFlag
 
-    def __pushExpressionAsm(self, lineNumber, expression):
+    def __pushExpressionAsm(self, lineNumber:int, expression:ExpressionNode) -> int:
         '''
         expression : objet ExpressionNode
+        -1 par défaut
         '''
         if not self.__engine.hasNEG():
             expression = expression.negToSubClone()
@@ -147,21 +159,22 @@ class CompilationManager:
         expression.compile(cem)
         if expression.getType() == 'int':
             return cem.getResultRegister()
+        return -1
 
-    def __pushNodeAsm(self, node):
+    def __pushNodeAsm(self, node:StructureNode) -> None:
         lineNumber = node.getLineNumber()
         if isinstance(node, LabelNode):
-            self.__asm.pushLabel(lineNumber, node)
+            self.__asm.pushLabel(lineNumber, str(node))
             return
         if isinstance(node, AffectationNode):
             expression = node.getExpression()
-            cible = node.getCible()
+            variableCible = node.getCible()
             resultRegister = self.__pushExpressionAsm(lineNumber, expression)
-            self.__asm.pushStore(lineNumber, resultRegister, cible)
+            self.__asm.pushStore(lineNumber, resultRegister, variableCible)
             return
         if isinstance(node, InputNode):
-            cible = node.getCible()
-            self.__asm.pushInput(lineNumber, cible)
+            variableCible = node.getCible()
+            self.__asm.pushInput(lineNumber, variableCible)
             return
         if isinstance(node, PrintNode):
             expression = node.getExpression()
@@ -169,24 +182,24 @@ class CompilationManager:
             self.__asm.pushPrint(lineNumber, resultRegister)
             return
         if isinstance(node, JumpNode):
-            cible = node.getCible()
+            labelCible = node.getCible()
             condition = node.getCondition()
-            if condition == None:
-                self.__asm.pushJump(lineNumber, cible)
+            if not isinstance(condition,ExpressionNode):
+                self.__asm.pushJump(lineNumber, str(labelCible))
                 return
             comparaisonSymbol = condition.getComparaisonSymbol()
             self.__pushExpressionAsm(lineNumber, condition)
-            self.__asm.pushJump(lineNumber, cible, comparaisonSymbol)
+            self.__asm.pushJump(lineNumber, str(labelCible), comparaisonSymbol)
 
-    def __compileASM(self):
+    def __compileASM(self) -> None:
         for node in self.__linearList:
             self.__pushNodeAsm(node)
         self.__asm.pushHalt()
 
-    def getLinearNodeList(self):
+    def getLinearNodeList(self) -> List[StructureNode]:
         return [item for item in self.__linearList]
 
-    def getAsm(self):
+    def getAsm(self) -> AssembleurContainer:
         return self.__asm
 
 if __name__=="__main__":
