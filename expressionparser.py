@@ -46,6 +46,12 @@ class Token:
         """
         return isinstance(self,TokenBinaryOperator) or isinstance(self,TokenUnaryOperator)
 
+    def getPriority(self) -> int:
+        """Fonction par défaut
+        :return:priorité de l'opérateur
+        :rtype:int
+        """
+        return 0
 
 class TokenBinaryOperator(Token):
     regex:str = "<=|==|>=|!=|[\^<>+\-*\/%&|]|and|or"
@@ -231,11 +237,12 @@ class ExpressionParser:
     TokensList =  [TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]
 
     @staticmethod
-    def testBrackets(expression):
-        '''
-        Entrée : expression = chaîne de caractères représentant une expression
-        Sortie : True si les parenthèses sont équilibrées
-        '''
+    def testBrackets(expression) -> bool:
+        """Test l'équilibre des parenthèses
+        :return:Vrai si les parenthèses sont équilibrées
+        :rtype:bool
+        """
+
         nbParentheses = 0
         for caractere in expression :
             if caractere == '(':
@@ -247,11 +254,33 @@ class ExpressionParser:
 
     @staticmethod
     def isLegal(precedent, suivant):
-        '''
-        précédent, suivant : 2 tokens successifs dont on veut savoir si l'enchaînement est valable
-        None si pas de token
-        Sortie True si oui
-        '''
+        """Test si l'enchaînement de deux Token est possible. Par exemple '*' ne peut pas suivre '('
+
+        - un opérateur binaire ne peut être en première ou dernière place
+        - ')' ne peut être en premier ni '(' à la fin
+        - deux opérateurs binaires ne peuvent pas se suivre
+        - un opérateur binaire ne peut pas suivre '(' ou précéder ')'
+        - une opérande (nombre/variable) ne peut précéder un opérateur unaire
+        - deux opérandes ne peuvent se suivre
+        - deux parenthèses différentes ne peuvent se suivre : '()' et ')(' interdits
+
+        :return:Vrai si l'enchaînement est possible
+        :rtype:bool
+
+        :Exemple:
+        >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenBinaryOperator('+'))
+        False
+
+        >>> ExpressionParser.isLegal(TokenParenthesis(')'), TokenBinaryOperator('+'))
+        True
+
+        >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenUnaryOperator('-'))
+        True
+
+        >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenBinaryOperator('-'))
+        False
+        """
+
         if precedent == None:
             if suivant == None:
                 return True
@@ -302,9 +331,25 @@ class ExpressionParser:
         return False
 
     @staticmethod
-    def __buildReversePolishNotation(tokensList):
-        polishStack = []
-        waitingStack = []
+    def __buildReversePolishNotation(tokensList:List[Token]) -> List[Token]:
+        """Construit l'expression dans une notation polonaise inversée
+
+        :Exemple:
+
+        (3 + 4) * 5 - 7 / 8 -> 3 4 + 5 * 7 8 / -
+
+        .. note::
+
+        L'effet de cette notation est de supprimer les parenthèses
+
+        :param tokensList:liste brute des tokens
+        :type tokensList:list(Token)
+        :return:liste des tokens en notation représentant l'expression en notation polonaise inversée
+        :rtype:list(Token)
+        """
+
+        polishStack:List[Token] = []
+        waitingStack:List[Token] = []
         for token in tokensList:
             if token.isOperand():
                 polishStack.append(token)
@@ -330,29 +375,38 @@ class ExpressionParser:
         return polishStack
 
     @staticmethod
-    def __buildTree(polishTokensList):
-        '''
-        polishTokensList : list de Tokens construite en utilisant la notation polonaise inversée
-        Sortie : Noeud racine de l'expression
-        '''
-        operandsList = []
+    def __buildTree(polishTokensList:List[Token]) -> ExpressionNode:
+        """Construit l'arbre représentant l'expression
+
+        :param polishTokensList:liste des tokens dans la version polonaise inversée
+        :type polishTokensList:list(Token)
+        :return:noeud racine de l'arbre représentant l'expression
+        :rtype:ExpressionNode
+        """
+
+        operandsList:List[ExpressionNode] = []
         for token in polishTokensList:
-            if token.isOperand():
+            if isinstance(token,TokenVariable) or isinstance(token,TokenNumber):
                 node = token.toNode()
-            else:
+                operandsList.append(node)
+            elif isinstance(token,TokenUnaryOperator) or isinstance(token,TokenBinaryOperator):
                 node = token.toNode(operandsList)
-            operandsList.append(node)
+                operandsList.append(node)
         # à la fin, normalement, il n'y a qu'un opérande
         if len(operandsList) != 1:
             raise ExpressionError(f"Pas assez d'opérateurs !'")
         return operandsList.pop()
 
     @classmethod
-    def __tokensListIsLegal(cls, tokensList):
-        '''
-        Entrée : liste de tokens
-        Sortie : True si la succession est valable, c'est à dire s'il n'y a pas de succession telle que (* ou +*
-        '''
+    def __tokensListIsLegal(cls, tokensList:List[Token]) -> bool:
+        """Teste si la liste de tokens un enchaînement de paire autorisées
+
+        :param tokensList:liste brute des tokens
+        :type tokensList:list(Token)
+        :return:Vrai si l'enchaînement de token est autorisé
+        :rtype:bool
+        """
+
         if len(tokensList) == 0:
             return True
         tokenPrecedent = None
@@ -366,41 +420,74 @@ class ExpressionParser:
         return True
 
     @classmethod
-    def variableRegex(cls):
+    def variableRegex(cls) -> str:
+        """Donne accès à l'expression régulière d'une variable
+        :return:expression régulière d'une variable
+        :rtype:str
+        """
         return TokenVariable.regex
 
     @classmethod
-    def expressionRegex(cls):
+    def expressionRegex(cls) -> str:
+        """Donne accès à l'expression régulière d'une expression
+        :return:expression régulière d'une expression
+        :rtype:str
+        """
         return f"(\s*{cls.regex()})+"
 
     @classmethod
-    def regex(cls):
+    def regex(cls) -> str:
+        """Concatène les expressions régulière pour les différents constituants d'une expression
+        :return:expression régulière d'un item d'expression
+        :rtype:str
+        """
         regexList = [ "("+Token.regex+")" for Token in cls.TokensList ]
         return "("+"|".join(regexList)+")"
 
     @classmethod
-    def strIsVariableName(cls,nomVariable):
-        '''
-        Entrée : nomVariable = chaine de caractère à tester
-        Sortie : True si c'est un nom de variable valable
-        '''
+    def strIsVariableName(cls, nomVariable:str) -> bool:
+        """Teste si une chaîne de caractères est un nom de variable possible.
+
+        Exclut les mots-clefs du langage
+
+        :param expression:expression à tester
+        :type exression:str
+        :return:Vrai si le nom est valable
+        :rtype:bool
+        """
         regex = TokenVariable.regex
         nomVariable = nomVariable.strip()
-        if nomVariable in ("if", "else", "elif", "else", "while", "print", "input"):
+        if nomVariable in ("if", "else", "elif", "else", "while", "print", "input", "and", "or", "not"):
             return False
         return re.match(f"^(\s*{regex})+\s*$", nomVariable) != None
 
     @classmethod
-    def strIsExpression(cls,expression):
-        '''
-        Entrée : expression = chaîne de caractère
-        Sortie : True la chaîne de caractère contient une expression arithmétique ou logique
-        '''
+    def strIsExpression(cls, expression:str) -> bool:
+        """Teste si une chaîne de caractères est une expression possible.
+
+        :param expression:expression à tester
+        :type exression:str
+        :return:Vrai si l'expression est valable
+        :rtype:bool
+        """
+
         regex = cls.regex()
         return re.match(f"^(\s*{regex})+\s*$", expression) != None
 
     @classmethod
-    def __buildTokensList(cls, expression):
+    def __buildTokensList(cls, expression:str) -> List[Token]:
+        """Transforme une expression en une liste de tokens représentant chacun un item de l'expression.
+
+        :param expression:expression à tester
+        :type exression:str
+        :return:La liste des tokens tels que donnés dans l'expression
+        :rtype:list(Token)
+
+        .. note::
+
+        Les symboles + et - est ambigu car ils peuvent être compris comme des symboles unaires ou binaires. On réalise un traitement pour lever l'ambiguité.
+        """
+
         regex = cls.regex()
         matchsList = [it[0] for it in re.findall(regex, expression)]
         tokensList = []
@@ -413,9 +500,24 @@ class ExpressionParser:
         return cls.__consolidAddSub(tokensList)
 
     @classmethod
-    def __consolidAddSub(cls,tokensList):
-        # Certains + et - peuvent recevoir différentes interprétations
-        # un + et un donnés après ( ou après début
+    def __consolidAddSub(cls, tokensList:List[Token]) -> List[Token]:
+        """Cherche les + et les - pour lever l'ambiguité sur leur arité : un - ou un + peut être unaire ou binaire.
+
+        - À la détection, tous les - et + sont compris comme binaires par défaut,
+        - Un + compris comme unaire peut être supprimé,
+        - Un - compris comme unaire doit recevoir un token unaire en remplacement de son token binaire
+
+        Dans ces l'opérateur est modifié :
+        - le token suit '('
+        - le token est en début d'expression
+        - le token suit un opérateur
+
+        :param tokensList:liste brute des tokens représentant l'expression
+        :type tokensList:list(Token)
+        :return:La liste des tokens avec les - et + corrigés le cas échéant
+        :rtype:list(Token)
+        """
+
         indice = 0
         while indice < len(tokensList):
             token = tokensList[indice]
@@ -447,13 +549,18 @@ class ExpressionParser:
         return tokensList
 
     def __init__(self):
+        """Constructeur"""
         pass
 
-    def buildExpression(self, originalExpression):
-        '''
-        Entrée : chaine de caractères expression
-        Sortie : Objet ExpressionNode
-        '''
+    def buildExpression(self, originalExpression:str) -> ExpressionNode:
+        """À partir d'une expression sous forme d'une chaîne de texte, produit l'arbre représentant cette expression et retourne la racine de cet arbre.
+
+        :param originalExpression:expression à analyser
+        :type originalExpression:str
+        :return:racine de l'arbre
+        :rtype:ExpressionNode
+        """
+
         expression = originalExpression.strip()
         if not self.strIsExpression(expression):
             raise ExpressionError(f"{originalExpression} : Expression incorrecte.")
