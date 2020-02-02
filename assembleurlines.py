@@ -89,7 +89,9 @@ class AsmLine:
         strOperands = [ self.__stringifyRegOperand(ope) for ope in self.__regOperands]
         if self.__specialOperand != None:
             strOperands.append(str(self.__specialOperand))
-        return self.__label+"\t"+self.__asmCommand+" "+", ".join(strOperands)
+        if len(strOperands) > 0:
+            return self.__label+"\t"+self.__asmCommand+" "+", ".join(strOperands)
+        return self.__label+"\t"+self.__asmCommand
 
     def getBinary(self, wordSize:int, regSize:int) -> str:
         """Retourne le code binaire correspondant à cette commande assembleur
