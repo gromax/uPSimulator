@@ -97,6 +97,7 @@ class TokenBinaryOperator(Token):
         :type operandsList:list(ExpressionNode)
         :return:noeud binaire expression correspondant
         :rtype:BinaryNode
+        :raises:ExpressionError si pas assez d'opérandes pour l'opérateur demandé
         """
         if len(operandsList) <2:
             raise ExpressionError(f"Pas assez d'opérandes pour : {self.__operator}")
@@ -136,6 +137,7 @@ class TokenUnaryOperator(Token):
         :type operandsList:list(ExpressionNode,ExpressionNode)
         :return:noeud unaire ou valeur correspondant
         :rtype:UnaryNode / ValueNode
+        :raises:ExpressionError s'il n'y a plus d'opérande à dépiler dans la pile des opérandes
 
         .. note:
 
@@ -365,8 +367,6 @@ class ExpressionParser:
                 while len(waitingStack)>0 and waitingStack[-1].isOperator() and waitingStack[-1].getPriority() >= token.getPriority():
                     polishStack.append(waitingStack.pop())
                 waitingStack.append(token)
-            else:
-                raise ExpressionError(f"Token inconnu : {str(token)}")
         # arrivé à la fin des tokens, on vide la pile d'attente
         while len(waitingStack)>0:
             token = waitingStack.pop()
@@ -382,6 +382,8 @@ class ExpressionParser:
         :type polishTokensList:list(Token)
         :return:noeud racine de l'arbre représentant l'expression
         :rtype:ExpressionNode
+        :raises:ExpressionError s'il reste plus d'un opérande en fin de traitement.
+        Arrive si pas assez d'opérateurs pour combiner les opérandes.
         """
 
         operandsList:List[ExpressionNode] = []
@@ -559,6 +561,7 @@ class ExpressionParser:
         :type originalExpression:str
         :return:racine de l'arbre
         :rtype:ExpressionNode
+        :raises:ExpressionError si l'expression ne match pas l'expression régulière ou si les parenthèses ne sont pas convenablement équilibrées, ou si l'expression contient un enchaînement non valable, comme */.
         """
 
         expression = originalExpression.strip()
