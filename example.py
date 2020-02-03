@@ -28,10 +28,10 @@ class CompilationTest(unittest.TestCase):
         assert str(cm.getAsm()) == "\n".join(goodAsm)
 
         goodBinary = [
-            "0100100000000011",
-            "0111000000000011",
-            "0000000000000000",
-            "0000000000000000"
+            "0100100000000011", # MOVE = 01001, r0 = 000, #3 = 00000011
+            "0111000000000011", # STORE = 0111, r0 = 000, @x = 3 = 000000011
+            "0000000000000000", # HALT = 00000 + bourrage de 0
+            "0000000000000000"  # var x, @x = 3
         ]
         assert cm.getAsm().getBinary() == "\n".join(goodBinary)
 
