@@ -105,8 +105,9 @@ class ProcessorEngine:
 
     def __init__(self, name:str = "default"):
         """Constructeur
-        :param name:nom du modèle de processeur utilisé
-        :type name:str
+
+        :param name: nom du modèle de processeur utilisé
+        :type name: str
         """
         # TODO: chargement d'un modèle dans un fichier texte
         if not name in ENGINE_COLLECTION:
@@ -147,8 +148,9 @@ class ProcessorEngine:
     def __checkAttributes(self) -> bool:
         """Vérification de la consistance des attributs du modèle de processeur
         Le configuration doit contenir un register_bits >= 1, data_bits, les commandes d'instructions doivent contenir un opcode et une commande asm
-        :return:Vrai si les attributs sont corrects
-        :rtype:bool
+
+        :return: vrai si les attributs sont corrects
+        :rtype: bool
         :raises: AttributeError, en cas d'attributs incorrects.
         """
         if self.__register_address_bits < 1:
@@ -183,8 +185,10 @@ class ProcessorEngine:
 
     def registersNumber(self) -> int:
         """Calcul le nombre de registres considérant l'adressage disponible
-        :return:Nombre de registre
-        :rtype:int
+
+        :return: nombre de registre
+        :rtype: int
+
         :Example:
         >>> ProcessorEngine().registersNumber()
         8
@@ -193,8 +197,10 @@ class ProcessorEngine:
 
     def ualOutputIsFree(self) -> bool:
         """Accesseur
-        :return:Vrai si on peut choisir le registre de sortie de l'UAL
-        :rtype:bool
+
+        :return: Vrai si on peut choisir le registre de sortie de l'UAL
+        :rtype: bool
+
         :Example:
         >>> ProcessorEngine().ualOutputIsFree()
         True
@@ -205,8 +211,10 @@ class ProcessorEngine:
 
     def hasNEG(self) -> bool:
         """Le modèle de processeur possède-t-il un - unaire ?
-        :return:Vrai s'il en possède un
-        :rtype:bool
+
+        :return: vrai s'il en possède un
+        :rtype: bool
+
         :Example:
         >>> ProcessorEngine().hasNEG()
         True
@@ -217,10 +225,12 @@ class ProcessorEngine:
 
     def hasOperator(self, operator:str) -> bool:
         """Le modèle de processeur possède-t-il l'opérateur demandé ?
-        :param operator:nom de l'opérateur
-        :type operator:str
-        :return:Vrai s'il le possède
-        :rtype:bool
+
+        :param operator: nom de l'opérateur
+        :type operator: str
+        :return: Vrai s'il le possède
+        :rtype: bool
+
         :Example:
         >>> ProcessorEngine().hasOperator("*")
         True
@@ -231,10 +241,12 @@ class ProcessorEngine:
 
     def getAsmCommand(self, commandDesc:str) -> Optional[str]:
         """Renvoie le nom de commande assembleur de la commande demandée. None si introuvable.
-        :param commandDesc:nom de la commande
-        :type commandDesc:str
-        :return:commande assembleur
-        :rtype:str
+
+        :param commandDesc: nom de la commande
+        :type commandDesc: str
+        :return: commande assembleur
+        :rtype: str
+
         :Example:
         >>> ProcessorEngine().getAsmCommand("*")
         'MULT'
@@ -251,10 +263,12 @@ class ProcessorEngine:
 
     def getOpcode(self, commandDesc:str) -> Optional[str]:
         """Renvoie l'opcode de la commande demandée. None si introuvable.
-        :param commandDesc:nom de la commande
-        :type commandDesc:str
-        :return:opcode sous forme binaire
-        :rtype:str
+
+        :param commandDesc: nom de la commande
+        :type commandDesc: str
+        :return: opcode sous forme binaire
+        :rtype: str
+
         :Example:
         >>> ProcessorEngine().getOpcode("*")
         '0110010'
@@ -269,10 +283,12 @@ class ProcessorEngine:
 
     def getLitteralAsmCommand(self, commandDesc:str) -> Optional[str]:
         """Renvoie le nom de commande assembleur de la commande demandée, dans sa version acceptant un littéral. None si introuvable.
-        :param commandDesc:nom de la commande
-        :type commandDesc:str
-        :return:commande assembleur
-        :rtype:str
+
+        :param commandDesc: nom de la commande
+        :type commandDesc: str
+        :return: commande assembleur
+        :rtype: str
+
         :Example:
         >>> ProcessorEngine().getLitteralAsmCommand("*")
         'MULT'
@@ -286,10 +302,12 @@ class ProcessorEngine:
 
     def getLitteralOpcode(self, commandDesc:str) -> Optional[str]:
         """Renvoie l'opcode de la commande demandée dans sa version acceptant un littéral. None si introuvable.
-        :param commandDesc:nom de la commande
-        :type commandDesc:str
-        :return:opcode sous forme binaire
-        :rtype:str
+
+        :param commandDesc: nom de la commande
+        :type commandDesc: str
+        :return: opcode sous forme binaire
+        :rtype: str
+
         :Example:
         >>> ProcessorEngine().getLitteralOpcode("*")
         '1010'
@@ -304,12 +322,14 @@ class ProcessorEngine:
 
     def litteralOperatorAvailable(self, commandDesc:str, litteral:Litteral) -> bool:
         """Teste si la commande peut s'éxécuter dans une version acceptant un littéral, avec ce littéral en particulier. Il faut que la commande accepte les littéraux et que le codage de ce littéral soit possible dans l'espace laissé par cette commande.
-        :param commandDesc:commande à utiliser
-        :type commandDesc:str
-        :param litteral:littéral à utiliser
-        :type litteral:Litteral
-        :return:vrai si la commande est utilisable avec ce littéral
-        :rtype:bool
+
+        :param commandDesc: commande à utiliser
+        :type commandDesc: str
+        :param litteral: littéral à utiliser
+        :type litteral: Litteral
+        :return: vrai si la commande est utilisable avec ce littéral
+        :rtype: bool
+
         :Example:
         >>> ProcessorEngine().litteralOperatorAvailable("*", Litteral(1))
         True
@@ -324,10 +344,12 @@ class ProcessorEngine:
 
     def getLitteralMaxSizeIn(self, commandDesc:str) -> int:
         """Considérant une commande, détermine le nombre de bits utilisés par l'encodage des attributs de la commande et déduit le nombre de bits laissés pour le codage en nombre positif d'un éventuel littéral, et donc la taille maximal de ce littéral.
-        :param commandDesc:commande à utiliser
-        :type commandDesc:str
-        :return:valeur maximale acceptable du littéral
-        :rtype:int
+
+        :param commandDesc: commande à utiliser
+        :type commandDesc: str
+        :return: valeur maximale acceptable du littéral
+        :rtype: int
+
         :Example:
         >>> ProcessorEngine().getLitteralMaxSizeIn("*")
         63
@@ -343,8 +365,10 @@ class ProcessorEngine:
 
     def getComparaisonSymbolsAvailables(self) -> List[str]:
         """Accesseur
-        :return:liste des symboles de comparaison disponibles avec ce modèle de processeur
-        :rtype:list(str)
+
+        :return: liste des symboles de comparaison disponibles avec ce modèle de processeur
+        :rtype: list[str]
+
         :Example:
         >>> ProcessorEngine().getComparaisonSymbolsAvailables()
         ['<', '>', '==', '!=']
@@ -355,8 +379,10 @@ class ProcessorEngine:
 
     def getRegBits(self) -> int:
         """Accesseur
-        :return:nombre de bits utilisés pour l'encodage de l'adresse d'un registre
-        :rtype:int
+
+        :return: nombre de bits utilisés pour l'encodage de l'adresse d'un registre
+        :rtype: int
+
         :Example:
         >>> ProcessorEngine().getRegBits()
         3
@@ -365,8 +391,10 @@ class ProcessorEngine:
 
     def getDataBits(self) -> int:
         """Accesseur
-        :return:nombre de bits utilisés pour l'encodage d'une donnée en mémoire
-        :rtype:int
+
+        :return: nombre de bits utilisés pour l'encodage d'une donnée en mémoire
+        :rtype: int
+
         :Example:
         >>> ProcessorEngine().getDataBits()
         16

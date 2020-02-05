@@ -17,10 +17,11 @@ class CompilationManager:
     __asm:AssembleurContainer
     def __init__(self, engine:ProcessorEngine, structureNodeList:List[StructureNode]):
         """Constructeur
-        :param engine:objet décrivant le modèle de processeur
-        :type engine:ProcessorEngine
-        :param structureNodeList:liste de noeuds décrivant le programme à compiler
-        :type structureNodeList:list(StructureNode)
+
+        :param engine: objet décrivant le modèle de processeur
+        :type engine: ProcessorEngine
+        :param structureNodeList: liste de noeuds décrivant le programme à compiler
+        :type structureNodeList: list(StructureNode)
 
         .. note::
 
@@ -34,10 +35,11 @@ class CompilationManager:
 
     def __compile(self, structureNodeList:List[StructureNode]) -> List[StructureNode]:
         """Linéarise le programme fourni. Les while et if sont transformés en itilisant des sauts conditionnels ou non.
-        :param structureNodeList:liste de noeuds décrivant le programme à compiler
-        :type structureNodeList:list(StructureNode)
-        :return:programme sous sa forme linéaire.
-        :rtype:list(StructureNode)
+
+        :param structureNodeList: liste de noeuds décrivant le programme à compiler
+        :type structureNodeList: list[StructureNode]
+        :return: programme sous sa forme linéaire.
+        :rtype: list[StructureNode]
 
         .. note::
 
@@ -55,8 +57,9 @@ class CompilationManager:
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:programme linéarisé en version texte
-        :rtype:str
+
+        :return: programme linéarisé en version texte
+        :rtype: str
         """
         return "\n".join([str(item) for item in self.__linearList])
 
@@ -64,10 +67,11 @@ class CompilationManager:
         """Efface les sauts, conditionnels ou non, consistant à sauter à la ligne suivante.
         En effet, le déroulement normal du programme est de passer à la ligne suivante, de tels
         sauts sont donc superflus.
+
         :param linearList: liste de noeuds de la version linéaire
-        :type linearList:list[StructureNode]
-        :return: Vrai si un changement a été effectué
-        :rtype:bool
+        :type linearList: list[StructureNode]
+        :return: vrai si un changement a été effectué
+        :rtype: bool
         """
         flagActionDone = False
         if len(linearList) < 2:
@@ -85,10 +89,11 @@ class CompilationManager:
 
     def __delNotUseLabel(self, linearList:List[StructureNode]) -> bool:
         """Efface les étiquettes qui ne sont jamais utilisées. ie : qui ne sont la cible d'aucun saut.
-        :param linearList:liste de noeuds de la version linéaire
-        :type linearList:list[StructureNode]
-        :return:Vrai si un changement a été fait
-        :rtype:bool
+
+        :param linearList: liste de noeuds de la version linéaire
+        :type linearList: list[StructureNode]
+        :return: vrai si un changement a été fait
+        :rtype: bool
         """
         flagActionDone = False
         labels = self.__getLabels(linearList)
@@ -104,14 +109,14 @@ class CompilationManager:
         Tout jumpNode pointant vers labelToDel est redirigé vers label.
         labelToDel supprimé de la liste.
 
-        :param linearList:liste de noeuds de la version linéaire
-        :type linearList:list[StructureNode]
-        :param label:étiquette sur laquelle les sauts sont redirigés
-        :type label:LabelNode
-        :param labelToDel:étiquette à effacer
-        :type labelToDel:LabelNode
-        :return:Vrai si un changement a été effectué
-        :rtype:bool
+        :param linearList: liste de noeuds de la version linéaire
+        :type linearList: list[StructureNode]
+        :param label: étiquette sur laquelle les sauts sont redirigés
+        :type label: LabelNode
+        :param labelToDel: étiquette à effacer
+        :type labelToDel: LabelNode
+        :return: vrai si un changement a été effectué
+        :rtype: bool
         """
         flagActionDone = False
         for index in range(len(linearList)):
@@ -127,10 +132,11 @@ class CompilationManager:
 
     def __getLabels(self, linearList:List[StructureNode]) -> Dict[LabelNode,List[JumpNode]]:
         """Fournit un dictionnaire donnant toutes les étiquettes jointes à tous les sauts pointant sur elles.
-        :param linearList:liste de noeuds de la version linéaire
-        :type linearList:list[StructureNode]
-        :return:dictionnaire de forme étiquette -> liste des sauts pointant sur cette étiquette
-        :rtype:dict[LabelNode,list[JumpNode]]
+
+        :param linearList: liste de noeuds de la version linéaire
+        :type linearList: list[StructureNode]
+        :return: dictionnaire de forme étiquette -> liste des sauts pointant sur cette étiquette
+        :rtype: dict[LabelNode,list[JumpNode]]
         """
         labels:Dict[LabelNode,List[JumpNode]] = {}
         for node in linearList:
@@ -147,10 +153,11 @@ class CompilationManager:
 
     def __getConsecutivesLabel(self, linearList:List[StructureNode]) -> Optional[Tuple[LabelNode,LabelNode]]:
         """Cherche des étiquettes successives en vue de les fusionner.
-        :param linearList:liste de noeuds de la version linéaire
-        :type linearList:list[StructureNode]
-        :return:paire de label consécutifs s'il en existe
-        :rtype:tuple[LabelNode,LabelNode] ou None
+
+        :param linearList: liste de noeuds de la version linéaire
+        :type linearList: list[StructureNode]
+        :return: paire de label consécutifs s'il en existe
+        :rtype: tuple[LabelNode,LabelNode] ou None
         """
 
         for index in range(len(linearList)-1):
@@ -164,9 +171,10 @@ class CompilationManager:
         """Nettoie la liste linéaire en fusionnant les étiquettes consécutives,
         supprimant les étiquettes non utilisées
         supprimant les sauts pointant vers la ligne suivante.
-        :param linearList:liste de noeuds de la version linéaire
-        :type linearList:list[StructureNode]
-        :return:pas de retour, liste modifiée en place
+
+        :param linearList: liste de noeuds de la version linéaire
+        :type linearList: list[StructureNode]
+        :return: pas de retour, liste modifiée en place
         """
         goOnFlag = True
         while goOnFlag:
@@ -180,12 +188,13 @@ class CompilationManager:
 
     def __pushExpressionAsm(self, lineNumber:int, expression:ExpressionNode) -> int:
         """Gère la compilation d'une expression arithmétique ou logique
-        :param lineNumber:numéro de ligne d'origine de l'expression
-        :type lineNumber:int
-        :param expression:expression à compiler
-        :type expression:ExpressionNode
-        :return:numéro du registre résultat ou -1 si inutile (comparaison)
-        :rtype:int
+
+        :param lineNumber: numéro de ligne d'origine de l'expression
+        :type lineNumber: int
+        :param expression: expression à compiler
+        :type expression: ExpressionNode
+        :return: numéro du registre résultat ou -1 si inutile (comparaison)
+        :rtype: int
         """
         if not self.__engine.hasNEG():
             expression = expression.negToSubClone()
@@ -197,9 +206,10 @@ class CompilationManager:
 
     def __pushNodeAsm(self, node:StructureNode) -> None:
         """Exécute la compilation pour un noeud. Le résultat est ajouté à l'objet assembleur.
-        :param node:noeud à compiler
-        :type node:StructureNode
-        :return:Pas de retour.
+
+        :param node: noeud à compiler
+        :type node: StructureNode
+        :return: pas de retour.
         """
         lineNumber = node.getLineNumber()
         if isinstance(node, LabelNode):
@@ -233,7 +243,8 @@ class CompilationManager:
     def __compileASM(self) -> None:
         """Produit le code assembleur et conclut par HALT.
         Le résultat est stocké directement dans l'objet assembleur créé à l'initialisation.
-        :return:Pas de retour
+
+        :return: pas de retour
         """
         for node in self.__linearList:
             self.__pushNodeAsm(node)
@@ -241,15 +252,17 @@ class CompilationManager:
 
     def getLinearNodeList(self) -> List[StructureNode]:
         """Accesseur
-        :return:programme sous forme linéaire
-        :rtype:list[StructureNode]
+
+        :return: programme sous forme linéaire
+        :rtype: list[StructureNode]
         """
         return [item for item in self.__linearList]
 
     def getAsm(self) -> AssembleurContainer:
         """Accesseur
-        :return:objet assembleur contenant le résultat de la compilation
-        :rtype:AssembleurContainer
+
+        :return: objet assembleur contenant le résultat de la compilation
+        :rtype: AssembleurContainer
         """
         return self.__asm
 

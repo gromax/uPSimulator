@@ -11,24 +11,27 @@ class StructureNode:
     _lineNumber = 0 # type : int
     def __str__(self) -> str:
         """Transtypage -> str
-        :return : chaîne par défaut, 'noeud de structure'
+
+        :return: chaîne par défaut, 'noeud de structure'
         :rtype: str
         """
         return "noeud de structure"
 
     def getLinearStructureList(self, csl:List['str']) -> List['StructureNode']:
         """Fonction récursive produisant la version linéaire
-        :param csl:Liste des comparaisons permises par le processeur utilisé
-        :type csl:List[str]
-        :return : Liste des noeuds de la version linéaire
-        :rtype: List[StructureNode]
+
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: list[str]
+        :return: liste des noeuds de la version linéaire
+        :rtype: list[StructureNode]
         """
 
         return [ self ]
 
     def getLineNumber(self) -> int:
         """Accesseur pour le numéro de ligne d'origine de cet élément
-        :return : numéro de ligne d'origine
+
+        :return: numéro de ligne d'origine
         :rtype: int
         """
         return self._lineNumber
@@ -37,12 +40,13 @@ class IfNode(StructureNode):
     @classmethod
     def _recursiveLinearStructureListOnChildren(cls, csl:List[str], childrenList:List['StructureNode']) -> List['StructureNode']:
         """Propage le calcul de la version linéaire aux enfants
-        :param csl:Liste des comparaisons permises par le processeur utilisé
-        :type csl:List[str]
-        :param childrenList:Liste des noeuds enfants à considérer
-        :type childrenList:List[StructureNode]
-        :return : Liste enfant en version linéaire
-        :rtype: List[StructureNode]
+
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: list[str]
+        :param childrenList: liste des noeuds enfants à considérer
+        :type childrenList: list[StructureNode]
+        :return: liste enfant en version linéaire
+        :rtype: list[StructureNode]
         """
 
         outList = []
@@ -54,9 +58,10 @@ class IfNode(StructureNode):
     @classmethod
     def _childrenStr(cls, childrenList:List['StructureNode']) -> str:
         """Propage le transtypage -> str aux enfants
-        :param childrenList:Liste des noeuds enfants à considérer
-        :type childrenList:List[StructureNode]
-        :return : Liste enfant transtypée en chaîne de caractères
+
+        :param childrenList: liste des noeuds enfants à considérer
+        :type childrenList: list[StructureNode]
+        :return: liste enfant transtypée en chaîne de caractères
         :rtype: str
         """
 
@@ -65,12 +70,13 @@ class IfNode(StructureNode):
 
     def __init__(self, lineNumber:int, condition:ExpressionNode, children:List[StructureNode]):
         """Constructeur d'un noeud If
-        :param lineNumber:Numéro de ligne dans le programme d'origine
-        :type lineNumber:int
-        :param condition:expression logique du test de ce if.
-        :type condition:ExpressionNode
-        :param children:Liste des objets enfants
-        :type children:List[StructureNode]
+
+        :param lineNumber: numéro de ligne dans le programme d'origine
+        :type lineNumber: int
+        :param condition: expression logique du test de ce if.
+        :type condition: ExpressionNode
+        :param children: liste des objets enfants
+        :type children: list[StructureNode]
         """
 
         assert isinstance(condition, ExpressionNode)
@@ -83,8 +89,9 @@ class IfNode(StructureNode):
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:Version chaîne de caractères de ce noeud et de ses enfants
-        :rtype:str
+
+        :return: version chaîne de caractères de ce noeud et de ses enfants
+        :rtype: str
         """
         childrenStr = self._childrenStr(self._children)
         return "if "+str(self._condition)+" {\n"+childrenStr+"\n}"
@@ -93,14 +100,15 @@ class IfNode(StructureNode):
         """Décompose un condition complexe, contenant des and, not, or,
         en un ensemble de branchement conditionnels, les opérations logiques
         étant assurées par l'organisation des branchements
-        :param csl:Liste des comparaisons permises par le processeur utilisé
-        :type csl:List[str]
-        :param cibleOUI:Cible dans le cas d'un test Vrai
-        :type cibleOUI:LabelNode
-        :param cibleNON:Cible dans le cas d'un test Faux
-        :type cibleNON:LabelNode
-        :return:Version linéaire de la condition, faite de branchements
-        :rtype:List[StructureNode]
+
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: list[str]
+        :param cibleOUI: cible dans le cas d'un test Vrai
+        :type cibleOUI: LabelNode
+        :param cibleNON: cible dans le cas d'un test Faux
+        :type cibleNON: LabelNode
+        :return: version linéaire de la condition, faite de branchements
+        :rtype: list[StructureNode]
         """
 
         # La condition va entraîner un branchement conditionnel. C'est le cas NON qui provoque le branchement.
@@ -112,14 +120,15 @@ class IfNode(StructureNode):
     def _recursiveDecomposeComplexeCondition(self, conditionSaut:ExpressionNode, cibleDirecte:'LabelNode', cibleSautCond:'LabelNode') -> List['StructureNode']:
         """Fonction auxiliaire et récursive pour la décoposition d'une condition complexe
         en un ensemble de branchement et de condition élémentaire
+
         :param conditionSaut: condition du saut conditionnel
-        :type conditionSaut:ExpressionNode
+        :type conditionSaut: ExpressionNode
         :param cibleDirecte: cible en déroulement normal, càd condition fausse => pas de saut
-        :type cibleDirecte:LabelNode
+        :type cibleDirecte: LabelNode
         :param cibleSautCond: cible du saut conditionnel, si la condition est vraie
-        :type cibleSautCond:LabelNode
-        :return:Version linéaire de la condition, faite de branchements
-        :rtype:List[StructureNode]
+        :type cibleSautCond: LabelNode
+        :return: version linéaire de la condition, faite de branchements
+        :rtype: list[StructureNode]
         """
         if not conditionSaut.isComplexeCondition():
             # c'est un test élémentaire
@@ -149,10 +158,10 @@ class IfNode(StructureNode):
           * les labels identifiant les différents blocs pour les sauts,
           * la condition décomposée en conditions simples assurées par des branchements conditionnels,
           * le bloc enfant
-        :param csl:Liste des comparaisons permises par le processeur utilisé
-        :type csl:List[str]
-        :return:Version linéaire du noeud if
-        :rtype:List[StructureNode]
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: list[str]
+        :return: version linéaire du noeud if
+        :rtype: list[StructureNode]
         """
 
         labelIf = LabelNode()
@@ -168,16 +177,17 @@ class IfNode(StructureNode):
 class IfElseNode(IfNode):
     def __init__(self, ifLineNumber:int, condition:ExpressionNode, ifChildren:List[StructureNode], elseLineNumber:int, elseChildren:List[StructureNode]):
         """Constructeur d'un noeud IfElse
-        :param ifLineNumber:Numéro de ligne dans le programme d'origine
-        :type ifLineNumber:int
-        :param elseLineNumber:Numéro de ligne dans le programme d'origine pour le Else
-        :type elseLineNumber:int
-        :param condition:expression logique du test de ce if.
-        :type condition:ExpressionNode
-        :param ifChildren:Liste des objets enfants pour le bloc If
-        :type ifChildren:List[StructureNode]
-        :param elseChildren:Liste des objets enfants pour le bloc Else
-        :type elseChildren:List[StructureNode]
+
+        :param ifLineNumber: numéro de ligne dans le programme d'origine
+        :type ifLineNumber: int
+        :param elseLineNumber: numéro de ligne dans le programme d'origine pour le Else
+        :type elseLineNumber: int
+        :param condition: expression logique du test de ce if.
+        :type condition: ExpressionNode
+        :param ifChildren: liste des objets enfants pour le bloc If
+        :type ifChildren: list[StructureNode]
+        :param elseChildren: liste des objets enfants pour le bloc Else
+        :type elseChildren: list[StructureNode]
         """
 
         super().__init__(ifLineNumber, condition, ifChildren)
@@ -189,8 +199,9 @@ class IfElseNode(IfNode):
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:Version chaîne de caractères de ce noeud et de ses enfants
-        :rtype:str
+
+        :return: version chaîne de caractères de ce noeud et de ses enfants
+        :rtype: str
         """
         ifChildrenStr = self._childrenStr(self._children)
         elseChildrenStr = self._childrenStr(self._elseChildren)
@@ -202,10 +213,11 @@ class IfElseNode(IfNode):
           * les labels identifiant les différents blocs pour les sauts,
           * la condition décomposée en conditions simples assurées par des branchements conditionnels,
           * les blocs enfants, If et Else
-        :param csl:Liste des comparaisons permises par le processeur utilisé
-        :type csl:List[str]
-        :return:Version linéaire du noeud
-        :rtype:List[StructureNode]
+
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: list[str]
+        :return: version linéaire du noeud
+        :rtype: list[StructureNode]
         """
 
         labelIf = LabelNode()
@@ -227,8 +239,9 @@ class IfElseNode(IfNode):
 class WhileNode(IfNode):
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:Version chaîne de caractères de ce noeud et de ses enfants
-        :rtype:str
+
+        :return: version chaîne de caractères de ce noeud et de ses enfants
+        :rtype: str
         """
 
         childrenStr = self._childrenStr(self._children)
@@ -241,10 +254,11 @@ class WhileNode(IfNode):
           * la condition décomposée en conditions simples assurées par des branchements conditionnels,
           * Le saut final assurant la boucle
           * le bloc enfant
-        :param csl:Liste des comparaisons permises par le processeur utilisé
-        :type csl:List[str]
-        :return:Version linéaire du noeud
-        :rtype:List[StructureNode]
+
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: list[str]
+        :return: version linéaire du noeud
+        :rtype: list[StructureNode]
         """
 
         labelWhile = LabelNode()
@@ -266,8 +280,9 @@ class LabelNode(StructureNode):
     @classmethod
     def getNextFreeIndex(cls) -> int:
         """génère un nouvel index de numéro de label. Assure l'unicité des numéros.
-        :return:Index pour in nouveau label
-        :rtype:int
+
+        :return: index pour in nouveau label
+        :rtype: int
         """
         cls.__currentIndex += 1
         return cls.__currentIndex
@@ -279,8 +294,9 @@ class LabelNode(StructureNode):
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:index du label préfixé par 'l'
-        :rtype:str
+
+        :return: index du label préfixé par 'l'
+        :rtype: str
         """
         return "l"+str(self.__index)
 
@@ -289,11 +305,11 @@ class AffectationNode(StructureNode):
         """Noeud représentant une affectation de forme variable <- expression
 
         :param lineNumber: numéro de ligne dans le programme d'origine
-        :type lineNumber:int
-        :param variableCible:variable qui sera affectée
-        :type variableCible:Variable
-        :param expression:expression arithmétique dont le résultat est affecté à la variable
-        :type expression:ExpressionNode
+        :type lineNumber: int
+        :param variableCible: variable qui sera affectée
+        :type variableCible: Variable
+        :param expression: expression arithmétique dont le résultat est affecté à la variable
+        :type expression: ExpressionNode
         """
         assert isinstance(expression, ExpressionNode)
         assert expression.getType() == 'int'
@@ -305,8 +321,8 @@ class AffectationNode(StructureNode):
     def getExpression(self) -> ExpressionNode:
         """Accesseur : retourne l'expression dont le résultat doit être affecté à la variable cible.
 
-        :return:expression arithmétique dont le résultat doit être affecté à la variable cible.
-        :rtype:ExpressionNode
+        :return: expression arithmétique dont le résultat doit être affecté à la variable cible.
+        :rtype: ExpressionNode
         """
 
         return self._expression
@@ -314,15 +330,16 @@ class AffectationNode(StructureNode):
     def getCible(self) -> Variable:
         """Accesseur : retourne la variable cible de l'affectation.
 
-        :return:variable cible.
-        :rtype:Variable
+        :return: variable cible.
+        :rtype: Variable
         """
         return self._cible
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:noeud en chaîne de caractères
-        :rtype:str
+
+        :return: noeud en chaîne de caractères
+        :rtype: str
         """
         return str(self._cible)+" "+chr(0x2190)+" "+str(self._expression)
 
@@ -331,9 +348,9 @@ class InputNode(StructureNode):
         """Noeud input précisant une variable devant stocké le résultat du input
 
         :param lineNumber: numéro de ligne dans le programme d'origine
-        :type lineNumber:int
-        :param variableCible:variable qui sera affectée
-        :type variableCible:Variable
+        :type lineNumber: int
+        :param variableCible: variable qui sera affectée
+        :type variableCible: Variable
         """
 
         assert isinstance(variableCible, Variable)
@@ -343,15 +360,16 @@ class InputNode(StructureNode):
     def getCible(self) -> Variable:
         """Accesseur : retourne la variable cible du input.
 
-        :return:variable cible.
-        :rtype:Variable
+        :return: variable cible.
+        :rtype: Variable
         """
         return self._cible
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:noeud en chaîne de caractères
-        :rtype:str
+
+        :return: noeud en chaîne de caractères
+        :rtype: str
         """
         return str(self._cible)+" "+chr(0x2190)+" Input"
 
@@ -360,9 +378,9 @@ class PrintNode(StructureNode):
         """Noeud représentant un print, permettant d'afficher le résultat d'une expression arithmétique
 
         :param lineNumber: numéro de ligne dans le programme d'origine
-        :type lineNumber:int
-        :param expression:expression arithmétique dont le résultat est affecté à la variable
-        :type expression:ExpressionNode
+        :type lineNumber: int
+        :param expression: expression arithmétique dont le résultat est affecté à la variable
+        :type expression: ExpressionNode
         """
 
         assert isinstance(expression, ExpressionNode)
@@ -373,15 +391,16 @@ class PrintNode(StructureNode):
     def getExpression(self) -> ExpressionNode:
         """Accesseur : retourne l'expression dont le résultat doit être affiché.
 
-        :return:expression arithmétique dont le résultat doit être affiché.
-        :rtype:ExpressionNode
+        :return: expression arithmétique dont le résultat doit être affiché.
+        :rtype: ExpressionNode
         """
         return self._expression
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:noeud en chaîne de caractères
-        :rtype:str
+
+        :return: noeud en chaîne de caractères
+        :rtype: str
         """
 
         return str(self._expression)+" "+chr(0x2192)+" Affichage"
@@ -391,11 +410,11 @@ class JumpNode(StructureNode):
         """Noeud représentant un saut conditionnel ou inconditionnel.
 
         :param lineNumber: numéro de ligne dans le programme d'origine,
-        :type lineNumber:int
-        :param cible:cible du saut,
-        :type cible:LabelNode
-        :param condition:expression booléenne exprimant à quelle condition le saut est effectué. None si le saut est inconditionnel.
-        :type expression:ExpressionNode / None
+        :type lineNumber: int
+        :param cible: cible du saut,
+        :type cible: LabelNode
+        :param condition: expression booléenne exprimant à quelle condition le saut est effectué. None si le saut est inconditionnel.
+        :type expression: ExpressionNode / None
         """
 
         assert isinstance(cible, LabelNode)
@@ -407,8 +426,8 @@ class JumpNode(StructureNode):
     def __str__(self) -> str:
         """Transtypage -> str
 
-        :return:version chaîne de caractères du noeud
-        :rtype:str
+        :return: version chaîne de caractères du noeud
+        :rtype: str
         """
 
         if self._condition == None:
@@ -418,8 +437,8 @@ class JumpNode(StructureNode):
     def getCible(self) -> LabelNode:
         """Accesseur
 
-        :return:cible du saut
-        :rtype:LabelNode
+        :return: cible du saut
+        :rtype: LabelNode
         """
 
         return self._cible
@@ -427,8 +446,8 @@ class JumpNode(StructureNode):
     def getCondition(self) -> Optional[ExpressionNode]:
         """Accesseur
 
-        :return:condition du saut
-        :rtype:ExpressionNode / None
+        :return: condition du saut
+        :rtype: ExpressionNode / None
         """
 
         return self._condition
@@ -436,8 +455,8 @@ class JumpNode(StructureNode):
     def assignNewCibleClone(self, newCible:LabelNode) -> 'JumpNode':
         """Crée un clone avec une nouvelle cible.
 
-        :return:clone du noeud avec une nouvelle cible
-        :rtype:JumpNode
+        :return: clone du noeud avec une nouvelle cible
+        :rtype: JumpNode
         """
 
         return JumpNode(self._lineNumber, newCible, self._condition)

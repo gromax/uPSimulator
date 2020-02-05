@@ -20,9 +20,10 @@ class ExpressionNode:
     """
     def compile(self, CEMObject:CompileExpressionManager) -> None:
         """Exécute la compilation
-        :param CEMObject:Gestionnaire de compilation pour une expression
-        :type CEMObject:CompileExpressionManager
-        :return:None
+
+        :param CEMObject: gestionnaire de compilation pour une expression
+        :type CEMObject: CompileExpressionManager
+        :return: None
         """
         if self.getType() != 'int' and self.isComplexeCondition():
             raise CompilationError(f"{str(self)} n'est pas une expression arithmétique ou une comparaison simple.")
@@ -30,30 +31,34 @@ class ExpressionNode:
 
     def isLitteral(self) -> bool:
         """Le noeud est-il un littéral ?
-        :return:Vrai si le noeud est un simple littéral
-        :rtype:bool
+
+        :return: vrai si le noeud est un simple littéral
+        :rtype: bool
         """
         return False
 
     def needUAL(self) -> bool:
         """L'évaluation de ce noeud nécessitera-t-elle l'utilisation de l'UAL ?
-        :return:Vrai si l'UAL est nécessaire.
-        :rtype:bool
+
+        :return: vrai si l'UAL est nécessaire.
+        :rtype: bool
         """
         return False
 
     def getRegisterCost(self, engine:ProcessorEngine) -> int:
-        """Calcul le nombre de registre nécessaire pour l'évaluation d'un noeud
-        :return:nombre de registres
-        :rtype:int
+        """Calcule le nombre de registre nécessaire pour l'évaluation d'un noeud
+
+        :return: nombre de registres
+        :rtype: int
         """
         return 1
 
     def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
         """Exécute la compilation
-        :param CEMObject:Gestionnaire de compilation pour une expression
-        :type CEMObject:CompileExpressionManager
-        :return:None
+
+        :param CEMObject: gestionnaire de compilation pour une expression
+        :type CEMObject: CompileExpressionManager
+        :return: None
         """
         engine = CEMObject.getEngine()
         myCost = self.getRegisterCost(engine)
@@ -62,31 +67,34 @@ class ExpressionNode:
 
     def isSimpleCondition(self) -> bool:
         """
-        :return:Vrai si l'expression est de type 'bool' et sans opérateur and, or, not
-        :rtype:bool
+        :return: vrai si l'expression est de type 'bool' et sans opérateur and, or, not
+        :rtype: bool
         """
         return self.getType() == 'bool' and not self.isComplexeCondition()
 
     def getType(self) -> str:
         """Renvoie le type. 'int' par défaut
+
         :return: type de l'expression, 'bool' pour booléen et 'int' pour arithmétique
-        :rtype:str
+        :rtype: str
         """
 
         return 'int'
 
     def isComplexeCondition(self) -> bool:
         """S'agit-il d'une condition composée de and, or, not ?
-        :return:Vrai si c'est une condition logique contenant des and, or, not
-        :rtype:bool
+
+        :return: vrai si c'est une condition logique contenant des and, or, not
+        :rtype: bool
         """
 
         return False
 
     def getComparaisonSymbol(self) -> Optional[str]:
         """Symbole de comparaisons utilisé dans une comparaison simple
-        :return:None dans le cas général
-        :rtype:None
+
+        :return: None dans le cas général
+        :rtype: None
 
         .. note::
 
@@ -100,10 +108,10 @@ class ExpressionNode:
         adapte l'expression pour qu'elle ne contienne qu'une liste de symboles autorisés.
         Crée un clone pour accueillir la modification si nécessaire.
 
-        :param csl:Liste des symboles de comparaison autorisés
-        :type csl:List[str]
-        :return:Noeud original ou clone avec les modifications faites
-        :rtype:ExpressionNode
+        :param csl: liste des symboles de comparaison autorisés
+        :type csl: list[str]
+        :return: noeud original ou clone avec les modifications faites
+        :rtype: ExpressionNode
 
         .. note::
 
@@ -118,8 +126,8 @@ class ExpressionNode:
         """Adapte l'expression pour l'éventualité de l'absence d'une commande NEG, c'est à dire un - unaire.
         Si une modification est nécessaire, un clone est créé.
 
-        :return:Noeud original ou clone avec les modifications faites
-        :rtype:ExpressionNode
+        :return: noeud original ou clone avec les modifications faites
+        :rtype: ExpressionNode
 
         .. note::
 
@@ -133,8 +141,8 @@ class ExpressionNode:
         Si nécessaire un clone est créé.
         Dans le cas d'une opération arithmétique, on se contente de retourner le noeud sans modification.
 
-        :return:Noeud original ou clone avec les modifications faites
-        :rtype:ExpressionNode
+        :return: noeud original ou clone avec les modifications faites
+        :rtype: ExpressionNode
         """
 
         return self
@@ -142,22 +150,24 @@ class ExpressionNode:
     def boolDecompose(self) -> Tuple[str,Sequence['ExpressionNode']]:
         """Décompose une condition complexe pour construire les sauts conditionnels qui réaliseront cette condition.
 
-        :return:Par défaut ('',())
-        :rtype:tuple(str,empty tuple)
+        :return: par défaut ('',())
+        :rtype: tuple[str,empty tuple]
         """
         return ('',())
 
     def clone(self) -> 'ExpressionNode':
         """Fonction par défaut
-        :return:l'objet lui-même
-        :rtype:ExpressionNode
+
+        :return: l'objet lui-même
+        :rtype: ExpressionNode
         """
         return self
 
     def getValue(self) -> Union[None,Variable,Litteral]:
         """Fonction par défaut. Utilisée dans ValueNode
-        :return:None par défaut
-        :rtype:None
+
+        :return: None par défaut
+        :rtype: None
         """
         return None
 
@@ -165,10 +175,11 @@ class UnaryNode(ExpressionNode):
     __knownOperators:Sequence[str] = ('not', '~', '-')
     def __init__(self, operator:str, operand:ExpressionNode):
         """Constructeur
-        :param operator:Opérateur parmi not, ~ et - (unaire)
-        :type operator:str
-        :param operand:Opérande
-        :type operand:ExpressionNode
+
+        :param operator: opérateur parmi not, ~ et - (unaire)
+        :type operator: str
+        :param operand: opérande
+        :type operand: ExpressionNode
         """
 
         assert operator in self.__knownOperators
@@ -178,8 +189,9 @@ class UnaryNode(ExpressionNode):
 
     def isComplexeCondition(self) -> bool:
         """S'agit-il d'une condition composée de not ?
-        :return:Vrai si c'est un opérateur not
-        :rtype:bool
+
+        :return:vrai si c'est un opérateur not
+        :rtype: bool
 
         .. note::
 
@@ -193,8 +205,8 @@ class UnaryNode(ExpressionNode):
         """Renvoie les éléments structurant une condition complexe
         afin de traitement pour orgniser les sauts conditionnels qui feront exécuteront cette condition.
 
-        :return:tuple ("not",(noeud enfant)) ou ('',())
-        :rtype:tuple(str,tuple(ExpressionNode))
+        :return: tuple ("not",(noeud enfant)) ou ('',())
+        :rtype: tuple[str,tuple[ExpressionNode]]
         """
 
         if self.__operator != "not":
@@ -206,8 +218,9 @@ class UnaryNode(ExpressionNode):
         Dans le cas not, consiste à enlever le not.
 
         Si pas un not, alors c'est un noeud arithmétique qui n'est pas modifié.
-        :return:clone pour obtenir une négation logique
-        :rtype:ExpressionNode
+
+        :return: clone pour obtenir une négation logique
+        :rtype: ExpressionNode
 
         .. note::
 
@@ -222,10 +235,10 @@ class UnaryNode(ExpressionNode):
         """Ajuste les symboles de comparaison des enfants pour les adapter aux symboles autorisés
         Crée un clone pour accueillir la modification si nécessaire.
 
-        :param csl:Liste des symboles de comparaison autorisés
-        :type csl:List[str]
-        :return:clone avec les modifications faites
-        :rtype:ExpressionNode
+        :param csl: liste des symboles de comparaison autorisés
+        :type csl: list[str]
+        :return: clone avec les modifications faites
+        :rtype: ExpressionNode
 
         .. note::
 
@@ -248,8 +261,8 @@ class UnaryNode(ExpressionNode):
     def getType(self) -> str:
         """Type d'expression
 
-        :return:'bool' ou 'int' ou '' en cas d'erreur
-        :rtype:str
+        :return: 'bool' ou 'int' ou '' en cas d'erreur
+        :rtype: str
 
         .. note::
 
@@ -274,8 +287,8 @@ class UnaryNode(ExpressionNode):
 
         Ainsi, si l'opérateur est -, le noeud est transformé en l'opération 0 - ... de façon à remplacer le - unaire - binaire
 
-        :return:Noeud original ou clone avec les modifications faites
-        :rtype:ExpressionNode
+        :return: noeud original ou clone avec les modifications faites
+        :rtype: ExpressionNode
 
         .. note::
 
@@ -291,8 +304,9 @@ class UnaryNode(ExpressionNode):
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:Représentation du noeud sous forme d'une chaîne de caractères
-        :rtype:str
+
+        :return: représentation du noeud sous forme d'une chaîne de caractères
+        :rtype: str
 
         .. note::
 
@@ -303,8 +317,9 @@ class UnaryNode(ExpressionNode):
 
     def getRegisterCost(self, engine:ProcessorEngine) -> int:
         """Calcul le nombre de registre nécessaire pour l'évaluation d'un noeud
-        :return:nombre de registres
-        :rtype:int
+
+        :return: nombre de registres
+        :rtype: int
 
         .. note::
 
@@ -317,17 +332,18 @@ class UnaryNode(ExpressionNode):
     def needUAL(self) -> bool:
         """L'évaluation de ce noeud nécessitera l'ual.
 
-        :return:Vrai
-        :rtype:bool
+        :return: vrai
+        :rtype: bool
         """
 
         return True
 
     def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
         """Exécute la compilation
-        :param CEMObject:Gestionnaire de compilation pour une expression
-        :type CEMObject:CompileExpressionManager
-        :return:None
+
+        :param CEMObject: gestionnaire de compilation pour une expression
+        :type CEMObject: compileExpressionManager
+        :return: None
         """
 
         if self.__operator == "not":
@@ -343,8 +359,9 @@ class UnaryNode(ExpressionNode):
 
     def clone(self) -> 'UnaryNode':
         """Crée un noeud clone
-        :return:clone
-        :rtype:UnaryNode
+
+        :return: clone
+        :rtype: UnaryNode
 
         .. note::
 
@@ -361,12 +378,13 @@ class BinaryNode(ExpressionNode):
     __comparaisonOperators:Sequence[str] = ("<=", "<", ">=", ">", "==", "!=")
     def __init__(self, operator:str, operand1:ExpressionNode, operand2:ExpressionNode):
         """Constructeur
-        :param operator:opérateur du noéud, parmi +, -, *, /, %, and, or, &,  |, ^, <, <=, >, >=, ==, !=
-        :type operator:str
-        :param operand1:premier opérande
-        :type operand1:ExpressionNode
-        :param operand2:Deuxième opérande
-        :type operand2:ExpressionNode
+
+        :param operator: opérateur du noéud, parmi +, -, *, /, %, and, or, &,  |, ^, <, <=, >, >=, ==, !=
+        :type operator: str
+        :param operand1: premier opérande
+        :type operand1: ExpressionNode
+        :param operand2: deuxième opérande
+        :type operand2: ExpressionNode
         """
 
         assert operator in self.__knownOperators
@@ -377,15 +395,17 @@ class BinaryNode(ExpressionNode):
 
     def isComplexeCondition(self) -> bool:
         """Teste s'il s'agit d'une condition composée : opérateur and ou or
-        :return:Vrai si l'opérateur est and ou or
-        :rtype:bool
+
+        :return: vrai si l'opérateur est and ou or
+        :rtype: bool
         """
         return self.__operator == "or" or self.__operator == "and"
 
     def boolDecompose(self) -> Tuple[str,Sequence[ExpressionNode]]:
         """Décomposition
-        :return:tuple formé de l'opérateur et des des enfants si and ou or. Vide sinon
-        :rtype:tuple(str,tuple)
+
+        :return: tuple formé de l'opérateur et des des enfants si and ou or. Vide sinon
+        :rtype: tuple[str,tuple]
         """
         if self.__operator != "or" and self.__operator != "and":
             return ('',())
@@ -393,8 +413,9 @@ class BinaryNode(ExpressionNode):
 
     def logicNegateClone(self) -> 'BinaryNode':
         """Complément
-        :return:noeud dont les l'expression est complémentaire, ou le noeud lui même si pas de changement
-        :rtype:BinaryNode
+
+        :return: noeud dont les l'expression est complémentaire, ou le noeud lui même si pas de changement
+        :rtype: BinaryNode
         """
         comparaisonNegation = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
         if self.__operator in comparaisonNegation:
@@ -415,10 +436,11 @@ class BinaryNode(ExpressionNode):
 
     def adjustConditionClone(self,csl:List[str]) -> Union['BinaryNode',UnaryNode]:
         """Ajustement des opérateurs de tests en fonction des symboles de comparaison disponibles
-        :param csl:symboles de comparaison disponibles
-        :type csl:list(str)
-        :return:clone dont l'expression est adaptée
-        :rtype:BinaryNode, UnaryNode
+
+        :param csl: symboles de comparaison disponibles
+        :type csl: list[str]
+        :return: clone dont l'expression est adaptée
+        :rtype: BinaryNode, UnaryNode
         """
         if self.__operator in self.__logicalOperators:
             op1, op2 = self.__operands
@@ -443,8 +465,9 @@ class BinaryNode(ExpressionNode):
 
     def getType(self) -> str:
         """Type du noeud
-        :return:'int' si opération arithmétique, 'bool' si expression logique, '' si erreur
-        :rtype:str
+
+        :return: 'int' si opération arithmétique, 'bool' si expression logique, '' si erreur
+        :rtype: str
 
         .. note::
 
@@ -475,8 +498,9 @@ class BinaryNode(ExpressionNode):
 
     def negToSubClone(self) -> 'BinaryNode':
         """Pour le cas ou le - unaire ne serait pas pris en charge, produit un clone avec les - unaire enlevés
-        :return:noeud clone avec - unaire enlevés
-        :rtype:BinaryNode
+
+        :return: noeud clone avec - unaire enlevés
+        :rtype: BinaryNode
 
         .. note::
         Cette fonction se propage récursivement à ses enfants.
@@ -488,8 +512,9 @@ class BinaryNode(ExpressionNode):
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:noeud sous sa forme str, entièrement parenthèsé
-        :rtype:str
+
+        :return: noeud sous sa forme str, entièrement parenthèsé
+        :rtype: str
         """
         strOperand1 = str(self.__operands[0])
         strOperand2 = str(self.__operands[1])
@@ -497,8 +522,9 @@ class BinaryNode(ExpressionNode):
 
     def getRegisterCost(self, engine:ProcessorEngine) -> int:
         """Calcul du nombre de registre nécessaires pour évaluer ce noeud
-        :return:nombre de registres
-        :rtype:int
+
+        :return: nombre de registres
+        :rtype: int
         """
         op1, op2 = self.__operands
         op2TryValue = op2.getValue()
@@ -513,22 +539,25 @@ class BinaryNode(ExpressionNode):
 
     def isSymetric(self) -> bool:
         """L'opérateur fait partie des opérateurs symétriques
-        :return:vrai si l'opérateur est symétrique
-        :rtype:bool
+
+        :return: vrai si l'opérateur est symétrique
+        :rtype: bool
         """
         return self.__operator in self.__symetricOperators
 
     def needUAL(self) -> bool:
         """L'évaluation nécessitera-t-elle l'ual ?
-        :return:True
-        :rtype:bool
+
+        :return: vrai si l'ual est nécessaire
+        :rtype: bool
         """
-        return True
+        return self.__operator in ('+', '-', '*', '/', '%', '&', '|', '^')
 
     def getComparaisonSymbol(self) -> Optional[str]:
         """Accesseur
-        :return:symbole de comparaison du noeud le cas échéant (None sinon)
-        :rtype:str ou None
+
+        :return: symbole de comparaison du noeud le cas échéant (None sinon)
+        :rtype: str ou None
         """
         if self.__operator in self.__comparaisonOperators:
             return self.__operator
@@ -536,9 +565,10 @@ class BinaryNode(ExpressionNode):
 
     def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
         """Procédure d'exécution de la compilation
-        :param CEMObject:objet prenant en charge la compilation d'une expression
-        :type CEMObject:CompileExpressionManager
-        :return:None
+
+        :param CEMObject: objet prenant en charge la compilation d'une expression
+        :type CEMObject: CompileExpressionManager
+        :return: None
         """
         isComparaison = self.getComparaisonSymbol() != None
         if isComparaison:
@@ -568,8 +598,9 @@ class BinaryNode(ExpressionNode):
 
     def clone(self) -> 'BinaryNode':
         """Produit un clone de l'objet avec son arborescence
-        :return:clone
-        :rtype:BinaryNode
+
+        :return: clone
+        :rtype: BinaryNode
         """
         op1, op2 = self.__operands
         cloneOp1 = op1.clone()
@@ -580,45 +611,51 @@ class BinaryNode(ExpressionNode):
 class ValueNode(ExpressionNode):
     def __init__(self,value):
         """Constructeur
-        :param value:valeur du noeud
-        :type value:Litteral ou Variable
+
+        :param value: valeur du noeud
+        :type value: Litteral ou Variable
         """
         self.__value = value
 
     def __str__(self) -> str:
         """Transtypage -> str
-        :return:noeud sous forme str
-        :rtype:str
+
+        :return: noeud sous forme str
+        :rtype: str
         """
         return str(self.__value)
 
     def isLitteral(self) -> bool:
         """Le noeud contient-il un littéral ?
-        :return:vrai si la valeur contenue est un littéral
-        :rtype:bool
+
+        :return: vrai si la valeur contenue est un littéral
+        :rtype: bool
         """
         return isinstance(self.__value, Litteral)
 
     def getValue(self) -> Union[Variable,Litteral]:
         """Accesseur
-        :return:valeur
-        :rtype:Litteral ou Variable
+
+        :return: valeur
+        :rtype: Litteral ou Variable
         """
         return self.__value
 
     def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
         """Procédure d'exécution de la compilation
-        :param CEMObject:objet prenant en charge la compilation d'une expression
-        :type CEMObject:CompileExpressionManager
-        :return:None
+
+        :param CEMObject: objet prenant en charge la compilation d'une expression
+        :type CEMObject: CompileExpressionManager
+        :return: None
         """
         super(ValueNode,self).calcCompile(CEMObject)
         CEMObject.pushValue(self.__value)
 
     def clone(self) -> 'ValueNode':
         """Produit un clone de l'objet
-        :return:clone
-        :rtype:BinaryNode
+
+        :return: clone
+        :rtype: BinaryNode
 
         .. note::la valeur étant un objet ne pouvant être modifié, elle n'est pas clonée.
         """
