@@ -5,9 +5,4 @@ __pycache__
 .mypy_cache
 Makefile
 make.bat
-_build
-_templates
-_static
-rst
-conf.py
-index.rst
+sphinx_folder
