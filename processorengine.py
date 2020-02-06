@@ -8,8 +8,9 @@ from typing_extensions import TypedDict
 
 Commands = TypedDict('Commands', {
     'opcode': str,
-    'asm': str
-})
+    'asm': str,
+    'litteral_bits': int
+}, total = False)
 
 EngineAttributes = TypedDict('EngineAttributes', {
     'register_bits': int,
@@ -172,7 +173,7 @@ class ProcessorEngine:
             opcode = attr["opcode"]
             litteral_bits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
             if  litteral_bits <= 0:
-                raise AttributeError(f"Pas assez de place pour un littéral dans {commandDesc}.")
+                raise AttributeError(f"Pas assez de place pour un littéral dans {name}.")
             else:
                 self.__litteralsCommands[name]["litteral_bits"] = litteral_bits
         for item in self.__commands.values():
@@ -242,8 +243,8 @@ class ProcessorEngine:
         """
         return operator in self.__commands
 
-    def getAsmCommand(self, commandDesc:str) -> Optional[str]:
-        """Renvoie le nom de commande assembleur de la commande demandée. None si introuvable.
+    def getAsmCommand(self, commandDesc:str) -> str:
+        """Renvoie le nom de commande assembleur de la commande demandée. ``''`` si introuvable.
 
         :param commandDesc: nom de la commande
         :type commandDesc: str
@@ -257,17 +258,17 @@ class ProcessorEngine:
             >>> ProcessorEngine().getAsmCommand("&")
             'AND'
 
-            >>> ProcessorEngine().getAsmCommand("?") is None
-            True
+            >>> ProcessorEngine().getAsmCommand("?")
+            ''
         """
 
         if not commandDesc in self.__commands:
-            return None
+            return ""
         itemAttribute = self.__commands[commandDesc]
         return itemAttribute["asm"]
 
-    def getOpcode(self, commandDesc:str) -> Optional[str]:
-        """Renvoie l'opcode de la commande demandée. None si introuvable.
+    def getOpcode(self, commandDesc:str) -> str:
+        """Renvoie l'opcode de la commande demandée. ``''`` si introuvable.
 
         :param commandDesc: nom de la commande
         :type commandDesc: str
@@ -278,17 +279,17 @@ class ProcessorEngine:
             >>> ProcessorEngine().getOpcode("*")
             '0110010'
 
-            >>> ProcessorEngine().getOpcode("?") is None
-            True
+            >>> ProcessorEngine().getOpcode("?")
+            ''
         """
 
         if not commandDesc in self.__commands:
-            return None
+            return ""
         itemAttribute = self.__commands[commandDesc]
         return itemAttribute["opcode"]
 
-    def getLitteralAsmCommand(self, commandDesc:str) -> Optional[str]:
-        """Renvoie le nom de commande assembleur de la commande demandée, dans sa version acceptant un littéral. None si introuvable.
+    def getLitteralAsmCommand(self, commandDesc:str) -> str:
+        """Renvoie le nom de commande assembleur de la commande demandée, dans sa version acceptant un littéral. ``''`` si introuvable.
 
         :param commandDesc: nom de la commande
         :type commandDesc: str
@@ -299,16 +300,16 @@ class ProcessorEngine:
             >>> ProcessorEngine().getLitteralAsmCommand("*")
             'MULT'
 
-            >>> ProcessorEngine().getLitteralAsmCommand("?") is None
-            True
+            >>> ProcessorEngine().getLitteralAsmCommand("?")
+            ''
         """
         if not commandDesc in self.__litteralsCommands:
-            return None
+            return ""
         itemAttribute = self.__litteralsCommands[commandDesc]
         return itemAttribute["asm"]
 
-    def getLitteralOpcode(self, commandDesc:str) -> Optional[str]:
-        """Renvoie l'opcode de la commande demandée dans sa version acceptant un littéral. None si introuvable.
+    def getLitteralOpcode(self, commandDesc:str) -> str:
+        """Renvoie l'opcode de la commande demandée dans sa version acceptant un littéral. ``''`` si introuvable.
 
         :param commandDesc: nom de la commande
         :type commandDesc: str
@@ -319,12 +320,12 @@ class ProcessorEngine:
             >>> ProcessorEngine().getLitteralOpcode("*")
             '1010'
 
-            >>> ProcessorEngine().getLitteralOpcode("?") is None
-            True
+            >>> ProcessorEngine().getLitteralOpcode("?")
+            ''
         """
 
         if not commandDesc in self.__litteralsCommands:
-            return None
+            return ""
         itemAttribute = self.__litteralsCommands[commandDesc]
         return itemAttribute["opcode"]
 

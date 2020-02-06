@@ -228,15 +228,13 @@ class UnaryNode(ExpressionNode):
         :return: clone avec les modifications faites
         :rtype: ExpressionNode
 
-        .. note:: Si le noeud est un not, les enfants contiendront des symboles de comparaison.
+        * Si le noeud est un not, les enfants contiendront des symboles de comparaison.
           On propage alors au noeud enfant.
-
-        La modification du noeud enfant peut emboîter un not supplémentaire (!= transformé en not ==)
-        Cela est sans importance : les not sont exécutés par un jeu de branchement de sauts.
-        L'enchainement de deux not conduit seulement à inverser deux fois de suites les cibles d'un branchement
-        ce qui ne crée aucune complication.
-
-        Si le noeud n'est pas un not, l'enfant est forcément arithmétique et donc il est inutile d'aller plus loin.
+        * La modification du noeud enfant peut emboîter un not supplémentaire (!= transformé en not ==)
+          Cela est sans importance : les not sont exécutés par un jeu de branchement de sauts.
+          L'enchainement de deux not conduit seulement à inverser deux fois de suites les cibles d'un branchement
+          ce qui ne crée aucune complication.
+        * Si le noeud n'est pas un not, l'enfant est forcément arithmétique et donc il est inutile d'aller plus loin.
         """
 
         if self.__operator != "not":
@@ -250,11 +248,10 @@ class UnaryNode(ExpressionNode):
         :return: 'bool' ou 'int' ou '' en cas d'erreur
         :rtype: str
 
-        .. note::
-            * Les variables et littéraux sont arithmétiques ainsi que tous les calculs exécutés sur eux.
-            * Les comparaisons telles que ==, <... produisent des quantités booléennes.
-            * Les opérateur not, and, or ne peuvent s'appliquer qu'à des opérandes de type booléens.
-            * Les opérateurs &, |... sont bitwises et à ce titre sont considérés comme arithmétiques.
+        * Les variables et littéraux sont arithmétiques ainsi que tous les calculs exécutés sur eux.
+        * Les comparaisons telles que ``==``, ``<``... produisent des quantités booléennes.
+        * Les opérateur not, and, or ne peuvent s'appliquer qu'à des opérandes de type booléens.
+        * Les opérateurs ``&`, ``|``... sont bitwises et à ce titre sont considérés comme arithmétiques.
 
         """
 
@@ -327,9 +324,9 @@ class UnaryNode(ExpressionNode):
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
         super(UnaryNode,self).calcCompile(CEMObject)
         engine = CEMObject.getEngine()
-        if self.__operand.isLitteral() and engine.litteralOperatorAvailable(self.__operator, self.__operand.getValue()):
-            litteral = self.__operand.getValue()
-            CEMObject.pushUnaryOperatorWithLitteral(self.__operator, litteral)
+        opTryValue = self.__operand.getValue()
+        if isinstance(opTryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, opTryValue):
+            CEMObject.pushUnaryOperatorWithLitteral(self.__operator, opTryValue)
         else:
             self.__operand.calcCompile(CEMObject)
             CEMObject.pushUnaryOperator(self.__operator)
@@ -550,9 +547,12 @@ class BinaryNode(ExpressionNode):
         super(BinaryNode,self).calcCompile(CEMObject)
         op1, op2 = self.__operands
         engine = CEMObject.getEngine()
-        if (not isComparaison) and self.isSymetric() and not op2.isLitteral() and op1.isLitteral() and engine.litteralOperatorAvailable(operator, op1.getValue()):
+        op1TryValue = op1.getValue()
+        op2TryValue = op2.getValue()
+        if (not isComparaison) and self.isSymetric() and not isinstance(op2TryValue,Litteral) and isinstance(op1TryValue,Litteral) and engine.litteralOperatorAvailable(operator, op1TryValue):
             op1, op2 = op2, op1
-        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2.getValue()):
+            op1TryValue, op2TryValue = op2TryValue, op1TryValue
+        if (not isComparaison) and isinstance(op2TryValue,Litteral) and engine.litteralOperatorAvailable(operator, op2TryValue):
             firstToCalc = op1
             secondToCalc = op2
         elif op1.getRegisterCost(engine) >= op2.getRegisterCost(engine):
@@ -562,8 +562,8 @@ class BinaryNode(ExpressionNode):
             firstToCalc = op2
             secondToCalc = op1
         firstToCalc.calcCompile(CEMObject)
-        if (not isComparaison) and op2.isLitteral() and engine.litteralOperatorAvailable(operator, op2.getValue()):
-            CEMObject.pushBinaryOperatorWithLitteral(operator, op2.getValue())
+        if (not isComparaison) and isinstance(op2TryValue,Litteral) and engine.litteralOperatorAvailable(operator, op2TryValue):
+            CEMObject.pushBinaryOperatorWithLitteral(operator, op2TryValue)
         else:
             secondToCalc.calcCompile(CEMObject)
             CEMObject.pushBinaryOperator(operator, firstToCalc == op1)

@@ -1,11 +1,16 @@
-from lineparser import *
+"""
+.. module:: codeparser
+   :synopsis: gestion du parse de l'ensemble du programme d'origine
+"""
+
+from typing import List, Optional
+from lineparser import LineParser, Caracteristiques
 from structuresnodes import *
 
 class CodeParser: # Définition classe
     """Classe CodeParser
     Parse le contenu d'un fichier passé en paramètre au constructeur
     Une méthode public parseCode qui construit une liste d'objets LineParser avec organisation des enfants selon indentation
-    La méthode getFinalParse retourne cette liste d'objets LineParser
     TODO - une méthode de contrôle de cohérence du code
     ATTENTION - pas de gestion particulière du if, elif, else -> pas de tuple pour le noeud if et else --> voir structureelements
     """
@@ -27,7 +32,7 @@ class CodeParser: # Définition classe
         else:
             raise ParseError("Il faut doner 'filename' ou 'code'")
 
-    def __parseFile(self, filename):
+    def __parseFile(self, filename:str) -> None:
         # Lecture de toutes les lignes du fichier
         file = open(filename, "r")
         lines = file.readlines()
@@ -35,7 +40,7 @@ class CodeParser: # Définition classe
         self.parseCode(lines)
         return
 
-    def parseCode(self, lignesCode):
+    def parseCode(self, lignesCode:List[str]) -> None:
         # On boucle sur les lignes de code
         for num, line in enumerate(lignesCode):
             objLine = LineParser(line, num+1)
@@ -51,7 +56,7 @@ class CodeParser: # Définition classe
         self.__structureList()
         return
 
-    def __manageElif(self):
+    def __manageElif(self) -> bool:
         # Gestion du cas Elif
         for line in self.__listingCode:
             if line['type'] == 'elif':
@@ -89,7 +94,7 @@ class CodeParser: # Définition classe
                         if len(self.__listingCode) == nextIndice + 1: break
         return True
 
-    def __blocControl(self):
+    def __blocControl(self) -> None:
         # Contrôle des blocs et de l'indentation
         for indice in range(len(self.__listingCode)):
             if self.__listingCode[indice]['type'] in ("if", "elif", "else", "while"):
@@ -111,7 +116,7 @@ class CodeParser: # Définition classe
                 if nextIndice == -1 or self.__listingCode[nextIndice]['type'] != 'if':
                     raise ParseError(f"Détection d'un <else> en ligne n°{self.__listingCode[startIndice]['lineNumber']} sans <if> associé")
 
-    def __buildFinalNodeList(self):
+    def __buildFinalNodeList(self) -> bool:
         #Construction de la liste d'objets StructureNode
         # print("")
         # new liste ! et revoir __structureList() ??
@@ -130,11 +135,11 @@ class CodeParser: # Définition classe
             # print(f"While Principal >> maximun {maximun} > indexMaximun {indexMaximun}")
             while listReverseProf[indexMaximun] == maximun :
                 # Parcourir toutes les lignes suivantes ayant la même indentation
-                blockInstruction = []
+                blockInstruction:List[StructureNode] = []
                 ligneCourante = indexMaximun
                 # print(f"While Secondaire >> ligneCourante {ligneCourante} > listReverseProf[ligneCourante] {listReverseProf[ligneCourante]}")
                 while (len(listReverseProf) > 0 and listReverseProf[ligneCourante] == maximun):
-                    nodeInstruction = ""
+                    nodeInstruction:Optional[StructureNode] = None
                     lineInstruction = localeListingCode.pop(ligneCourante)
                     listReverseProf.pop(ligneCourante)
                     # print(f"While Interne >> lineInstruction")
@@ -199,7 +204,7 @@ class CodeParser: # Définition classe
         return True
 
 
-    def __structureList(self):
+    def __structureList(self) -> bool:
         #Parcours du listing pour ranger les enfants
         listProfondeur = [self.__listingCode[index]["indentation"] for index in range(len(self.__listingCode))]
         maximun = max(listProfondeur)
@@ -215,21 +220,18 @@ class CodeParser: # Définition classe
         return True
 
 
-    def __recursiveStringifyLine(self, line, tab):
+    def __recursiveStringifyLine(self, line:Caracteristiques, tab:int) -> str:
         strLine = " "*tab + ", ".join([f"{key}:{value}" for key, value in line.items() if key != "children"])
         if "children" in line:
             childrens = [self.__recursiveStringifyLine(child, tab+4) for child in line["children"]]
             strLine += "\n" + "\n".join(childrens)
         return strLine
 
-    def __str__(self):
+    def __str__(self) -> str:
         strLines = [self.__recursiveStringifyLine(line,0) for line in self.__listingCode]
         return "\n".join(strLines)
 
-    def getFinalParse(self):
-        return self.__listingCode
-
-    def getFinalStructuredList(self):
+    def getFinalStructuredList(self) -> List[StructureNode]:
         return self.__structuredListeNode
 
 
