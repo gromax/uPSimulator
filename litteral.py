@@ -20,9 +20,8 @@ class Litteral:
         :rtype: Litteral
 
         :Example:
-
-        >>> Litteral(8).negClone().getValue()
-        -8
+            >>> Litteral(8).negClone().getValue()
+            -8
         """
 
         return Litteral(-self.__value)
@@ -38,11 +37,10 @@ class Litteral:
         :rtype: bool
 
         :Example:
-        >>> Litteral(8).isBetween(4,12)
-        True
-
-        >>> Litteral(25).isBetween(4,12)
-        False
+            >>> Litteral(8).isBetween(4,12)
+            True
+            >>> Litteral(25).isBetween(4,12)
+            False
 
         """
 
@@ -55,13 +53,10 @@ class Litteral:
         :rtype: int
 
         :Example:
-
-        >>> Litteral(8).getValue()
-        8
-
-        >>> Litteral(-15).getValue()
-        -15
-
+            >>> Litteral(8).getValue()
+            8
+            >>> Litteral(-15).getValue()
+            -15
         """
 
         return self.__value
@@ -73,9 +68,8 @@ class Litteral:
         :rtype: str
 
         :Example:
-
-        >>> str(Litteral(8))
-        '#8'
+            >>> str(Litteral(8))
+            '#8'
 
         """
         return "#"+str(self.__value)

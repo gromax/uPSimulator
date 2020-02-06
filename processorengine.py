@@ -190,8 +190,8 @@ class ProcessorEngine:
         :rtype: int
 
         :Example:
-        >>> ProcessorEngine().registersNumber()
-        8
+            >>> ProcessorEngine().registersNumber()
+            8
         """
         return 2**self.__register_address_bits
 
@@ -202,10 +202,11 @@ class ProcessorEngine:
         :rtype: bool
 
         :Example:
-        >>> ProcessorEngine().ualOutputIsFree()
-        True
-        >>> ProcessorEngine("12bits").ualOutputIsFree()
-        False
+            >>> ProcessorEngine().ualOutputIsFree()
+            True
+
+            >>> ProcessorEngine("12bits").ualOutputIsFree()
+            False
         """
         return self.__freeUalOutput
 
@@ -216,10 +217,11 @@ class ProcessorEngine:
         :rtype: bool
 
         :Example:
-        >>> ProcessorEngine().hasNEG()
-        True
-        >>> ProcessorEngine("12bits").hasNEG()
-        False
+            >>> ProcessorEngine().hasNEG()
+            True
+
+            >>> ProcessorEngine("12bits").hasNEG()
+            False
         """
         return "neg" in self.__commands
 
@@ -232,10 +234,11 @@ class ProcessorEngine:
         :rtype: bool
 
         :Example:
-        >>> ProcessorEngine().hasOperator("*")
-        True
-        >>> ProcessorEngine().hasOperator("?")
-        False
+            >>> ProcessorEngine().hasOperator("*")
+            True
+
+            >>> ProcessorEngine().hasOperator("?")
+            False
         """
         return operator in self.__commands
 
@@ -248,12 +251,14 @@ class ProcessorEngine:
         :rtype: str
 
         :Example:
-        >>> ProcessorEngine().getAsmCommand("*")
-        'MULT'
-        >>> ProcessorEngine().getAsmCommand("&")
-        'AND'
-        >>> ProcessorEngine().getAsmCommand("?") is None
-        True
+            >>> ProcessorEngine().getAsmCommand("*")
+            'MULT'
+
+            >>> ProcessorEngine().getAsmCommand("&")
+            'AND'
+
+            >>> ProcessorEngine().getAsmCommand("?") is None
+            True
         """
 
         if not commandDesc in self.__commands:
@@ -270,10 +275,11 @@ class ProcessorEngine:
         :rtype: str
 
         :Example:
-        >>> ProcessorEngine().getOpcode("*")
-        '0110010'
-        >>> ProcessorEngine().getOpcode("?") is None
-        True
+            >>> ProcessorEngine().getOpcode("*")
+            '0110010'
+
+            >>> ProcessorEngine().getOpcode("?") is None
+            True
         """
 
         if not commandDesc in self.__commands:
@@ -290,10 +296,11 @@ class ProcessorEngine:
         :rtype: str
 
         :Example:
-        >>> ProcessorEngine().getLitteralAsmCommand("*")
-        'MULT'
-        >>> ProcessorEngine().getLitteralAsmCommand("?") is None
-        True
+            >>> ProcessorEngine().getLitteralAsmCommand("*")
+            'MULT'
+
+            >>> ProcessorEngine().getLitteralAsmCommand("?") is None
+            True
         """
         if not commandDesc in self.__litteralsCommands:
             return None
@@ -309,10 +316,11 @@ class ProcessorEngine:
         :rtype: str
 
         :Example:
-        >>> ProcessorEngine().getLitteralOpcode("*")
-        '1010'
-        >>> ProcessorEngine().getLitteralOpcode("?") is None
-        True
+            >>> ProcessorEngine().getLitteralOpcode("*")
+            '1010'
+
+            >>> ProcessorEngine().getLitteralOpcode("?") is None
+            True
         """
 
         if not commandDesc in self.__litteralsCommands:
@@ -331,10 +339,11 @@ class ProcessorEngine:
         :rtype: bool
 
         :Example:
-        >>> ProcessorEngine().litteralOperatorAvailable("*", Litteral(1))
-        True
-        >>> ProcessorEngine().litteralOperatorAvailable("*", Litteral(10000))
-        False
+            >>> ProcessorEngine().litteralOperatorAvailable("*", Litteral(1))
+            True
+
+            >>> ProcessorEngine().litteralOperatorAvailable("*", Litteral(10000))
+            False
         """
 
         if not commandDesc in self.__litteralsCommands:
@@ -351,8 +360,8 @@ class ProcessorEngine:
         :rtype: int
 
         :Example:
-        >>> ProcessorEngine().getLitteralMaxSizeIn("*")
-        63
+            >>> ProcessorEngine().getLitteralMaxSizeIn("*")
+            63
         """
 
         assert commandDesc in self.__litteralsCommands
@@ -370,8 +379,8 @@ class ProcessorEngine:
         :rtype: list[str]
 
         :Example:
-        >>> ProcessorEngine().getComparaisonSymbolsAvailables()
-        ['<', '>', '==', '!=']
+            >>> ProcessorEngine().getComparaisonSymbolsAvailables()
+            ['<', '>', '==', '!=']
         """
 
         symbols = ["<=", "<", ">=", ">", "==", "!="]
@@ -384,8 +393,8 @@ class ProcessorEngine:
         :rtype: int
 
         :Example:
-        >>> ProcessorEngine().getRegBits()
-        3
+            >>> ProcessorEngine().getRegBits()
+            3
         """
         return self.__register_address_bits
 
@@ -396,8 +405,8 @@ class ProcessorEngine:
         :rtype: int
 
         :Example:
-        >>> ProcessorEngine().getDataBits()
-        16
+            >>> ProcessorEngine().getDataBits()
+            16
         """
         return self.__data_bits
 

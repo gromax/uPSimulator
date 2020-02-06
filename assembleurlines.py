@@ -170,11 +170,11 @@ class AsmLine:
         :rtype: int
 
         :Example:
-        >>> AsmLine(None,-1,"", "", "", (), None).getSizeInMemory()
-        0
+          >>> AsmLine(None,-1,"", "", "", (), None).getSizeInMemory()
+          0
 
-        >>> AsmLine(None,-1,"", "ADD", "111", (0,2,3), None).getSizeInMemory()
-        1
+          >>> AsmLine(None,-1,"", "ADD", "111", (0,2,3), None).getSizeInMemory()
+          1
         """
         if self.isEmpty():
             return 0

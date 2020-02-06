@@ -21,9 +21,9 @@ class StructureNode:
         """Fonction récursive produisant la version linéaire
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: list[str]
+        :type csl: List[str]
         :return: liste des noeuds de la version linéaire
-        :rtype: list[StructureNode]
+        :rtype: List[StructureNode]
         """
 
         return [ self ]
@@ -42,11 +42,11 @@ class IfNode(StructureNode):
         """Propage le calcul de la version linéaire aux enfants
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: list[str]
+        :type csl: List[str]
         :param childrenList: liste des noeuds enfants à considérer
-        :type childrenList: list[StructureNode]
+        :type childrenList: List[StructureNode]
         :return: liste enfant en version linéaire
-        :rtype: list[StructureNode]
+        :rtype: List[StructureNode]
         """
 
         outList = []
@@ -60,7 +60,7 @@ class IfNode(StructureNode):
         """Propage le transtypage -> str aux enfants
 
         :param childrenList: liste des noeuds enfants à considérer
-        :type childrenList: list[StructureNode]
+        :type childrenList: List[StructureNode]
         :return: liste enfant transtypée en chaîne de caractères
         :rtype: str
         """
@@ -76,7 +76,7 @@ class IfNode(StructureNode):
         :param condition: expression logique du test de ce if.
         :type condition: ExpressionNode
         :param children: liste des objets enfants
-        :type children: list[StructureNode]
+        :type children: List[StructureNode]
         """
 
         assert isinstance(condition, ExpressionNode)
@@ -102,13 +102,13 @@ class IfNode(StructureNode):
         étant assurées par l'organisation des branchements
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: list[str]
+        :type csl: List[str]
         :param cibleOUI: cible dans le cas d'un test Vrai
         :type cibleOUI: LabelNode
         :param cibleNON: cible dans le cas d'un test Faux
         :type cibleNON: LabelNode
         :return: version linéaire de la condition, faite de branchements
-        :rtype: list[StructureNode]
+        :rtype: List[StructureNode]
         """
 
         # La condition va entraîner un branchement conditionnel. C'est le cas NON qui provoque le branchement.
@@ -128,7 +128,7 @@ class IfNode(StructureNode):
         :param cibleSautCond: cible du saut conditionnel, si la condition est vraie
         :type cibleSautCond: LabelNode
         :return: version linéaire de la condition, faite de branchements
-        :rtype: list[StructureNode]
+        :rtype: List[StructureNode]
         """
         if not conditionSaut.isComplexeCondition():
             # c'est un test élémentaire
@@ -155,13 +155,14 @@ class IfNode(StructureNode):
     def getLinearStructureList(self, csl:List[str]) -> List['StructureNode']:
         """Production de la version linéaire pour l'ensemble du noeud If.
         Cela comprend :
-          * les labels identifiant les différents blocs pour les sauts,
-          * la condition décomposée en conditions simples assurées par des branchements conditionnels,
-          * le bloc enfant
+        * les labels identifiant les différents blocs pour les sauts,
+        * la condition décomposée en conditions simples assurées par des branchements conditionnels,
+        * le bloc enfant
+
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: list[str]
+        :type csl: List[str]
         :return: version linéaire du noeud if
-        :rtype: list[StructureNode]
+        :rtype: List[StructureNode]
         """
 
         labelIf = LabelNode()
@@ -185,9 +186,9 @@ class IfElseNode(IfNode):
         :param condition: expression logique du test de ce if.
         :type condition: ExpressionNode
         :param ifChildren: liste des objets enfants pour le bloc If
-        :type ifChildren: list[StructureNode]
+        :type ifChildren: List[StructureNode]
         :param elseChildren: liste des objets enfants pour le bloc Else
-        :type elseChildren: list[StructureNode]
+        :type elseChildren: List[StructureNode]
         """
 
         super().__init__(ifLineNumber, condition, ifChildren)
@@ -210,14 +211,14 @@ class IfElseNode(IfNode):
     def getLinearStructureList(self, csl:List[str]) -> List['StructureNode']:
         """Production de la version linéaire pour l'ensemble du noeud If Else.
         Cela comprend :
-          * les labels identifiant les différents blocs pour les sauts,
-          * la condition décomposée en conditions simples assurées par des branchements conditionnels,
-          * les blocs enfants, If et Else
+        * les labels identifiant les différents blocs pour les sauts,
+        * la condition décomposée en conditions simples assurées par des branchements conditionnels,
+        * les blocs enfants, If et Else
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: list[str]
+        :type csl: List[str]
         :return: version linéaire du noeud
-        :rtype: list[StructureNode]
+        :rtype: List[StructureNode]
         """
 
         labelIf = LabelNode()
@@ -250,15 +251,15 @@ class WhileNode(IfNode):
     def getLinearStructureList(self,csl):
         """Production de la version linéaire pour l'ensemble du noeud While.
         Cela comprend :
-          * les labels identifiant les différents blocs pour les sauts,
-          * la condition décomposée en conditions simples assurées par des branchements conditionnels,
-          * Le saut final assurant la boucle
-          * le bloc enfant
+        * les labels identifiant les différents blocs pour les sauts,
+        * la condition décomposée en conditions simples assurées par des branchements conditionnels,
+        * Le saut final assurant la boucle
+        * le bloc enfant
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: list[str]
+        :type csl: List[str]
         :return: version linéaire du noeud
-        :rtype: list[StructureNode]
+        :rtype: List[StructureNode]
         """
 
         labelWhile = LabelNode()
@@ -414,7 +415,7 @@ class JumpNode(StructureNode):
         :param cible: cible du saut,
         :type cible: LabelNode
         :param condition: expression booléenne exprimant à quelle condition le saut est effectué. None si le saut est inconditionnel.
-        :type expression: ExpressionNode / None
+        :type expression: Optional[ExpressionNode]
         """
 
         assert isinstance(cible, LabelNode)
@@ -447,7 +448,7 @@ class JumpNode(StructureNode):
         """Accesseur
 
         :return: condition du saut
-        :rtype: ExpressionNode / None
+        :rtype: Optional[ExpressionNode]
         """
 
         return self._condition

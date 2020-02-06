@@ -202,9 +202,7 @@ class TokenVariable(Token):
         :return: vrai si l'expression valide l'expression régulière
         :rtype: bool
 
-        .. note:
-
-        Les mots and, not, or vont valider l'expression régulière mais doivent être rejetés
+        .. note: Les mots and, not, or vont valider l'expression régulière mais doivent être rejetés
         """
 
         expression_stripped = expression.strip()
@@ -223,12 +221,10 @@ class TokenVariable(Token):
     def toNode(self):
         """Conversion en objet ExpressionNode
 
+        .. note:: Crée un objet Variable correspondant
+
         :return: noeud valeur correspondant
         :rtype: ValueNode
-
-        .. note::
-
-        Crée un objet Variable correspondant
         """
         nomVariable = self.expression
         variableObject = Variable(nomVariable)
@@ -265,12 +261,10 @@ class TokenNumber(Token):
     def toNode(self):
         """Conversion en objet ExpressionNode
 
+        .. note:: Crée un objet Litteral correspondant
+
         :return: noeud valeur correspondant
         :rtype: ValueNode
-
-        .. note::
-
-        Crée un objet Litteral correspondant
         """
         litteralObject = Litteral(self.__value)
         return ValueNode(litteralObject)
@@ -306,17 +300,14 @@ class ExpressionParser:
         :rtype: bool
 
         :Example:
-        >>> ExpressionParser.testBrackets('4*x - ((3 + 2) + 4)')
-        True
-
-        >>> ExpressionParser.testBrackets('( ( ( ) ) ')
-        False
-
-        >>> ExpressionParser.testBrackets('( ( ) ) ) ')
-        False
-
-        >>> ExpressionParser.testBrackets('( ) ) (')
-        False
+          >>> ExpressionParser.testBrackets('4*x - ((3 + 2) + 4)')
+          True
+          >>> ExpressionParser.testBrackets('( ( ( ) ) ')
+          False
+          >>> ExpressionParser.testBrackets('( ( ) ) ) ')
+          False
+          >>> ExpressionParser.testBrackets('( ) ) (')
+          False
         """
 
         nbParentheses = 0
@@ -344,17 +335,14 @@ class ExpressionParser:
         :rtype: bool
 
         :Exemple:
-        >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenBinaryOperator('+'))
-        False
-
-        >>> ExpressionParser.isLegal(TokenParenthesis(')'), TokenBinaryOperator('+'))
-        True
-
-        >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenUnaryOperator('-'))
-        True
-
-        >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenBinaryOperator('-'))
-        False
+          >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenBinaryOperator('+'))
+          False
+          >>> ExpressionParser.isLegal(TokenParenthesis(')'), TokenBinaryOperator('+'))
+          True
+          >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenUnaryOperator('-'))
+          True
+          >>> ExpressionParser.isLegal(TokenParenthesis('('), TokenBinaryOperator('-'))
+          False
         """
 
         if precedent == None:
@@ -555,11 +543,10 @@ class ExpressionParser:
         :rtype: bool
 
         :Example:
-        >>> ExpressionParser.strIsExpression("45x-3zdf = dz")
-        False
-
-        >>> ExpressionParser.strIsExpression("45*x-3+zdf - dz")
-        True
+          >>> ExpressionParser.strIsExpression("45x-3zdf = dz")
+          False
+          >>> ExpressionParser.strIsExpression("45*x-3+zdf - dz")
+          True
         """
 
         regex = cls.regex()
@@ -574,9 +561,7 @@ class ExpressionParser:
         :return: La liste des tokens tels que donnés dans l'expression
         :rtype: list(Token)
 
-        .. note::
-
-        Les symboles + et - est ambigu car ils peuvent être compris comme des symboles unaires ou binaires. On réalise un traitement pour lever l'ambiguité.
+        .. note:: Les symboles + et - est ambigu car ils peuvent être compris comme des symboles unaires ou binaires. On réalise un traitement pour lever l'ambiguité.
         """
 
         regex = cls.regex()
@@ -650,7 +635,7 @@ class ExpressionParser:
         :type originalExpression: str
         :return: racine de l'arbre
         :rtype: ExpressionNode
-        :raises: ExpressionError si l'expression ne match pas l'expression régulière ou si les parenthèses ne sont pas convenablement équilibrées, ou si l'expression contient un enchaînement non valable, comme */.
+        :raises: ExpressionError si l'expression ne match pas l'expression régulière ou si les parenthèses ne sont pas convenablement équilibrées, ou si l'expression contient un enchaînement non valable, comme +).
         """
 
         expression = originalExpression.strip()

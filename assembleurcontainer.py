@@ -55,7 +55,7 @@ class AssembleurContainer:
         Les littéraux sont codés en CA2.
 
         :return: code binaire
-        :rtype: list[str]
+        :rtype: List[str]
         """
         wordSize = self.__engine.getDataBits()
         return [ item.getValueBinary(wordSize) for item in self.__memoryData]
@@ -72,7 +72,6 @@ class AssembleurContainer:
         :type source: int
         :param destination: variable destination
         :type destination: Variable
-        :return: pas de retour
         """
         opcode = self.__engine.getOpcode("store")
         asmCommand = self.__engine.getAsmCommand("store")
@@ -94,7 +93,6 @@ class AssembleurContainer:
         :type destination: int
         :param source: variable ou littéral source
         :type source: Litteral / Variable
-        :return: pas de retour
         """
         opcode = self.__engine.getOpcode("load")
         asmCommand = self.__engine.getAsmCommand("load")
@@ -114,7 +112,6 @@ class AssembleurContainer:
         :type destination: int
         :param source: littéral source
         :type source: Litteral
-        :return: pas de retour
         """
         assert isinstance(source, Litteral)
         opcode = self.__engine.getLitteralOpcode("move")
@@ -137,7 +134,6 @@ class AssembleurContainer:
         :type destination: int
         :param source: registre source
         :type source: int
-        :return: pas de retour
         """
         opcode = self.__engine.getOpcode("move")
         asmCommand = self.__engine.getAsmCommand("move")
@@ -158,9 +154,8 @@ class AssembleurContainer:
         :type operator: string
         :param regOperands: opérandes de type registre
         :type regOperands: tuple[int]
-        :param littOperand: opérande de type littéral (optionnel)
-        :type littOperand: Litteral / None
-        :return: pas de retour
+        :param littOperand: opérande de type littéral
+        :type littOperand: Optional[Litteral]
         """
         for ope in regOperands:
             assert isinstance(ope,int)
@@ -194,7 +189,6 @@ class AssembleurContainer:
         :type operand1: int
         :param operand2: registre second opérande
         :type operand2: int
-        :return: pas de retour
 
         .. note:: Une telle commande doit précéder l'utilisation d'un saut conditionnel.
         """
@@ -214,7 +208,6 @@ class AssembleurContainer:
         :type lineNumber: int
         :param destination: variable cible
         :type destination: Variable
-        :return: pas de retour
         """
         assert isinstance(destination,Variable)
         opcode = self.__engine.getOpcode("input")
@@ -231,7 +224,6 @@ class AssembleurContainer:
         :type lineNumber: int
         :param source: registre dont on doit afficher le contenu
         :type source: int
-        :return: pas de retour
         """
         assert isinstance(source,int)
         opcode = self.__engine.getOpcode("print")
@@ -250,7 +242,6 @@ class AssembleurContainer:
         :type cible: str
         :param operator: comparaison parmi <, <=, >=, >, ==, !=. None pour Jump inconditionnel
         :type operator: str / None
-        :return: pas de retour
         """
         cible = str(cible)
         if operator == None:
@@ -264,8 +255,6 @@ class AssembleurContainer:
 
     def pushHalt(self) -> None:
         """Ajoute une commande HALT, fin de programme, à l'assembleur.
-
-        :return: pas de retour
         """
         opcode = self.__engine.getOpcode("halt")
         asmCommand = self.__engine.getAsmCommand("halt")
@@ -280,7 +269,6 @@ class AssembleurContainer:
         :type lineNumber: int
         :param label: étiquette
         :type label: str
-        :return: pas de retour
         """
         self.__lines.append(AsmLine(self, lineNumber, label, "", "", (), None))
 
@@ -300,7 +288,7 @@ class AssembleurContainer:
         """Produit une version int du code binaire.
 
         :return: code assembleur sous forme d'une liste d'entier
-        :rtype: list[int]
+        :rtype: List[int]
         """
         binaryLines = self.getBinary().split("\n")
         return [int(item,2) for item in binaryLines]
@@ -319,7 +307,7 @@ class AssembleurContainer:
         :param item: variable recherchée
         :type item: Variable
         :return: adresse de la mémoire. None si elle n'est pas trouvée.
-        :rtype: int / None
+        :rtype: Union[int,None]
         """
         nameList = [str(var) for var in self.__memoryData]
         nameSearched = str(item)
@@ -348,7 +336,7 @@ class AssembleurContainer:
         :param label: étiquette recherchée
         :type label: str
         :return: adresse de l'étiquette. None si elle n'est pas trouvée.
-        :rtype: int / None
+        :rtype: Union[int,None]
         """
         lineAdresse = 0
         for item in self.__lines:

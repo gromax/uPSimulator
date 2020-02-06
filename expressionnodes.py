@@ -1,10 +1,8 @@
 """
 .. module:: structuresnodes
-   :synopsis: définition des noeuds constituant le programme dans sa version structurée : Instructions simples, conditions, boucles. Contribue à la transformation d'une version où les conditions et boucles sont assurés par des sauts inconditionnels / conditionnels. Cette version est qualifiée de version linéaire.
+    :synopsis: définition des noeuds constituant le programme dans sa version structurée : Instructions simples, conditions, boucles. Contribue à la transformation d'une version où les conditions et boucles sont assurés par des sauts inconditionnels / conditionnels. Cette version est qualifiée de version linéaire.
 
-   .. note::
-
-    Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
+.. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
 from typing import List, Optional, Tuple, Sequence, Union
@@ -96,9 +94,7 @@ class ExpressionNode:
         :return: None dans le cas général
         :rtype: None
 
-        .. note::
-
-        Ne sert que pour BinaryNode, dans le cas d'une expression logique
+        .. note:: Ne sert que pour BinaryNode, dans le cas d'une expression logique
         """
 
         return None
@@ -113,11 +109,8 @@ class ExpressionNode:
         :return: noeud original ou clone avec les modifications faites
         :rtype: ExpressionNode
 
-        .. note::
-
-        Sert pour BinaryNode, dans le cas d'une expression logique avec symboles de comparaison
-
-        Si pas de modification, le noeud original est conservé.
+        .. note:: Sert pour BinaryNode, dans le cas d'une expression logique avec symboles de comparaison.
+          Si pas de modification, le noeud original est conservé.
         """
 
         return self
@@ -129,9 +122,7 @@ class ExpressionNode:
         :return: noeud original ou clone avec les modifications faites
         :rtype: ExpressionNode
 
-        .. note::
-
-        Sert pour UnaryNode, dans le cas d'une opération -
+        .. note:: Sert pour UnaryNode, dans le cas d'une opération -
         """
 
         return self
@@ -194,9 +185,8 @@ class UnaryNode(ExpressionNode):
         :rtype: bool
 
         .. note::
-
-        Inutile de vérifier les enfants car si ce n'est pas not,
-        les enfants sont forcément de type arithmétique.
+            Inutile de vérifier les enfants car si ce n'est pas not,
+            les enfants sont forcément de type arithmétique.
         """
 
         return self.__operator == "not"
@@ -222,9 +212,7 @@ class UnaryNode(ExpressionNode):
         :return: clone pour obtenir une négation logique
         :rtype: ExpressionNode
 
-        .. note::
-
-        Un clone est systèmatiquement créé
+        .. note:: Un clone est systèmatiquement créé
         """
 
         if self.__operator == "not":
@@ -240,10 +228,8 @@ class UnaryNode(ExpressionNode):
         :return: clone avec les modifications faites
         :rtype: ExpressionNode
 
-        .. note::
-
-        Si le noeud est un not, les enfants contiendront des symboles de comparaison.
-        On propage alors au noeud enfant.
+        .. note:: Si le noeud est un not, les enfants contiendront des symboles de comparaison.
+          On propage alors au noeud enfant.
 
         La modification du noeud enfant peut emboîter un not supplémentaire (!= transformé en not ==)
         Cela est sans importance : les not sont exécutés par un jeu de branchement de sauts.
@@ -265,14 +251,11 @@ class UnaryNode(ExpressionNode):
         :rtype: str
 
         .. note::
+            * Les variables et littéraux sont arithmétiques ainsi que tous les calculs exécutés sur eux.
+            * Les comparaisons telles que ==, <... produisent des quantités booléennes.
+            * Les opérateur not, and, or ne peuvent s'appliquer qu'à des opérandes de type booléens.
+            * Les opérateurs &, |... sont bitwises et à ce titre sont considérés comme arithmétiques.
 
-        Les variables et littéraux sont arithmétiques ainsi que tous les calculs exécutés sur eux.
-
-        Les comparaisons telles que ==, <... produisent des quantités booléennes.
-
-        Les opérateur not, and, or ne peuvent s'appliquer qu'à des opérandes de type booléens.
-
-        Les opérateurs &, |... sont bitwises et à ce titre sont considérés comme arithmétiques.
         """
 
         operandType = self.__operand.getType()
@@ -290,9 +273,7 @@ class UnaryNode(ExpressionNode):
         :return: noeud original ou clone avec les modifications faites
         :rtype: ExpressionNode
 
-        .. note::
-
-        La demande de modification est propagée au noeud enfant.
+        .. note:: La demande de modification est propagée au noeud enfant.
         """
 
 
@@ -308,9 +289,7 @@ class UnaryNode(ExpressionNode):
         :return: représentation du noeud sous forme d'une chaîne de caractères
         :rtype: str
 
-        .. note::
-
-        L'expression est entièrement parenthèsée.
+        .. note:: L'expression est entièrement parenthèsée.
         """
         strOperand = str(self.__operand)
         return self.__operator+"("+strOperand+")"
@@ -321,10 +300,8 @@ class UnaryNode(ExpressionNode):
         :return: nombre de registres
         :rtype: int
 
-        .. note::
-
-        L'opérande étant placée dans un registre, on peut envisager de placer le résultat au même endroit.
-        L'opération ne nécessite alors pas de registres supplémentaire.
+        .. note:: L'opérande étant placée dans un registre, on peut envisager de placer le résultat au même endroit.
+          L'opération ne nécessite alors pas de registres supplémentaire.
         """
 
         return self.__operand.getRegisterCost(engine)
@@ -363,9 +340,7 @@ class UnaryNode(ExpressionNode):
         :return: clone
         :rtype: UnaryNode
 
-        .. note::
-
-        l'aborescence enfant est également clonée.
+        .. note:: L'aborescence enfant est également clonée.
         """
         cloneOperand = self.__operand.clone()
         operator = self.__operator
@@ -469,9 +444,7 @@ class BinaryNode(ExpressionNode):
         :return: 'int' si opération arithmétique, 'bool' si expression logique, '' si erreur
         :rtype: str
 
-        .. note::
-
-        Un opérateur de comparaison s'applique à des enfants 'int' et est lui même 'bool'. Les opérateurs and et or ne s'appliquent qu'à un 'bool'. Les opérateurs arithmétiques ne s'appliquent qu'à un 'int'.
+        .. note:: Un opérateur de comparaison s'applique à des enfants 'int' et est lui même 'bool'. Les opérateurs and et or ne s'appliquent qu'à un 'bool'. Les opérateurs arithmétiques ne s'appliquent qu'à un 'int'.
         """
         operand1Type = self.__operands[0].getType()
         operand2Type = self.__operands[1].getType()
@@ -502,8 +475,7 @@ class BinaryNode(ExpressionNode):
         :return: noeud clone avec - unaire enlevés
         :rtype: BinaryNode
 
-        .. note::
-        Cette fonction se propage récursivement à ses enfants.
+        .. note:: Cette fonction se propage récursivement à ses enfants.
         """
         op1, op2 = self.__operands
         newOp1 = op1.negToSubClone()
@@ -637,7 +609,7 @@ class ValueNode(ExpressionNode):
         """Accesseur
 
         :return: valeur
-        :rtype: Litteral ou Variable
+        :rtype: Union[Variable,Litteral]
         """
         return self.__value
 

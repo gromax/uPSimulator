@@ -24,9 +24,8 @@ class Variable:
         :rtype: str
 
         :Example:
-
-        >>> Variable("x").getName()
-        'x'
+            >>> Variable("x").getName()
+            'x'
 
         .. warning:: Il est possible que l'on crée plusieurs variables pour un même nom
         """
@@ -40,9 +39,8 @@ class Variable:
         :rtype: str
 
         :Example:
-
-        >>> str(Variable("x"))
-        '@x'
+            >>> str(Variable("x"))
+            '@x'
 
         """
 
@@ -58,15 +56,14 @@ class Variable:
         :rtype: str
 
         :Example:
+            >>> Variable("x",45).getValueBinary(8)
+            '00101101'
 
-        >>> Variable("x",45).getValueBinary(8)
-        '00101101'
+            >>> Variable("x",-45).getValueBinary(8)
+            '11010011'
 
-        >>> Variable("x",-45).getValueBinary(8)
-        '11010011'
-
-        >>> Variable("x",1000).getValueBinary(8)
-        Traceback (most recent call last):
+            >>> Variable("x",1000).getValueBinary(8)
+            Traceback (most recent call last):
         ...
         errors.CompilationError: @x : Variable de valeur trop grande !
         """
@@ -88,12 +85,11 @@ class Variable:
         :rtype: int
 
         :Example:
+            >>> Variable("x").getValue()
+            0
 
-        >>> Variable("x").getValue()
-        0
-
-        >>> Variable("x",15).getValue()
-        15
+            >>> Variable("x",15).getValue()
+            15
 
         """
         return self.__value

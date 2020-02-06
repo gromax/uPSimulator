@@ -1,7 +1,6 @@
 """
 .. module:: compilemanager
-   :synopsis: gestion de la compilation
-
+    :synopsis: gestion de la compilation
 """
 from typing import List, Dict, Optional, Tuple
 
