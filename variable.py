@@ -64,8 +64,8 @@ class Variable:
 
             >>> Variable("x",1000).getValueBinary(8)
             Traceback (most recent call last):
-        ...
-        errors.CompilationError: @x : Variable de valeur trop grande !
+            ...
+            errors.CompilationError: @x : Variable de valeur trop grande !
         """
 
         if self.__value < 0:
