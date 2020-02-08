@@ -1,5 +1,5 @@
 """
-.. module:: structuresnodes
+.. module:: expressionnodes
     :synopsis: définition des noeuds constituant le programme dans sa version structurée : Instructions simples, conditions, boucles. Contribue à la transformation d'une version où les conditions et boucles sont assurés par des sauts inconditionnels / conditionnels. Cette version est qualifiée de version linéaire.
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
@@ -331,6 +331,22 @@ class UnaryNode(ExpressionNode):
             self.__operand.calcCompile(CEMObject)
             CEMObject.pushUnaryOperator(self.__operator)
 
+    def getOperator(self) -> str:
+        """Accesseur
+
+        :return: opérateur
+        :rtype: str
+        """
+        return self.__operator
+
+    def getOperand(self) -> ExpressionNode:
+        """Accesseur
+
+        :return: opérande
+        :rtype: ExpressionNode
+        """
+        return self.__operand
+
     def clone(self) -> 'UnaryNode':
         """Crée un noeud clone
 
@@ -363,7 +379,15 @@ class BinaryNode(ExpressionNode):
         assert isinstance(operand1,ExpressionNode)
         assert isinstance(operand2,ExpressionNode)
         self.__operator = operator
+
+        # par défaut
         self.__operands = operand1, operand2
+        if operator in self.__symetricOperators:
+            # pour un opérateur symétrique, on place de préférence un opérateur littéral (le plus petit si deux) à droite
+            op1TryValue = operand1.getValue()
+            op2TryValue = operand2.getValue()
+            if isinstance(op1TryValue, Litteral) and not (isinstance(op2TryValue, Litteral) and op2TryValue.getValue() <= op1TryValue.getValue()):
+                self.__operands = operand2, operand1
 
     def isComplexeCondition(self) -> bool:
         """Teste s'il s'agit d'une condition composée : opérateur and ou or
@@ -492,6 +516,8 @@ class BinaryNode(ExpressionNode):
     def getRegisterCost(self, engine:ProcessorEngine) -> int:
         """Calcul du nombre de registre nécessaires pour évaluer ce noeud
 
+        :param engine: modèle de processeur
+        :type engine: ProcessorEngine
         :return: nombre de registres
         :rtype: int
         """
@@ -499,20 +525,9 @@ class BinaryNode(ExpressionNode):
         op2TryValue = op2.getValue()
         if isinstance(op2TryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, op2TryValue):
             return op1.getRegisterCost(engine)
-        op1TryValue = op1.getValue()
-        if self.isSymetric() and isinstance(op1TryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, op1TryValue):
-            return op2.getRegisterCost(engine)
         costOperand1 = op1.getRegisterCost(engine)
         costOperand2 = op2.getRegisterCost(engine)
         return min(max(costOperand1, costOperand2+1), max(costOperand1+1, costOperand2))
-
-    def isSymetric(self) -> bool:
-        """L'opérateur fait partie des opérateurs symétriques
-
-        :return: vrai si l'opérateur est symétrique
-        :rtype: bool
-        """
-        return self.__operator in self.__symetricOperators
 
     def needUAL(self) -> bool:
         """L'évaluation nécessitera-t-elle l'ual ?
@@ -547,11 +562,7 @@ class BinaryNode(ExpressionNode):
         super(BinaryNode,self).calcCompile(CEMObject)
         op1, op2 = self.__operands
         engine = CEMObject.getEngine()
-        op1TryValue = op1.getValue()
         op2TryValue = op2.getValue()
-        if (not isComparaison) and self.isSymetric() and not isinstance(op2TryValue,Litteral) and isinstance(op1TryValue,Litteral) and engine.litteralOperatorAvailable(operator, op1TryValue):
-            op1, op2 = op2, op1
-            op1TryValue, op2TryValue = op2TryValue, op1TryValue
         if (not isComparaison) and isinstance(op2TryValue,Litteral) and engine.litteralOperatorAvailable(operator, op2TryValue):
             firstToCalc = op1
             secondToCalc = op2
@@ -567,6 +578,22 @@ class BinaryNode(ExpressionNode):
         else:
             secondToCalc.calcCompile(CEMObject)
             CEMObject.pushBinaryOperator(operator, firstToCalc == op1)
+
+    def getOperator(self) -> str:
+        """Accesseur
+
+        :return: opérateur
+        :rtype: str
+        """
+        return self.__operator
+
+    def getOperands(self) -> Tuple[ExpressionNode,ExpressionNode]:
+        """Accesseur
+
+        :return: opérandes
+        :rtype: Tuple[ExpressionNode,ExpressionNode]
+        """
+        return self.__operands
 
     def clone(self) -> 'BinaryNode':
         """Produit un clone de l'objet avec son arborescence
