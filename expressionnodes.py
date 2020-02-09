@@ -325,11 +325,15 @@ class UnaryNode(ExpressionNode):
         super(UnaryNode,self).calcCompile(CEMObject)
         engine = CEMObject.getEngine()
         opTryValue = self.__operand.getValue()
-        if isinstance(opTryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, opTryValue):
-            CEMObject.pushUnaryOperatorWithLitteral(self.__operator, opTryValue)
+        if self.__operator == "-":
+            operator = "neg"
+        else:
+            operator = self.__operator
+        if isinstance(opTryValue, Litteral) and engine.litteralOperatorAvailable(operator, opTryValue):
+            CEMObject.pushUnaryOperatorWithLitteral(operator, opTryValue)
         else:
             self.__operand.calcCompile(CEMObject)
-            CEMObject.pushUnaryOperator(self.__operator)
+            CEMObject.pushUnaryOperator(operator)
 
     def getOperator(self) -> str:
         """Accesseur
