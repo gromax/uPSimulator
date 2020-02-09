@@ -163,7 +163,7 @@ class ExpressionNode:
         return None
 
 class UnaryNode(ExpressionNode):
-    __knownOperators:Sequence[str] = ('not', '~', '-')
+    __knownOperators:Sequence[str] = ('not', '~', 'neg')
     def __init__(self, operator:str, operand:ExpressionNode):
         """Constructeur
 
@@ -275,7 +275,7 @@ class UnaryNode(ExpressionNode):
 
 
         newOperand = self.__operand.negToSubClone()
-        if not self.__operator == "-":
+        if not self.__operator == "neg":
             return UnaryNode(self.__operator, newOperand)
         zero = ValueNode(Litteral(0))
         return BinaryNode("-", zero, newOperand)
@@ -325,15 +325,11 @@ class UnaryNode(ExpressionNode):
         super(UnaryNode,self).calcCompile(CEMObject)
         engine = CEMObject.getEngine()
         opTryValue = self.__operand.getValue()
-        if self.__operator == "-":
-            operator = "neg"
-        else:
-            operator = self.__operator
-        if isinstance(opTryValue, Litteral) and engine.litteralOperatorAvailable(operator, opTryValue):
-            CEMObject.pushUnaryOperatorWithLitteral(operator, opTryValue)
+        if isinstance(opTryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, opTryValue):
+            CEMObject.pushUnaryOperatorWithLitteral(self.__operator, opTryValue)
         else:
             self.__operand.calcCompile(CEMObject)
-            CEMObject.pushUnaryOperator(operator)
+            CEMObject.pushUnaryOperator(self.__operator)
 
     def getOperator(self) -> str:
         """Accesseur

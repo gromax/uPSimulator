@@ -176,7 +176,7 @@ class TokenUnaryOperator(Token):
         operand = operandsList.pop()
         # Le cas NEG sur litteral devrait se contenter de preondre l'opposé du littéral
         opTryValue = operand.getValue()
-        if self.__operator == "-" and isinstance(opTryValue,Litteral):
+        if self.__operator == "neg" and isinstance(opTryValue,Litteral):
             negLitt = opTryValue.negClone()
             return ValueNode(negLitt)
         return UnaryNode(self.__operator, operand)
@@ -620,7 +620,7 @@ class ExpressionParser:
                 else:
                     # l'opérateur est - et c'est un cas d'opération unaire
                     # on l'interprète comme neg
-                    tokenNeg = TokenUnaryOperator("-")
+                    tokenNeg = TokenUnaryOperator("neg")
                     del tokensList[indice]
                     tokensList.insert(indice,tokenNeg)
                     # inutile de passer au suivant
