@@ -3,7 +3,7 @@
    :synopsis: classe définissant les attributs d'un modèle de processeur et fournissant les informations utiles aux outils de compilation
 """
 
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Dict, Optional, Tuple
 from typing_extensions import TypedDict
 
 Commands = TypedDict('Commands', {
@@ -141,7 +141,7 @@ class ProcessorEngine:
             "&":    2 + destReg,
             "|":    2 + destReg,
             "^":    2 + destReg,
-            "~":    1 + destReg
+            "~":    1 + destReg,
         }
 
         assert self.__checkAttributes() == True
@@ -351,6 +351,64 @@ class ProcessorEngine:
             return False
         maxLitteralSize = self.getLitteralMaxSizeIn(commandDesc)
         return litteral.isBetween(0, maxLitteralSize)
+
+    def instructionDecode(self, binary:Union[int,str]) -> Tuple[str, Tuple[int], int]:
+        """Pour une instruction, fait le décodage en renvoyant le descriptif commande, les opérandes registres et un éventuel opérande non registre
+
+        :param binary: code binaire
+        :type binary: int ou str
+        :result: tuple contenant la commande, les opérandes registres et l'éventuel opérande spéciale (adresse ou littéral), -1 si pas de spéciale.
+        :rtype: Tuple[str, Tuple[int], int]
+
+        :Example:
+          >>> ProcessorEngine().instructionDecode('0110011001010011')
+          ('/', (1, 2, 3), -1)
+        """
+        if isinstance(binary, int):
+            strBinary = format(binary, '0'+str(wordSize)+'b')
+        else:
+            strBinary = binary
+        for name, attr in self.__commands.items():
+            opcode = attr["opcode"]
+            if strBinary[:len(opcode)] == opcode:
+                opeBinary = strBinary[len(opcode):]
+                if name == "halt":
+                    return ("halt",(),-1)
+                if name in ("goto", "!=", "==", "<", "<=", ">=", ">", "input"):
+                    cible = int(opeBinary,2)
+                    return (name, (), cible)
+                if name in ("store", "load"):
+                    reg = int(opeBinary[:self.__register_address_bits],2)
+                    cible = int(opeBinary[self.__register_address_bits:],2)
+                    return (name, (reg,), cible)
+                if name in ("cmp", "move"):
+                    reg1 = int(opeBinary[:self.__register_address_bits],2)
+                    reg2 = int(opeBinary[self.__register_address_bits:2*self.__register_address_bits],2)
+                    return (name, (reg1, reg2), -1)
+                if name == "print":
+                    reg = int(opeBinary[:self.__register_address_bits],2)
+                    return ("print", (reg,), -1)
+                opNumber = self.__opNumber[name]
+                regs = tuple([ int(opeBinary[self.__register_address_bits*i:self.__register_address_bits*(i+1)],2) for i in range(opNumber)])
+                if not self.ualOutputIsFree():
+                    regs = (0,) + regs
+                return (name, regs, -1)
+        for name, attr in self.__litteralsCommands.items():
+            opcode = attr["opcode"]
+            if strBinary[:len(opcode)] == opcode:
+                opeBinary = strBinary[len(opcode):]
+                if name == "move":
+                    reg = int(opeBinary[:self.__register_address_bits],2)
+                    litt = int(opeBinary[self.__register_address_bits:],2)
+                    return ("move", (reg,), litt)
+                opNumber = self.__opNumber[name]
+                regs = tuple([ int(opeBinary[self.__register_address_bits*i:self.__register_address_bits*(i+1)],2) for i in range(opNumber-1)])
+                litt = int(opeBinary[self.__register_address_bits*opNumber:],2)
+                if not self.ualOutputIsFree():
+                    regs = (0,) + regs
+                return (name, regs, litt)
+        # par défaut, retour halt
+        return ("halt",(),-1)
 
     def getLitteralMaxSizeIn(self, commandDesc:str) -> int:
         """Considérant une commande, détermine le nombre de bits utilisés par l'encodage des attributs de la commande et déduit le nombre de bits laissés pour le codage en nombre positif d'un éventuel littéral, et donc la taille maximal de ce littéral.
