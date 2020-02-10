@@ -19,6 +19,7 @@ class Executeur:
     __waitingInput: bool = False
     __registers:List[int]
     __currentState:int = 0
+    __inputBuffer:List[int]
 
     def __init__(self, engine:ProcessorEngine, binary:List[int]):
         """Constructeur
@@ -32,6 +33,7 @@ class Executeur:
         self.__binary = binary
         self.__printList = []
         self.__registers = [0]*engine.registersNumber()
+        self.__inputBuffer = []
 
     @property
     def printList(self) -> List[int]:
@@ -51,13 +53,19 @@ class Executeur:
         """
         return self.__waitingInput
 
-    def step(self, value:int = 0) -> int:
+    def bufferize(self, value:int) -> None:
+        """Ajoute un entier au buffer d'entrée
+
+        :param value: valeur à bufferiser
+        :type value: int
+        """
+        self.__inputBuffer.append(value)
+
+    def step(self) -> int:
         """Exécution d'un pas.
         Il s'agit d'un pas élémentaire, il en faut plusieurs pour exécuter l'ensemble de l'instruction.
         Le nombre de pas nécessaire dépend du type d'instruction.
 
-        :param value: valeur fournie, utile en cas d'attente d'input (sinon ignorée)
-        :type value: int
         :return: état en cours. 0 = halt, 1 = en cours, 2 = input attendu.
         :rtype: int
         """
@@ -90,7 +98,7 @@ class Executeur:
             #     move fait transfert direct et termine, donc retour __currentState à 0, return 1
             #     saut charge (ou pas selon si conditionnel) l'adresse cible dans pointeur de ligne puis retour __currentState à 0, return 1
             #     print charge le registre dans la pile Print puis retour __currentState à 0, return 1
-            #     input place le flag __waitingInput à True, up de __currentState et return 3
+            #     input lit dans le buffer et met le flag __waitingInput à True si rien dans le buffer...
             pass
 
         if __currentState == 3
