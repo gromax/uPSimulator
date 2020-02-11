@@ -16,7 +16,6 @@ class Executeur:
     __ualIsZero: bool = True
     __ualIsPos: bool = True
     __memoryAddressRegister: int = 0
-    __waitingInput: bool = False
     __registers:List[int]
     __currentState:int = 0
     __inputBuffer:List[int]
@@ -48,10 +47,10 @@ class Executeur:
     def waitingInput(self) -> bool:
         """Accesseur.
 
-        :return: processeur attend une entrée, à fournir via la commande step(value)
+        :return: processeur attend une entrée
         :rtype: bool
         """
-        return self.__waitingInput
+        return self.__currentState == -2
 
     def bufferize(self, value:int) -> None:
         """Ajoute un entier au buffer d'entrée
@@ -66,7 +65,11 @@ class Executeur:
         Il s'agit d'un pas élémentaire, il en faut plusieurs pour exécuter l'ensemble de l'instruction.
         Le nombre de pas nécessaire dépend du type d'instruction.
 
-        :return: état en cours. 0 = halt, 1 = en cours, 2 = input attendu.
+        :return: état en cours.
+          -1 = halt
+          -2 = attente input
+          0 = début instruction,
+          1 <= état interne du processeur correspondant au déroulement de l'instruction
         :rtype: int
         """
 
@@ -91,25 +94,56 @@ class Executeur:
             # self.__engine.instructionDecode(self.__instructionRegister)
             # voir la doc de la fonction
             # il faut stocker la réponse dans des attributs ad hoc pour pouvoir les utiliser au pas suivants (le cas échéant)
-            # la suite va dépendre de l'instruction :
-            #     halt ramène currentState à 0 et return 0
-            #     store ou load chargent l'adresse cible dans le registre d'adresse mémoire
-            #     calculs placent les entrées de l'UAL et demandent calcul, up de __currentState
-            #     move fait transfert direct et termine, donc retour __currentState à 0, return 1
-            #     saut charge (ou pas selon si conditionnel) l'adresse cible dans pointeur de ligne puis retour __currentState à 0, return 1
-            #     print charge le registre dans la pile Print puis retour __currentState à 0, return 1
-            #     input lit dans le buffer et met le flag __waitingInput à True si rien dans le buffer...
+            # la suite va dépendre de l'instruction, les currentState pour certains cas sont à choisir (? dans la suite) :
+            #     halt : -1 -> currentState
+            #     store ou load chargent l'adresse cible dans le registre d'adresse mémoire, ? -> currentState
+            #     calculs placent les entrées de l'UAL et demandent calcul, ? -> currentState
+            #     move fait transfert direct et termine, 0 -> currentState
+            #     saut charge (ou pas selon si conditionnel) l'adresse cible dans pointeur de ligne, 0 -> currentState
+            #     print charge le registre dans la pile Print puis 0 -> currentState
+            #     input charge adresse cible dans registre adresse, ? -> currentState
+            #     dans l'état suivant pour input, il faudra lire dans le buffer. Si buffer vide, nécessitera de passer à l'état -2
             pass
 
         if __currentState == 3
-            # N'arrive que dans certains cas. Voir la suite dans ces cas là.
+            # Chaque état est particulier ensuite. Il faut tracer un diagramme avec tous les schémas possibles.
+            # beaucoup d'instructions ne vont pas plus loin que l'état 2 ce qui limite
+            # il est sans doute plus simple de prévoir des état spéciaux ensuite :
+            # si toutes les instructions longues passent au niveau 3, il faudra ensuite tester pour voir dans quel cas on est
+            # par contre si store ou load ont leur propre état, par exemple 4, si on est dans l'état 4 on n'a pas plus de test à faire
+            # on sait déjà où on est, ce qui est plus simple.
+
             pass
 
-        # bien sûr aménagement possible :
-        # return global ? ou return au détail ?
-        # up de __currentState dans chaque cas ou un up à la toute fin ?(le même pour tous les cas)
-        # etc.
 
+        return __currentState
 
+    def instructionStep(self) -> int:
+        """Exécution d'une instruction complète.
+        Commande donc l'exécution de plusieurs step jusqu'à ce que currentState revienne à 0, -1 ou -2
+
+        :return: état en cours.
+          -1 = halt
+          -2 = attente input
+          0 = début instruction,
+        :rtype: int
+        """
+        pass
+
+    def nonStopRun(self) -> int:
+        """Exécution du programme en continu
+        Commande donc l'exécution de plusieurs step jusqu'à ce que currentState revienne -1 ou -2
+
+        :return: état en cours.
+          -1 = halt
+          -2 = attente input
+        :rtype: int
+
+        ..warning::
+          Si le programme boucle, l'instruction bouclera aussi.
+          De plus, ce programme prend la main pour toute une exécution.
+          Ne convient donc pas au cas d'une visualisation avec interface graphique devant se remettre à jour en parallèle de l'exécution.
+        """
+        pass
 
 
