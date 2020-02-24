@@ -68,7 +68,6 @@ class Executeur:
         if instructionName == "cmp":
             op1 = self.__registers[instructionRegisterList[0]]
             op2 = self.__registers[instructionRegisterList[1]]
-            print(op1, op2)
             self.__ualIsZero = ( (op1 - op2) == 0 )
             self.__ualIsPos = ( (op1 - op2) > 0 )
         else:
@@ -122,13 +121,10 @@ class Executeur:
           1 <= état interne du processeur correspondant au déroulement de l'instruction
         :rtype: int
         """
-        print(self.__currentState)
         if self.__currentState == 0:
             # toujours chargement de la ligne dans le registre d'adresse mémoire
             # puis incrémentation du pointeur de ligne
             # up de __currentState
-            print("ligne: ", self.__linePointer)
-            print(self.__registers)
             self.__memoryAddressRegister = self.__linePointer
             self.__linePointer += 1
             self.__currentState += 1
@@ -155,7 +151,6 @@ class Executeur:
             #     input charge adresse cible dans registre adresse, ? -> currentState
             #     dans l'état suivant pour input, il faudra lire dans le buffer. Si buffer vide, nécessitera de passer à l'état -2
             instName, instRegList, intSpecial = self.__engine.instructionDecode(self.__instructionRegister)
-            print(instName, instRegList, intSpecial)
             if (instName == "halt"):
                 self.__currentState = -1
 
