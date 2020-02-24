@@ -244,7 +244,7 @@ class Executeur:
             # On charge le contenu du buffer si celui-ci n'est pas vide
             # On attend sinon
             if self.__inputBuffer!=[]:
-                self.__registers[__memoryAddressRegister] = self.__inputBuffer.pop()
+                self.__registers[self.__memoryAddressRegister] = self.__inputBuffer.pop()
             else:
                 self.waitingInput()
 
