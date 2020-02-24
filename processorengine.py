@@ -365,7 +365,7 @@ class ProcessorEngine:
           ('/', (1, 2, 3), -1)
         """
         if isinstance(binary, int):
-            strBinary = format(binary, '0'+str(wordSize)+'b')
+            strBinary = format(binary, '0'+str(self.__data_bits)+'b')
         else:
             strBinary = binary
         for name, attr in self.__commands.items():

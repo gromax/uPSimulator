@@ -3,22 +3,22 @@
    :synopsis: classe chargée de l'exécution du code binaire
 """
 
-from typing import List
-
+from typing import List, Tuple
 from processorengine import ProcessorEngine
 
 class Executeur:
-    __engine:ProcessorEntine
+    __engine:ProcessorEngine
     __binary:List[int]
     __printList:List[int]
     __linePointer:int = 0
     __instructionRegister:int = 0
     __ualIsZero: bool = True
     __ualIsPos: bool = True
+    __ualInput: Tuple[str, Tuple[int], int]
     __memoryAddressRegister: int = 0
-    __registers:List[int]
-    __currentState:int = 0
-    __inputBuffer:List[int]
+    __registers: List[int]
+    __currentState: int = 0
+    __inputBuffer: List[int]
 
     def __init__(self, engine:ProcessorEngine, binary:List[int]):
         """Constructeur
@@ -60,6 +60,56 @@ class Executeur:
         """
         self.__inputBuffer.append(value)
 
+    def UAL(self, ualInput: Tuple[str, Tuple[int]] ):
+        instructionName = ualInput[0]
+        instructionRegisterList = ualInput[1]
+        litteralOp = ualInput[2]
+
+        if instructionName == "cmp":
+            op1 = self.__registers[instructionRegisterList[0]]
+            op2 = self.__registers[instructionRegisterList[1]]
+            print(op1, op2)
+            self.__ualIsZero = ( (op1 - op2) == 0 )
+            self.__ualIsPos = ( (op1 - op2) > 0 )
+        else:
+            outputRegister = instructionRegisterList[0]
+            if instructionName == "neg":
+                if litteralOp == -1:
+                    op1 = self.__registers[instructionRegisterList[1]]
+                else:
+                    op1 = litteralOp
+                self.__registers[outputRegister] = -op1
+            elif instructionName == "~":
+                op1 = self.__registers[instructionRegisterList[1]]
+                if op1 != 0:
+                    self.__registers[outputRegister] = 0
+                else:
+                    self.__registers[outputRegister] = 1
+            else:
+                op1 = self.__registers[instructionRegisterList[1]]
+                if litteralOp == -1:
+                    op2 = self.__registers[instructionRegisterList[2]]
+                else:
+                    op2 = litteralOp
+                
+                if instructionName == "+":
+                    self.__registers[outputRegister] = op1 + op2
+                elif instructionName == "-":
+                    self.__registers[outputRegister] = op1 - op2
+                elif instructionName == "*":
+                    self.__registers[outputRegister] = op1 * op2                
+                elif instructionName == "/":
+                    self.__registers[outputRegister] = op1 // op2
+                elif instructionName == "%":
+                    self.__registers[outputRegister] = op1 % op2
+                elif instructionName == "&":
+                    self.__registers[outputRegister] = (op1!=0)&(op2!=0)
+                elif instructionName == "|":
+                    self.__registers[outputRegister] = (op1!=0)|(op2!=0)               
+                elif instructionName == "^":
+                    self.__registers[outputRegister] = (op1!=0)^(op2!=0)
+
+
     def step(self) -> int:
         """Exécution d'un pas.
         Il s'agit d'un pas élémentaire, il en faut plusieurs pour exécuter l'ensemble de l'instruction.
@@ -72,25 +122,26 @@ class Executeur:
           1 <= état interne du processeur correspondant au déroulement de l'instruction
         :rtype: int
         """
-
-        if __currentState == 0:
+        print(self.__currentState)
+        if self.__currentState == 0:
             # toujours chargement de la ligne dans le registre d'adresse mémoire
-            # puis incrépentation du pointeur de ligne
+            # puis incrémentation du pointeur de ligne
             # up de __currentState
-            pass
+            print("ligne: ", self.__linePointer)
+            print(self.__registers)
+            self.__memoryAddressRegister = self.__linePointer
+            self.__linePointer += 1
+            self.__currentState += 1
 
-            return 1
-
-        if __currentState == 1:
+        elif self.__currentState == 1:
             # lecture de la case mémoire pointée par le registre d'adresse mémoire
             # écriture dans le registre instruction
             # up de __currentState
-            pass
+            self.__instructionRegister = self.__binary[self.__memoryAddressRegister]
+            self.__currentState += 1
 
-            return 1
-
-        if __currentState == 2:
-            # décodade de l'instruction en utilisant :
+        elif self.__currentState == 2:
+            # décodage de l'instruction en utilisant :
             # self.__engine.instructionDecode(self.__instructionRegister)
             # voir la doc de la fonction
             # il faut stocker la réponse dans des attributs ad hoc pour pouvoir les utiliser au pas suivants (le cas échéant)
@@ -103,20 +154,119 @@ class Executeur:
             #     print charge le registre dans la pile Print puis 0 -> currentState
             #     input charge adresse cible dans registre adresse, ? -> currentState
             #     dans l'état suivant pour input, il faudra lire dans le buffer. Si buffer vide, nécessitera de passer à l'état -2
-            pass
+            instName, instRegList, intSpecial = self.__engine.instructionDecode(self.__instructionRegister)
+            print(instName, instRegList, intSpecial)
+            if (instName == "halt"):
+                self.__currentState = -1
 
-        if __currentState == 3
+            if (instName == "goto"):
+                self.__linePointer = intSpecial
+                self.__currentState = 0
+
+            if (instName == "!="): 
+                if(not(self.__ualIsZero)):
+                    self.__linePointer = intSpecial
+                    self.__currentState = 0
+                else:
+                    self.__currentState = 0
+
+            if (instName == "=="): 
+                if(self.__ualIsZero):
+                    self.__linePointer = intSpecial
+                    self.__currentState = 0
+                else:
+                    self.__currentState = 0
+
+            if (instName == "<"): 
+                if(not(self.__ualIsPos)):
+                    self.__linePointer = intSpecial
+                    self.__currentState = 0
+                else:
+                    self.__currentState = 0
+
+            if (instName == ">"): 
+                if(self.__ualIsPos):
+                    self.__linePointer = intSpecial
+                    self.__currentState = 0
+                else:
+                    self.__currentState = 0
+
+            if (instName == ">="): 
+                if((self.__ualIsZero)|(self.__ualIsPos)):
+                    self.__linePointer = intSpecial
+                    self.__currentState = 0
+                else:
+                    self.__currentState = 0
+                
+            if (instName == "<="): 
+                if((self.__ualIsZero)|(not(self.__ualIsPos))):
+                    self.__linePointer = intSpecial
+                    self.__currentState = 0
+                else:
+                    self.__currentState = 0
+                
+            if (instName == "input"):
+                self.__memoryAddressRegister = instRegList[0]
+                self.__currentState = -2
+
+            if (instName == "print"):
+                self.__printList.append(self.__registers[instRegList[0]])
+                self.__currentState = 0
+
+            if (instName == "move"):
+                if len(instRegList) == 1:
+                    self.__registers[instRegList[0]] = intSpecial
+                    self.__currentState = 0
+                else:
+                    self.__registers[instRegList[0]] = self.__registers[instRegList[1]]
+                    self.__currentState = 0 
+
+            if (instName == "store"):
+                self.__memoryAddressRegister = intSpecial
+                self.__currentState = 4
+
+            if (instName == "load"):
+                self.__memoryAddressRegister = intSpecial
+                self.__currentState = 5
+
+            if (instName in ["cmp", "neg", "~", "+", "-", "*", "/", "%", "&", "|", "^"]):
+                self.__ualInput = (instName, instRegList, intSpecial)
+                self.__currentState += 1
+
+
+
+        elif self.__currentState == 3:
             # Chaque état est particulier ensuite. Il faut tracer un diagramme avec tous les schémas possibles.
             # beaucoup d'instructions ne vont pas plus loin que l'état 2 ce qui limite
             # il est sans doute plus simple de prévoir des état spéciaux ensuite :
             # si toutes les instructions longues passent au niveau 3, il faudra ensuite tester pour voir dans quel cas on est
             # par contre si store ou load ont leur propre état, par exemple 4, si on est dans l'état 4 on n'a pas plus de test à faire
             # on sait déjà où on est, ce qui est plus simple.
+            self.UAL(self.__ualInput)
+            self.__currentState = 0
 
-            pass
+        elif self.__currentState == -2:
+            # On charge le contenu du buffer si celui-ci n'est pas vide
+            # On attend sinon
+            if self.__inputBuffer!=[]:
+                self.__registers[__memoryAddressRegister] = self.__inputBuffer.pop()
+            else:
+                self.waitingInput()
 
+        elif self.__currentState == 4:
+            # store
+            instName, instRegList, intSpecial = self.__engine.instructionDecode(self.__instructionRegister)
+            bintoStore = format(self.__registers[instRegList[0]], '0'+str(self.__engine.getDataBits())+'b')
+            self.__binary[self.__memoryAddressRegister] = bintoStore
+            self.__currentState = 0
 
-        return __currentState
+        elif self.__currentState == 5:
+            # load
+            instName, instRegList, intSpecial = self.__engine.instructionDecode(self.__instructionRegister)
+            self.__registers[instRegList[0]] = int(self.__binary[self.__memoryAddressRegister],2)
+            self.__currentState = 0
+
+        return self.__currentState
 
     def instructionStep(self) -> int:
         """Exécution d'une instruction complète.
@@ -128,7 +278,9 @@ class Executeur:
           0 = début instruction,
         :rtype: int
         """
-        pass
+        self.step()
+        while (self.__currentState > 0 ):
+            self.step()
 
     def nonStopRun(self) -> int:
         """Exécution du programme en continu
@@ -144,6 +296,47 @@ class Executeur:
           De plus, ce programme prend la main pour toute une exécution.
           Ne convient donc pas au cas d'une visualisation avec interface graphique devant se remettre à jour en parallèle de l'exécution.
         """
-        pass
+        while (self.__currentState >= 0 ):
+            self.step()
 
+if __name__ == '__main__':
+    from processorengine import ProcessorEngine
+    engine = ProcessorEngine()
+
+    binary = [  '0100100000000000',
+                '0111000000011010',
+                '0100100000000000',
+                '0111000000011011',
+                '0011000000011010',
+                '0100100100001010',
+                '0001100000100000',
+                '0001010000001101',
+                '0011000000011011',
+                '0100100101100100',
+                '0001100000100000',
+                '0001010000001101',
+                '0000100000010111',
+                '0011000000011010',
+                '1010000000000011',
+                '0101000000000000',
+                '1000000000000001',
+                '0111000000011010',
+                '0011000000011011',
+                '0011001000011010',
+                '0110000000000001',
+                '0111000000011011',
+                '0000100000000100',
+                '0011000000011011',
+                '0010000000000000',
+                '0000000000000000',
+                '0000000000000000',
+                '0000000000000000']
+
+    myExec = Executeur(engine,binary)
+
+    # for i in range(5):
+    #     print('\n')
+    #     myExec.instructionStep()
+    myExec.nonStopRun()
+    print(myExec.printList)
 
