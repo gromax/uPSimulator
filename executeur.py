@@ -3,7 +3,7 @@
    :synopsis: classe chargée de l'exécution du code binaire
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from processorengine import ProcessorEngine
 
 class Executeur:
@@ -25,7 +25,7 @@ class Executeur:
 
         :param engine: modèle de processeur
         :type engine: ProcessorEngine
-        :param binary: code binaire (liste d'entiers)
+        :param binary: code binaire (liste d'entiers ou représentation binaire en str)
         :type binary: List[int]
         """
         self.__engine = engine
