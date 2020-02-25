@@ -3,7 +3,7 @@
    :synopsis: classe chargée de l'exécution du code binaire
 """
 
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Sequence
 from processorengine import ProcessorEngine
 
 class Executeur:
@@ -23,9 +23,8 @@ class Executeur:
     __ualOp2: int = 0
     __ualCible: int = 0
     __ualCommand: str = ""
-    __dataBus: int = ""
 
-    def __init__(self, engine:ProcessorEngine, binary:List[Union[int,str]]):
+    def __init__(self, engine:ProcessorEngine, binary:Union[List[int],List[str]]):
         """Constructeur
 
         :param engine: modèle de processeur
@@ -100,7 +99,7 @@ class Executeur:
         """
         self.__memoryAddressRegister = address
 
-    def __setUalInputOperands(self, registers:Tuple[int], litteral:int) -> None:
+    def __setUalInputOperands(self, registers:Sequence[int], litteral:int) -> None:
         """
         Charge les entrées de l'ual
 
@@ -349,6 +348,7 @@ class Executeur:
         """
         while (self.step() > 0 ):
             pass
+        return self.__currentState
 
     def nonStopRun(self) -> int:
         """Exécution du programme en continu
@@ -366,6 +366,7 @@ class Executeur:
         """
         while (self.step() >= 0 ):
             pass
+        return self.__currentState
 
     def __str__(self) -> str :
         return f'ligne = {self.__linePointer}\n'
