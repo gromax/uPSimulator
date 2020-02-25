@@ -7,22 +7,35 @@ from typing import List, Tuple, Union, Sequence
 from processorengine import ProcessorEngine
 
 class Executeur:
+    DATA_BUS:int = 0
+    DATA_BUS_2:int = 1
+    MEMORY:int = 0
+    MEMORY_ADDRESS:int = 1
+    INSTRUCTION_REGISTER:int = 2
+    LINE_POINTER:int = 3
+    PRINT:int = 4
+    BUFFER:int = 5
+    UAL:int = 6
+    REGISTERS_OFFSET:int = 7
     __engine: ProcessorEngine
     __memory: List[int]
     __printList: List[int]
     __linePointer: int = 0
     __instructionRegister: int = 0
+    __instructionRegister_special: int = -1
+    __instructionRegister_regIndex:int = 0
     __ualIsZero: bool = True
     __ualIsPos: bool = True
-    __ualInput: Tuple[str, Tuple[int], int]
     __memoryAddressRegister: int = 0
     __registers: List[int]
     __currentState: int = 0
     __inputBuffer: List[int]
-    __ualOp1: int = 0
-    __ualOp2: int = 0
+    __ualIn1: int = 0
+    __ualIn2: int = 0
+    __ualOut: int = 0
     __ualCible: int = 0
     __ualCommand: str = ""
+    __registerNumber: int
 
     def __init__(self, engine:ProcessorEngine, binary:Union[List[int],List[str]]):
         """Constructeur
@@ -34,6 +47,7 @@ class Executeur:
         """
         self.__engine = engine
         self.__mask = self.__getMask()
+        self.__registerNumber = self.__engine.registersNumber()
         self.__memory = []
         for item in binary:
             if isinstance(item,str):
@@ -41,7 +55,7 @@ class Executeur:
             else:
                 self.__memory.append(item & self.__mask)
         self.__printList = []
-        self.__registers = [0]*engine.registersNumber()
+        self.__registers = [0]*self.__registerNumber
         self.__inputBuffer = []
 
     @property
@@ -70,9 +84,59 @@ class Executeur:
         nbits = self.__engine.getDataBits()
         return int("1"*nbits,2)
 
-    '''
-    Fonctions correspondant à une mise à une modification d'un organe du processeur
-    '''
+    def getValue(self, source:int) -> Union[int,bool]:
+        if source == self.MEMORY:
+            return self.__readMemory()
+        if source == self.INSTRUCTION_REGISTER:
+            return self.__instructionRegister_special
+        if source == self.LINE_POINTER:
+            return self.__linePointer
+        if source == self.BUFFER:
+            if len(self.__inputBuffer) > 0:
+                return self.__inputBuffer.pop(0)
+            return False
+        if source == self.UAL:
+            return self.__ualOut
+        if self.REGISTERS_OFFSET <= source < self.REGISTERS_OFFSET + self.__registerNumber:
+            index = source - self.REGISTERS_OFFSET
+            return self.__registers[index]
+        return False
+
+    def __setValue(self, cible:int, value:int, bus:int) -> None:
+        value &= self.__mask
+        if bus == self.DATA_BUS:
+            if cible == self.MEMORY:
+                address = self.__memoryAddressRegister
+                self.__memory[address] = value
+            elif cible == self.MEMORY_ADDRESS:
+                self.__memoryAddressRegister = value
+            elif cible == self.INSTRUCTION_REGISTER:
+                self.__instructionRegister = value
+            elif cible == self.LINE_POINTER:
+                self.__linePointer = value
+            elif cible == self.PRINT:
+                self.__printList.append(value)
+            elif cible == self.UAL:
+                self.__ualIn1 = value
+            elif cible == self.DATA_BUS_2:
+                self.__dataBus2 = value
+            elif self.REGISTERS_OFFSET <= cible < self.REGISTERS_OFFSET + self.__registerNumber:
+                index = cible - self.REGISTERS_OFFSET
+                self.__registers[index] = value
+        elif bus == self.DATA_BUS_2 and cible == self.UAL:
+            self.__ualIn2 = value
+
+    def __transfert(self, source:int, cible:int, bus:int) -> bool:
+        sourceValue = self.getValue(source)
+        if isinstance(sourceValue,int):
+            self.__setValue(cible, sourceValue, bus)
+            return True
+        return False
+
+    def __incLinePointer(self) -> None:
+        self.__linePointer += 1
+        self.__linePointer &= self.__mask
+
     def __readMemory(self) -> int:
         """
         :return: valeur mémoire contenue à l'adresse stockée dans __memoryAddressRegister, 0 par défaut
@@ -83,22 +147,6 @@ class Executeur:
             return self.__memory[address]
         return 0
 
-    def __writeMemory(self, value:int) -> None:
-        """
-        :param value: valeur à écrire dans la mémoire
-        :type value:int
-        """
-        address = self.__memoryAddressRegister
-        self.__memory[address] = value
-
-    def __setMemoryAddressRegister(self, address:int) -> None:
-        """Modifie le registre d'adresse
-
-        :param address: nouvelle adresse
-        :type address: int
-        """
-        self.__memoryAddressRegister = address
-
     def __setUalInputOperands(self, registers:Sequence[int], litteral:int) -> None:
         """
         Charge les entrées de l'ual
@@ -108,19 +156,14 @@ class Executeur:
         :param litteral: éventuel littéral, défaut -1
         :type litteral: int
         """
-        ops = []
         if len(registers) > 0:
             registerIndex = registers[0]
-            ops.append(self.__registers[registerIndex])
+            self.__transfert(registerIndex+self.REGISTERS_OFFSET, self.UAL, self.DATA_BUS)
         if len(registers) > 1:
             registerIndex = registers[1]
-            ops.append(self.__registers[registerIndex])
+            self.__transfert(registerIndex+self.REGISTERS_OFFSET, self.UAL, self.DATA_BUS_2)
         elif litteral != -1:
-            ops.append(litteral)
-        if len(ops) == 1:
-            self.__ualOp1 = ops[0]
-        elif len(ops) == 2:
-            self.__ualOp1, self.__ualOp2 = ops
+            self.__transfert(self.INSTRUCTION_REGISTER, self.UAL, self.DATA_BUS_2)
 
     def bufferize(self, value:int) -> None:
         """Ajoute un entier au buffer d'entrée
@@ -131,41 +174,41 @@ class Executeur:
         value &= self.__mask
         self.__inputBuffer.append(value)
 
-    def __executeUAL(self):
+    def __executeUAL_CMP(self) -> None:
+        op1 = self.__ualIn1
+        op2 = self.__ualIn2
+        self.__ualIsZero = ( (op1 - op2) == 0 )
+        self.__ualIsPos = ( (op1 - op2) > 0 )
+
+    def __executeUAL(self) -> None:
         """Exécute le calcul
         """
-        op1 = self.__ualOp1
-        op2 = self.__ualOp2
-        if self.__ualCommand == "cmp":
-            self.__ualIsZero = ( (op1 - op2) == 0 )
-            self.__ualIsPos = ( (op1 - op2) > 0 )
-        else:
-            outputRegister = self.__ualCible
-            if self.__ualCommand == "neg" or self.__ualCommand == "~":
-                op1 = self.__ualOp1
-                if self.__ualCommand == "neg":
-                    result = (-op1) & self.__mask
-                else:
-                    result = (~op1) and self.__mask
-                self.__registers[outputRegister] = result
+        op1 = self.__ualIn1
+        op2 = self.__ualIn2
+        outputRegister = self.__ualCible
+        if self.__ualCommand == "neg" or self.__ualCommand == "~":
+            if self.__ualCommand == "neg":
+                result = (-op1) & self.__mask
             else:
-                if self.__ualCommand == "+":
-                    result = (op1 + op2) & self.__mask
-                elif self.__ualCommand == "-":
-                    result = (op1 - op2) & self.__mask
-                elif self.__ualCommand == "*":
-                    result = (op1 * op2) & self.__mask
-                elif self.__ualCommand == "/":
-                    result = op1 // op2
-                elif self.__ualCommand == "%":
-                    result = op1 % op2
-                elif self.__ualCommand == "&":
-                    result = op1 & op2
-                elif self.__ualCommand == "|":
-                    result = op1 | op2
-                elif self.__ualCommand == "^":
-                    result = op1 ^ op2
-                self.__registers[outputRegister] = result
+                result = (~op1) and self.__mask
+        else:
+            if self.__ualCommand == "+":
+                result = (op1 + op2) & self.__mask
+            elif self.__ualCommand == "-":
+                result = (op1 - op2) & self.__mask
+            elif self.__ualCommand == "*":
+                result = (op1 * op2) & self.__mask
+            elif self.__ualCommand == "/":
+                result = op1 // op2
+            elif self.__ualCommand == "%":
+                result = op1 % op2
+            elif self.__ualCommand == "&":
+                result = op1 & op2
+            elif self.__ualCommand == "|":
+                result = op1 | op2
+            elif self.__ualCommand == "^":
+                result = op1 ^ op2
+        self.__ualOut = result
 
     def step(self) -> int:
         """Exécution d'un pas.
@@ -183,15 +226,15 @@ class Executeur:
             # toujours chargement de la ligne dans le registre d'adresse mémoire
             # puis incrémentation du pointeur de ligne
             # up de __currentState
-            self.__setMemoryAddressRegister(self.__linePointer)
-            self.__linePointer += 1
+            self.__transfert(self.LINE_POINTER, self.MEMORY_ADDRESS, self.DATA_BUS)
+            self.__incLinePointer()
             self.__currentState = 1
 
         elif self.__currentState == 1:
             # lecture de la case mémoire pointée par le registre d'adresse mémoire
             # écriture dans le registre instruction
             # up de __currentState
-            self.__instructionRegister = self.__readMemory()
+            self.__transfert(self.MEMORY, self.INSTRUCTION_REGISTER, self.DATA_BUS)
             self.__currentState = 2
 
         elif self.__currentState == 2:
@@ -209,83 +252,86 @@ class Executeur:
             #     input charge adresse cible dans registre adresse, ? -> currentState
             #     dans l'état suivant pour input, il faudra lire dans le buffer. Si buffer vide, nécessitera de passer à l'état -2
             instName, opRegisters, opSpecial = self.__engine.instructionDecode(self.__instructionRegister)
+            self.__instructionRegister_special = opSpecial
             if instName == "halt":
                 self.__currentState = -1
 
             elif instName == "goto":
-                self.__linePointer = opSpecial
+                self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                 self.__currentState = 0
 
             elif instName == "!=":
                 if(not(self.__ualIsZero)):
-                    self.__linePointer = opSpecial
+                    self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == "==":
                 if(self.__ualIsZero):
-                    self.__linePointer = opSpecial
+                    self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == "<":
                 if(not(self.__ualIsPos))&(not(self.__ualIsZero)):
-                    self.__linePointer = opSpecial
+                    self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == ">":
                 if(self.__ualIsPos):
-                    self.__linePointer = opSpecial
+                    self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == ">=":
                 if((self.__ualIsZero)|(self.__ualIsPos)):
-                    self.__linePointer = opSpecial
+                    self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == "<=":
                 if((self.__ualIsZero)|(not(self.__ualIsPos))):
-                    self.__linePointer = opSpecial
+                    self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == "input":
-                self.__setMemoryAddressRegister(opSpecial)
-                self.__currentState = 6
-                # l'état 6 est important : si on mettait -2 tout de suite, l'état -2 provoquerait un arrêt d'exécution
+                self.__transfert(self.INSTRUCTION_REGISTER, self.MEMORY_ADDRESS, self.DATA_BUS)
+                self.__currentState = 8
+                # l'état 8 est important : si on mettait -2 tout de suite, l'état -2 provoquerait un arrêt d'exécution
                 # même dans des cas ou le buffer aurait été préalablement rempli
 
             elif instName == "print":
-                op = opRegisters[0]
-                self.__printList.append(self.__registers[op])
+                register = opRegisters[0]
+                self.__transfert(self.REGISTERS_OFFSET + register, self.PRINT, self.DATA_BUS)
                 self.__currentState = 0
 
             elif instName == "move":
                 if len(opRegisters) == 1:
-                    op = opRegisters[0]
-                    self.__registers[op] = opSpecial
+                    register = opRegisters[0]
+                    self.__transfert(self.INSTRUCTION_REGISTER, self.REGISTERS_OFFSET + register, self.DATA_BUS)
                     self.__currentState = 0
                 else:
-                    opCible, opSource = opRegisters
-                    self.__registers[opCible] = self.__registers[opSource]
+                    registerCible, registerSource = opRegisters
+                    self.__transfert(self.REGISTERS_OFFSET + registerSource, self.REGISTERS_OFFSET + registerCible, self.DATA_BUS)
                     self.__currentState = 0
 
             elif instName == "store":
-                self.__setMemoryAddressRegister(opSpecial)
-                self.__currentState = 4
+                self.__instructionRegister_regIndex = opRegisters[0]
+                self.__transfert(self.INSTRUCTION_REGISTER, self.MEMORY_ADDRESS, self.DATA_BUS)
+                self.__currentState = 6
 
             elif instName == "load":
-                self.__setMemoryAddressRegister(opSpecial)
-                self.__currentState = 5
+                self.__instructionRegister_regIndex = opRegisters[0]
+                self.__transfert(self.INSTRUCTION_REGISTER, self.MEMORY_ADDRESS, self.DATA_BUS)
+                self.__currentState = 7
 
             elif instName == "cmp":
                 self.__setUalInputOperands(opRegisters, opSpecial)
@@ -296,42 +342,48 @@ class Executeur:
                 self.__ualCible = opRegisters[0]
                 self.__setUalInputOperands(opRegisters[1:], opSpecial)
                 self.__ualCommand = instName
-                self.__currentState = 3
+                self.__currentState = 4
 
+        # Chaque état est particulier ensuite. Il faut tracer un diagramme avec tous les schémas possibles.
+        # beaucoup d'instructions ne vont pas plus loin que l'état 2 ce qui limite
+        # il est sans doute plus simple de prévoir des état spéciaux ensuite :
+        # si toutes les instructions longues passent au niveau 3, il faudra ensuite tester pour voir dans quel cas on est
+        # par contre si store ou load ont leur propre état, par exemple 4, si on est dans l'état 4 on n'a pas plus de test à faire
+        # on sait déjà où on est, ce qui est plus simple.
         elif self.__currentState == 3:
-            # Chaque état est particulier ensuite. Il faut tracer un diagramme avec tous les schémas possibles.
-            # beaucoup d'instructions ne vont pas plus loin que l'état 2 ce qui limite
-            # il est sans doute plus simple de prévoir des état spéciaux ensuite :
-            # si toutes les instructions longues passent au niveau 3, il faudra ensuite tester pour voir dans quel cas on est
-            # par contre si store ou load ont leur propre état, par exemple 4, si on est dans l'état 4 on n'a pas plus de test à faire
-            # on sait déjà où on est, ce qui est plus simple.
-            self.__executeUAL()
+            # exécution UAL CMP (sans transfert)
+            self.__executeUAL_CMP()
             self.__currentState = 0
 
         elif self.__currentState == 4:
-            # store
-            instName, opRegisters, opSpecial = self.__engine.instructionDecode(self.__instructionRegister)
-            r = opRegisters[0]
-            valueToStore = self.__registers[r]
-            self.__writeMemory(valueToStore)
-            self.__currentState = 0
+            # exécution UAL
+            self.__executeUAL()
+            self.__currentState = 5
 
         elif self.__currentState == 5:
-            # load
-            instName, opRegisters, opSpecial = self.__engine.instructionDecode(self.__instructionRegister)
-            self.__registers[opRegisters[0]] = self.__readMemory()
+            # transfert résultat UAL
+            self.__transfert(self.UAL, self.REGISTERS_OFFSET + self.__ualCible, self.DATA_BUS)
             self.__currentState = 0
 
-        elif self.__currentState == 6 or self.__currentState == -2:
+        elif self.__currentState == 6:
+            # store
+            register = self.__instructionRegister_regIndex
+            self.__transfert(self.REGISTERS_OFFSET + register, self.MEMORY, self.DATA_BUS)
+            self.__currentState = 0
+
+        elif self.__currentState == 7:
+            # load
+            register = self.__instructionRegister_regIndex
+            self.__transfert(self.MEMORY, self.REGISTERS_OFFSET + register, self.DATA_BUS)
+            self.__currentState = 0
+
+        elif self.__currentState == 8 or self.__currentState == -2:
             # On charge le contenu du buffer si celui-ci n'est pas vide
             # On attend sinon
-            if self.__inputBuffer!=[]:
-                valueToStore = self.__inputBuffer.pop(0)
-                self.__memory[self.__memoryAddressRegister] = valueToStore
+            if self.__transfert(self.BUFFER, self.MEMORY, self.DATA_BUS):
                 self.__currentState = 0
             else:
                 self.__currentState = -2
-
 
         return self.__currentState
 
@@ -369,7 +421,7 @@ class Executeur:
         return self.__currentState
 
     def __str__(self) -> str :
-        return f'ligne = {self.__linePointer}\n'
+        return f'ligne = {self.__linePointer}'
 
 
 if __name__ == '__main__':
