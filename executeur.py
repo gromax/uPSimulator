@@ -173,7 +173,7 @@ class Executeur:
                     self.__currentState = 0
 
             if (instName == "<"): 
-                if(not(self.__ualIsPos)):
+                if(not(self.__ualIsPos))&(not(self.__ualIsZero)):
                     self.__linePointer = intSpecial
                     self.__currentState = 0
                 else:
@@ -201,7 +201,7 @@ class Executeur:
                     self.__currentState = 0
                 
             if (instName == "input"):
-                self.__memoryAddressRegister = instRegList[0]
+                self.__memoryAddressRegister = intSpecial
                 self.__currentState = -2
 
             if (instName == "print"):
@@ -244,9 +244,11 @@ class Executeur:
             # On charge le contenu du buffer si celui-ci n'est pas vide
             # On attend sinon
             if self.__inputBuffer!=[]:
-                self.__registers[self.__memoryAddressRegister] = self.__inputBuffer.pop()
+                bintoStore = format(self.__inputBuffer.pop(), '0'+str(self.__engine.getDataBits())+'b')
+                self.__binary[self.__memoryAddressRegister] = bintoStore
+                self.__currentState = 0
             else:
-                self.waitingInput()
+                self.waitingInput
 
         elif self.__currentState == 4:
             # store
@@ -291,13 +293,16 @@ class Executeur:
           De plus, ce programme prend la main pour toute une exécution.
           Ne convient donc pas au cas d'une visualisation avec interface graphique devant se remettre à jour en parallèle de l'exécution.
         """
-        while (self.__currentState >= 0 ):
+        while (self.__currentState != -1 ):
             self.step()
 
 if __name__ == '__main__':
     from processorengine import ProcessorEngine
+    from codeparser import CodeParser
+    from compilemanager import CompilationManager
     engine = ProcessorEngine()
 
+    print("TEST 0")
     binary = [  '0100100000000000',
                 '0111000000011010',
                 '0100100000000000',
@@ -329,9 +334,65 @@ if __name__ == '__main__':
 
     myExec = Executeur(engine,binary)
 
-    # for i in range(5):
-    #     print('\n')
-    #     myExec.instructionStep()
     myExec.nonStopRun()
     print(myExec.printList)
+
+    tests = [
+    'example.code',
+     'example2.code'
+    ]
+
+    engine16 = ProcessorEngine()
+    engine12 = ProcessorEngine("12bits")
+
+    for testFile in tests:
+        print("#### Fichier "+testFile)
+        cp = CodeParser(filename = testFile)
+        structuredList = cp.getFinalStructuredList()
+
+        print("Programme structuré :")
+        print()
+        for item in structuredList:
+            print(item)
+        print()
+
+        cm16 = CompilationManager(engine16, structuredList)
+        print("Assembleur avec la structure 16 bits :")
+        print()
+        print(cm16.getAsm())
+        print()
+        print("Binaire avec la structure 16 bits :")
+        print()
+        print(cm16.getAsm().getBinary())
+        print()
+
+        print("Execution 16 bits")
+        binary16=cm16.getAsm().getBinary()
+        binary16 = binary16.split("\n")
+        myExec16 = Executeur(engine16,binary16)
+        myExec16.bufferize(88)
+        myExec16.nonStopRun()
+        print("PrintList")
+        print(myExec16.printList)
+        print()
+
+        cm12 = CompilationManager(engine12, structuredList)
+        print("Assembleur avec la structure 12 bits :")
+        print()
+        print(cm12.getAsm())
+        print()
+        print("Binaire avec la structure 12 bits :")
+        print()
+        print(cm12.getAsm().getBinary())
+        print()
+
+        print("Execution 12 bits")
+        binary12=cm12.getAsm().getBinary()
+        binary12 = binary12.split("\n")
+        myExec12 = Executeur(engine12,binary12)
+        myExec12.bufferize(88)  
+        myExec12.nonStopRun()
+        print("PrintList")
+        print(myExec12.printList)
+        print()
 
