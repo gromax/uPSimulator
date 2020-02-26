@@ -3,7 +3,7 @@
    :synopsis: classe définissant les attributs d'un modèle de processeur et fournissant les informations utiles aux outils de compilation
 """
 
-from typing import Union, List, Dict, Optional, Tuple
+from typing import Union, List, Dict, Optional, Tuple, Sequence
 from typing_extensions import TypedDict
 
 Commands = TypedDict('Commands', {
@@ -352,7 +352,7 @@ class ProcessorEngine:
         maxLitteralSize = self.getLitteralMaxSizeIn(commandDesc)
         return litteral.isBetween(0, maxLitteralSize)
 
-    def instructionDecode(self, binary:Union[int,str]) -> Tuple[str, Tuple[int], int]:
+    def instructionDecode(self, binary:Union[int,str]) -> Tuple[str, Sequence[int], int]:
         """Pour une instruction, fait le décodage en renvoyant le descriptif commande, les opérandes registres et un éventuel opérande non registre
 
         :param binary: code binaire

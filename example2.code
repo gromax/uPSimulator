@@ -7,6 +7,5 @@ while i < m:
         if s < 10:
             y = s * 2
             print(y)
-    x = i + 3
-    i = i + 1
+    i = i + 3
 print(s)
