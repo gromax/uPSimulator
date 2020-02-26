@@ -8,4 +8,5 @@ while i < m:
             y = s * 2
             print(y)
     x = i + 3
+    i = i + 1
 print(s)
