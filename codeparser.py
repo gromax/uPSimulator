@@ -30,7 +30,7 @@ class CodeParser: # Définition classe
             code = options["code"]
             self.parseCode(code.split("\n"))
         else:
-            raise ParseError("Il faut doner 'filename' ou 'code'")
+            raise ParseError("Il faut donner 'filename' ou 'code'")
 
     def __parseFile(self, filename:str) -> None:
         # Lecture de toutes les lignes du fichier

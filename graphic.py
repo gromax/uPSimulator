@@ -5,6 +5,9 @@
 
 
 from tkinter import *
+from codeparser import CodeParser
+from compilemanager import CompilationManager
+from processorengine import ProcessorEngine
 
 class Graphic:
     def __init__(self):
@@ -20,6 +23,7 @@ class Graphic:
         self.__programInput = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__programInput.pack(padx=10, pady=10)
         self.__programInput.insert('1.0', 'here is my text to insert')
+        self.__programInput.bind('<Button-1>', self.clear_programInput)
         self.__errorMessage = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__errorMessage.pack(padx=10, pady=10)
         compileButton = Button(programInputFrame, text='Compile', command=self.doCompile)
@@ -40,8 +44,18 @@ class Graphic:
     def show(self):
         self.__root.mainloop()
 
+    def clear_programInput(self,event):
+        self.__programInput.delete('1.0', 'end')
+
     def doCompile(self):
-        pass
+        text_code = self.__programInput.get(1.0, 'end')
+        cp = CodeParser(code = text_code)
+        structuredList = cp.getFinalStructuredList()
+        engine16 = ProcessorEngine()
+        cm16 = CompilationManager(engine16, structuredList)
+        self.__asmCode.insert('1.0',cm16.getAsm())
+
+
 
 
 if __name__=="__main__":
