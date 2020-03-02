@@ -23,7 +23,7 @@ class Graphic:
         self.__programInput = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__programInput.pack(padx=10, pady=10)
         self.__programInput.insert('1.0', 'here is my text to insert')
-        self.__programInput.bind('<Button-1>', self.clear_programInput)
+        self.__programInput.bind('<Double-Button-1>', self.clear_programInput)
         self.__errorMessage = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__errorMessage.pack(padx=10, pady=10)
         compileButton = Button(programInputFrame, text='Compile', command=self.doCompile)
@@ -35,8 +35,9 @@ class Graphic:
         # partie asm
         asmFrame = Frame(root, width=200, height=200)
         self.__asmCode = Text(asmFrame, width = 30, height = 20, bg = 'white')
-        self.__asmCode.pack(padx=10, pady=10)
-
+        self.__asmCode.pack(padx=10, pady=10,side = RIGHT)
+        self.__asmBinary = Text(asmFrame, width = 30, height = 20, bg = 'white')
+        self.__asmBinary.pack(padx=10, pady=10, side = RIGHT)
         asmFrame.grid(row=0, column=1, sticky="nsew")
 
         self.__root = root
@@ -48,15 +49,18 @@ class Graphic:
         self.__programInput.delete('1.0', 'end')
 
     def doCompile(self):
-        text_code = self.__programInput.get(1.0, 'end')
-        cp = CodeParser(code = text_code)
-        structuredList = cp.getFinalStructuredList()
+        self.__errorMessage.delete('1.0', 'end')
         engine16 = ProcessorEngine()
-        cm16 = CompilationManager(engine16, structuredList)
-        self.__asmCode.insert('1.0',cm16.getAsm())
-
-
-
+        text_code = self.__programInput.get(1.0, 'end')
+        try :
+            cp = CodeParser(code = text_code)
+            structuredList = cp.getFinalStructuredList()
+            cm16 = CompilationManager(engine16, structuredList)
+        except Exception as e :
+            self.__errorMessage.insert('1.0',e)
+        else :
+            self.__asmCode.insert('1.0',cm16.getAsm())
+            self.__asmBinary.insert('1.0',cm16.getAsm().getBinary())
 
 if __name__=="__main__":
     g = Graphic()
