@@ -3,10 +3,25 @@
    :synopsis: classe chargée de l'exécution du code binaire
 """
 
-from typing import List, Tuple, Union, Sequence
+from typing import List, Tuple, Union, Sequence, Optional
 from processorengine import ProcessorEngine
 
 class Executeur:
+    """Identifiants des bus :
+    - DATA_BUS : bus de données
+    - DATA_BUS_2 : bus secondaire entre les registres et la 2e opérande UAL
+
+    Identifiants des variables internes :
+    - MEMORY: mémoire
+    - MEMORY_ADDRESS: registre adresse mémoire
+    - INSTRUCTION_REGISTER: registre instruction
+    - LINE_POINTER: registre pointeur de ligne
+    - PRINT: affichage
+    - BUFFER: buffer
+    - UAL: Unité Arithmétique et Logique
+    - REGISTERS_OFFSET: registre 0
+    """
+
     DATA_BUS:int = 0
     DATA_BUS_2:int = 1
     MEMORY:int = 0
@@ -78,13 +93,21 @@ class Executeur:
 
     def __getMask(self) -> int:
         """
-        :return:masque pour empêcher la saisie d'un nombre trop grand
-        :rtype:int
+        :return: masque pour empêcher la saisie d'un nombre trop grand
+        :rtype: int
         """
         nbits = self.__engine.getDataBits()
         return int("1"*nbits,2)
 
-    def getValue(self, source:int) -> Union[int,bool]:
+    def getValue(self, source:int) -> Optional[int]:
+        """lit la valeur d'un variable interne du processeur virtuel
+
+        :param source: identifiant de la variable
+        :type source: int
+        :result: valeur de la variable ou False si l'identifiant est inconnu
+        :rtype: Optional[int]
+        """
+
         if source == self.MEMORY:
             return self.__readMemory()
         if source == self.INSTRUCTION_REGISTER:
@@ -103,6 +126,13 @@ class Executeur:
         return False
 
     def __setValue(self, cible:int, value:int, bus:int) -> None:
+        """écrit une valeur dans une variable interne du processeur virtuel
+
+        :param cible: identifiant de la variable
+        :type cible: int
+        :param value: valeur à écrire
+        :type value: int
+        """
         value &= self.__mask
         if bus == self.DATA_BUS:
             if cible == self.MEMORY:
@@ -127,6 +157,17 @@ class Executeur:
             self.__ualIn2 = value
 
     def __transfert(self, source:int, cible:int, bus:int) -> bool:
+        """déplacement d'une donnée, depuis une source vers une cible, via un certain bus
+
+        :param source: identifiant de source
+        :type source: int
+        :param cible: identifiant de la variable
+        :type cible:int
+        :param bus: identifiant du bus
+        :type bus: int
+        :result: succès
+        :rtype: bool
+        """
         sourceValue = self.getValue(source)
         if isinstance(sourceValue,int):
             self.__setValue(cible, sourceValue, bus)
@@ -134,13 +175,15 @@ class Executeur:
         return False
 
     def __incLinePointer(self) -> None:
+        """incrémente le pointeur de ligne
+        """
         self.__linePointer += 1
         self.__linePointer &= self.__mask
 
     def __readMemory(self) -> int:
         """
         :return: valeur mémoire contenue à l'adresse stockée dans __memoryAddressRegister, 0 par défaut
-        :rtype:int
+        :rtype: int
         """
         address = self.__memoryAddressRegister
         if address < len(self.__memory):
@@ -175,13 +218,19 @@ class Executeur:
         self.__inputBuffer.append(value)
 
     def __executeUAL_CMP(self) -> None:
+        """Exécute une instruction CMP
+
+        Utilise les registres d'entrée UAL chargés préalablement. Modifie les bits d'état.
+        """
         op1 = self.__ualIn1
         op2 = self.__ualIn2
         self.__ualIsZero = ( (op1 - op2) == 0 )
         self.__ualIsPos = ( (op1 - op2) > 0 )
 
     def __executeUAL(self) -> None:
-        """Exécute le calcul
+        """Exécute le calcul stocké enegistré préalablement,
+        utilise les variables dans entrées UAL préalablement,
+        écrit le résultat dans le registre de sortie UAL
         """
         op1 = self.__ualIn1
         op2 = self.__ualIn2
