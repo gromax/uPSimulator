@@ -23,10 +23,10 @@ class Graphic:
         self.__programInput = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__programInput.pack(padx=10, pady=10)
         self.__programInput.insert('1.0', 'here is my text to insert')
-        self.__programInput.bind('<Double-Button-1>', self.clear_programInput)
+        self.__programInput.bind('<Double-Button-1>', self.__clear_programInput)
         self.__errorMessage = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__errorMessage.pack(padx=10, pady=10)
-        compileButton = Button(programInputFrame, text='Compile', command=self.doCompile)
+        compileButton = Button(programInputFrame, text='Compile', command = self.__doCompile)
         compileButton.pack()
 
         programInputFrame.grid(row=0, column=0, sticky="nsew")
@@ -45,11 +45,13 @@ class Graphic:
     def show(self):
         self.__root.mainloop()
 
-    def clear_programInput(self,event):
+    def __clear_programInput(self,event):
         self.__programInput.delete('1.0', 'end')
 
-    def doCompile(self):
+    def __doCompile(self):
         self.__errorMessage.delete('1.0', 'end')
+        self.__asmCode.delete('1.0', 'end')
+        self.__asmBinary.delete('1.0', 'end')
         engine16 = ProcessorEngine()
         text_code = self.__programInput.get(1.0, 'end')
         try :
