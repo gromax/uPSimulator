@@ -127,7 +127,10 @@ class CodeParser: # Définition classe
         listReverseProf = [localeListingCode[index]["indentation"] for index in range(len(localeListingCode))]
         # print(listReverseProf)
         # On commence par l'indentation maximale
-        maximun = max(listReverseProf)
+        if len(listReverseProf) > 0:
+            maximun = max(listReverseProf)
+        else:
+            maximun = -1
         flagElse = False
         # tant que l'on a un maximum > 0 il faut regrouper
         while maximun >= 0:
@@ -207,7 +210,10 @@ class CodeParser: # Définition classe
     def __structureList(self) -> bool:
         #Parcours du listing pour ranger les enfants
         listProfondeur = [self.__listingCode[index]["indentation"] for index in range(len(self.__listingCode))]
-        maximun = max(listProfondeur)
+        if len(listProfondeur) > 0:
+            maximun = max(listProfondeur)
+        else:
+            maximun = -1
         while maximun > 0:
             indexMaximun = listProfondeur.index(maximun)
             self.__listingCode[indexMaximun - 1]['children'] = []
@@ -274,5 +280,10 @@ elif x == 0 :
     for item in code.getFinalStructuredList():
         print(item)
 
-
+    # test programme vide
+    test_code = ''
+    print("")
+    code = CodeParser(code = test_code)
+    for item in code.getFinalStructuredList():
+        print(item)
 
