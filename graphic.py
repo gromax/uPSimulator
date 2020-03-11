@@ -17,28 +17,35 @@ class Graphic:
         root.rowconfigure(0, weight=1)
         root.columnconfigure(0, weight=1)
         root.columnconfigure(1, weight=1)
+        root.columnconfigure(2, weight=1)
 
         # partie programme
-        programInputFrame = Frame(root, width=200, height=200)
+        programInputFrame = LabelFrame(root, width=200, height=200, bd=2, text='Votre code')
         self.__programInput = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__programInput.pack(padx=10, pady=10)
-        self.__programInput.insert('1.0', 'here is my text to insert')
+        #self.__programInput.insert('1.0', 'here is my text to insert')
         self.__programInput.bind('<Double-Button-1>', self.__clear_programInput)
-        self.__errorMessage = Text(programInputFrame, width = 30, height = 10, bg = 'white')
-        self.__errorMessage.pack(padx=10, pady=10)
         compileButton = Button(programInputFrame, text='Compile', command = self.__doCompile)
         compileButton.pack()
+
+        self.__errorMessage = StringVar()
+        self.__errorMessage.set("Aucun message...")
+        self.__errorMessageFrame = Message(programInputFrame, width = 300, textvariable=self.__errorMessage, bg = '#faa', relief='groove')
+        self.__errorMessageFrame.pack(padx=10, pady=10)
 
         programInputFrame.grid(row=0, column=0, sticky="nsew")
 
 
         # partie asm
-        asmFrame = Frame(root, width=200, height=200)
+        asmFrame = LabelFrame(root, width=200, height=200, bd=2, text='Assembleur')
         self.__asmCode = Text(asmFrame, width = 30, height = 20, bg = 'white')
         self.__asmCode.pack(padx=10, pady=10,side = RIGHT)
-        self.__asmBinary = Text(asmFrame, width = 30, height = 20, bg = 'white')
-        self.__asmBinary.pack(padx=10, pady=10, side = RIGHT)
         asmFrame.grid(row=0, column=1, sticky="nsew")
+
+        binaryFrame = LabelFrame(root, width=200, height=200, bd=2, text='Binaire')
+        self.__asmBinary = Text(binaryFrame, width = 30, height = 20, bg = 'white')
+        self.__asmBinary.pack(padx=10, pady=10, side = RIGHT)
+        binaryFrame.grid(row=0, column=2, sticky="nsew")
 
         self.__root = root
 
@@ -49,7 +56,7 @@ class Graphic:
         self.__programInput.delete('1.0', 'end')
 
     def __doCompile(self):
-        self.__errorMessage.delete('1.0', 'end')
+        self.__errorMessage.set("Compilation...")
         self.__asmCode.delete('1.0', 'end')
         self.__asmBinary.delete('1.0', 'end')
         engine16 = ProcessorEngine()
@@ -59,8 +66,9 @@ class Graphic:
             structuredList = cp.getFinalStructuredList()
             cm16 = CompilationManager(engine16, structuredList)
         except Exception as e :
-            self.__errorMessage.insert('1.0',e)
+            self.__errorMessage.set(e)
         else :
+            self.__errorMessage.set("Compilation effectuée !")
             self.__asmCode.insert('1.0',cm16.getAsm())
             self.__asmBinary.insert('1.0',cm16.getAsm().getBinary())
 
