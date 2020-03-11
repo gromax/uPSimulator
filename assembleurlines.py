@@ -44,6 +44,15 @@ class AsmLine:
         if specialOperand != None:
             assert isinstance(specialOperand,str) or isinstance(specialOperand,Variable) or isinstance(specialOperand,Litteral)
 
+    @property
+    def lineNumber(self) -> int:
+        '''Accesseur
+
+        :return: numéro de la ligne d'origine
+        :rtype: int
+        '''
+        return self.__lineNumber
+
     def __stringifyRegOperand(self, operand:int) -> str:
         """Facile la création du texte associé à un registre.
 
