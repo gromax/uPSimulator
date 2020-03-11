@@ -8,6 +8,7 @@ from tkinter import *
 from codeparser import CodeParser
 from compilemanager import CompilationManager
 from processorengine import ProcessorEngine
+from executeur import Executeur
 
 
 class InputCodeWindow:
@@ -49,15 +50,17 @@ class InputCodeWindow:
             self.__errorMessage.set(e)
         else :
             self.__errorMessage.set("Compilation effectuée !")
-            Graphic(textCode, cm16.getAsm())
+            Graphic(engine16, textCode, cm16.getAsm())
 
 class TextWidget:
     normalBackground = 'white'
-    highlightedBackground = 'orange2'
+    highlightedBackground = 'orange3'
     cols = 30
     showLineNumber = True
     lineNumberDigits = 3
     lineNumberTab = '   '
+    lines = 25
+    lineNumberOffset = 0
     def __init__(self, container, text, **kwargs):
 
         for key, value in kwargs.items():
@@ -69,11 +72,15 @@ class TextWidget:
                 self.lineNumberDigits = value
             elif key == 'numbertab':
                 self.lineNumberTab = value
+            elif key == 'lines':
+                self.lines = value
+            elif key == 'offset':
+                self.lineNumberOffset = value
 
         textLines = text.split("\n")
         if self.showLineNumber:
             for i in range(len(textLines)):
-                textLines[i] = ('{:0'+str(self.lineNumberDigits)+'d}:'+self.lineNumberTab+textLines[i]).format(i)
+                textLines[i] = ('{:0'+str(self.lineNumberDigits)+'d}:'+self.lineNumberTab+textLines[i]).format(i+self.lineNumberOffset)
         if self.cols == 0:
             # on ajuste la taille de la zone de texte au contenu
             # le +2 est un bricolage car une tabulation comptant pour un caractère
@@ -83,43 +90,53 @@ class TextWidget:
             # on complète avec des espaces pour que la ligne occupe toute la largeur
             for i in range(len(textLines)):
                 textLines[i] += " "*(self.cols - len(textLines[i]) % self.cols)
+            # ce remplissage devrait aussi se faire pour le cas où la zone s'adapte, mais j'ai toujours l'ennui des tabulations
 
         formatedText = "\n".join(textLines)
-        self.__textZone = Text(container, width=self.cols, height=50, bg=self.normalBackground)
+        self.__textZone = Text(container, width=self.cols, height=self.lines, bg=self.normalBackground)
         self.__textZone.insert(END, formatedText)
         self.__textZone.config(state=DISABLED)
         self.__textZone.pack(padx=10, pady=10)
-        self.highlightLine(0)
 
         self.__textZone.tag_configure("HIGHLIGHTED", background=self.highlightedBackground, foreground='white')
 
 
 
-    def highlightLine(self,n):
+    def highlightLine(self,lineIndex:int):
         self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
-        self.__textZone.tag_add("HIGHLIGHTED", str(n+1)+".0", str(n+1)+".end")
+        lineIndex -= self.lineNumberOffset
+        if lineIndex != -1:
+            tag = str(lineIndex+1)
+            self.__textZone.tag_add("HIGHLIGHTED", tag+".0", tag+".end")
 
 
 
 
 class Graphic:
-    def __init__(self, textCode, asm):
+    def __init__(self, engine, textCode, asm):
         root = Tk()
-
+        self.engine = engine
+        self.asm = asm
         # grille
         root.rowconfigure(0, weight=1)
         root.columnconfigure(0, weight=1)
         root.columnconfigure(1, weight=1)
         root.columnconfigure(2, weight=1)
+        root.rowconfigure(1, weight=1)
 
         # partie programme
         programFrame = LabelFrame(root, width=200, height=200, bd=2, text='Votre code')
-        self.__program = TextWidget(programFrame, textCode, numbersdigits=2)
+        self.__program = TextWidget(programFrame, textCode, numbersdigits=2, lines=20, offset=1)
         programFrame.grid(row=0, column=0, sticky="nsew")
+
+        self.__stepButton = Button(programFrame, width=20, height=1, text='Pas')
+        self.__stepButton.pack()
+
+        self.__stepButton.bind('<Button-1>', self.stepRun)
 
         # partie asm
         asmFrame = LabelFrame(root, width=200, height=200, bd=2, text='Assembleur')
-        self.__asmCode = TextWidget(asmFrame, str(asm), cols=0, numbertab=' ')
+        self.__asmFrame = TextWidget(asmFrame, str(asm), cols=0, numbertab=' ')
         asmFrame.grid(row=0, column=1, sticky="nsew")
 
         binaryFrame = LabelFrame(root, width=200, height=200, bd=2, text='Binaire')
@@ -128,8 +145,25 @@ class Graphic:
 
         self.__root = root
 
+        self.executeur = Executeur(engine,asm.getDecimal())
+        self.highlightCodeLine(0)
+
+    def highlightCodeLine(self, memoryLine:int) -> int:
+        '''pour un numéro de ligne en mémoire, retourne le numéro
+        de la ligne correspondante dans le programme d'origine
+        '''
+        indexCodeLine = self.asm.getLineNumber(memoryLine)
+        self.__asmFrame.highlightLine(memoryLine)
+        self.__program.highlightLine(indexCodeLine)
+
     def show(self):
         self.__root.mainloop()
+
+    def stepRun(self, evt):
+        self.executeur.step()
+        currentLineIndex = self.executeur.getValue(Executeur.LINE_POINTER)
+        self.highlightCodeLine(currentLineIndex)
+
 
 
 if __name__=="__main__":
