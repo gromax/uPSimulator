@@ -84,6 +84,18 @@ class AssembleurContainer:
         asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (source,), memoryItem)
         self.__lines.append(asmLine)
 
+    def getLineNumber(self, indexAsmLine:int) -> int:
+        '''index ligne asm -> index ligne origine
+        :param indexAsmLine: index ligne assembleur
+        :type indexAsmLine: int
+        :return: index ligne origine, -1 par défaut
+        :rtype: int
+        '''
+        if indexAsmLine >= len(self.__lines):
+            return -1
+        return self.__lines[indexAsmLine].lineNumber
+
+
     def pushLoad(self, lineNumber:int, source:Union[Variable,Litteral], destination:int) -> None:
         """
         Ajoute une commande LOAD dans l'assembleur.
