@@ -9,17 +9,12 @@ from codeparser import CodeParser
 from compilemanager import CompilationManager
 from processorengine import ProcessorEngine
 
-class Graphic:
+
+class InputCodeWindow:
     def __init__(self):
         root = Tk()
+        root.title('Simulation de processeur')
 
-        # grille
-        root.rowconfigure(0, weight=1)
-        root.columnconfigure(0, weight=1)
-        root.columnconfigure(1, weight=1)
-        root.columnconfigure(2, weight=1)
-
-        # partie programme
         programInputFrame = LabelFrame(root, width=200, height=200, bd=2, text='Votre code')
         self.__programInput = Text(programInputFrame, width = 30, height = 10, bg = 'white')
         self.__programInput.pack(padx=10, pady=10)
@@ -33,20 +28,7 @@ class Graphic:
         self.__errorMessageFrame = Message(programInputFrame, width = 300, textvariable=self.__errorMessage, bg = '#faa', relief='groove')
         self.__errorMessageFrame.pack(padx=10, pady=10)
 
-        programInputFrame.grid(row=0, column=0, sticky="nsew")
-
-
-        # partie asm
-        asmFrame = LabelFrame(root, width=200, height=200, bd=2, text='Assembleur')
-        self.__asmCode = Text(asmFrame, width = 30, height = 20, bg = 'white')
-        self.__asmCode.pack(padx=10, pady=10,side = RIGHT)
-        asmFrame.grid(row=0, column=1, sticky="nsew")
-
-        binaryFrame = LabelFrame(root, width=200, height=200, bd=2, text='Binaire')
-        self.__asmBinary = Text(binaryFrame, width = 30, height = 20, bg = 'white')
-        self.__asmBinary.pack(padx=10, pady=10, side = RIGHT)
-        binaryFrame.grid(row=0, column=2, sticky="nsew")
-
+        programInputFrame.pack()
         self.__root = root
 
     def show(self):
@@ -57,23 +39,101 @@ class Graphic:
 
     def __doCompile(self):
         self.__errorMessage.set("Compilation...")
-        self.__asmCode.delete('1.0', 'end')
-        self.__asmBinary.delete('1.0', 'end')
         engine16 = ProcessorEngine()
-        text_code = self.__programInput.get(1.0, 'end')
+        textCode = self.__programInput.get(1.0, 'end')
         try :
-            cp = CodeParser(code = text_code)
+            cp = CodeParser(code = textCode)
             structuredList = cp.getFinalStructuredList()
             cm16 = CompilationManager(engine16, structuredList)
         except Exception as e :
             self.__errorMessage.set(e)
         else :
             self.__errorMessage.set("Compilation effectuée !")
-            self.__asmCode.insert('1.0',cm16.getAsm())
-            self.__asmBinary.insert('1.0',cm16.getAsm().getBinary())
+            Graphic(textCode, cm16.getAsm())
+
+class TextWidget:
+    normalBackground = 'white'
+    highlightedBackground = 'orange2'
+    cols = 30
+    showLineNumber = True
+    lineNumberDigits = 3
+    lineNumberTab = '   '
+    def __init__(self, container, text, **kwargs):
+
+        for key, value in kwargs.items():
+            if key == "cols":
+                self.cols = value
+            elif key == 'shownumbers':
+                self.showLineNumber = value
+            elif key == 'numbersdigits':
+                self.lineNumberDigits = value
+            elif key == 'numbertab':
+                self.lineNumberTab = value
+
+        textLines = text.split("\n")
+        if self.showLineNumber:
+            for i in range(len(textLines)):
+                textLines[i] = ('{:0'+str(self.lineNumberDigits)+'d}:'+self.lineNumberTab+textLines[i]).format(i)
+        if self.cols == 0:
+            # on ajuste la taille de la zone de texte au contenu
+            # le +2 est un bricolage car une tabulation comptant pour un caractère
+            # pourra en occuper 3 dans la zone
+            self.cols = max([len(line) for line in textLines]) + 2
+        else:
+            # on complète avec des espaces pour que la ligne occupe toute la largeur
+            for i in range(len(textLines)):
+                textLines[i] += " "*(self.cols - len(textLines[i]) % self.cols)
+
+        formatedText = "\n".join(textLines)
+        self.__textZone = Text(container, width=self.cols, height=50, bg=self.normalBackground)
+        self.__textZone.insert(END, formatedText)
+        self.__textZone.config(state=DISABLED)
+        self.__textZone.pack(padx=10, pady=10)
+        self.highlightLine(0)
+
+        self.__textZone.tag_configure("HIGHLIGHTED", background=self.highlightedBackground, foreground='white')
+
+
+
+    def highlightLine(self,n):
+        self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
+        self.__textZone.tag_add("HIGHLIGHTED", str(n+1)+".0", str(n+1)+".end")
+
+
+
+
+class Graphic:
+    def __init__(self, textCode, asm):
+        root = Tk()
+
+        # grille
+        root.rowconfigure(0, weight=1)
+        root.columnconfigure(0, weight=1)
+        root.columnconfigure(1, weight=1)
+        root.columnconfigure(2, weight=1)
+
+        # partie programme
+        programFrame = LabelFrame(root, width=200, height=200, bd=2, text='Votre code')
+        self.__program = TextWidget(programFrame, textCode, numbersdigits=2)
+        programFrame.grid(row=0, column=0, sticky="nsew")
+
+        # partie asm
+        asmFrame = LabelFrame(root, width=200, height=200, bd=2, text='Assembleur')
+        self.__asmCode = TextWidget(asmFrame, str(asm), cols=0, numbertab=' ')
+        asmFrame.grid(row=0, column=1, sticky="nsew")
+
+        binaryFrame = LabelFrame(root, width=200, height=200, bd=2, text='Binaire')
+        self.__asmBinary = TextWidget(binaryFrame, asm.getBinary(), cols=0, numbertab=' ')
+        binaryFrame.grid(row=0, column=2, sticky="nsew")
+
+        self.__root = root
+
+    def show(self):
+        self.__root.mainloop()
+
 
 if __name__=="__main__":
-    g = Graphic()
+    g = InputCodeWindow()
     g.show()
 
 
