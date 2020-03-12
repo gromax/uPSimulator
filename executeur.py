@@ -99,6 +99,12 @@ class Executeur:
         nbits = self.__engine.getDataBits()
         return int("1"*nbits,2)
 
+    def getMemories(self):
+        return {
+            "registres": [item for item in self.__registers],
+            "buffer": [item for item in self.__inputBuffer]
+        }
+
     def getValue(self, source:int) -> Optional[int]:
         """lit la valeur d'un variable interne du processeur virtuel
 
