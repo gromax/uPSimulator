@@ -102,7 +102,8 @@ class Executeur:
     def getMemories(self):
         return {
             "registres": [item for item in self.__registers],
-            "buffer": [item for item in self.__inputBuffer]
+            "buffer": [item for item in self.__inputBuffer],
+            "waitingInput": self.__currentState == -2
         }
 
     def getValue(self, source:int) -> Optional[int]:
