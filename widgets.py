@@ -5,7 +5,7 @@
 
 from tkinter import *
 
-class TextWidget:
+class TextWidget(Frame):
     BACKGROUND = 'white'
     HL_BACKGROUND = 'orange3'
     HL_COLOR = 'white'
@@ -14,7 +14,9 @@ class TextWidget:
     lineNumberFormat = '{:03d}:   '
     lines = 25
     lineNumberOffset = 0
-    def __init__(self, container, text, **kwargs):
+    def __init__(self, parent, text, **kwargs):
+        Frame.__init__(self, parent, class_='TextWidget')
+
         for key, value in kwargs.items():
             if key == "cols":
                 self.cols = value
@@ -34,7 +36,7 @@ class TextWidget:
             self.cols = max([len(line) for line in textLines])
 
         formatedText = "\n".join(textLines)
-        self.__textZone = Text(container, width=self.cols, height=self.lines, bg=self.BACKGROUND)
+        self.__textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
         self.__textZone.insert(END, formatedText)
         self.__textZone.config(state=DISABLED)
         self.__textZone.pack(padx=10, pady=10)
@@ -68,21 +70,28 @@ class TextWidget:
             self.__textZone.tag_add("HIGHLIGHTED", tag+".0", tag+".end")
 
 
-class BufferWidget:
-    COLS = 10
+class BufferWidget(Frame):
+    SAISIE_COLS = 10
     BACKGROUND = 'white'
-    MAXLENGTH = 3
-    def __init__(self, container, executeur):
+    MAX_BUFFER_LENGTH = 30
+    def __init__(self, parent, executeur):
+        Frame.__init__(self, parent, class_='BufferWidget')
+
         self.__executeur = executeur
-        label = Label(container,text='Buffer')
-        self.__saisie = Text(container, width=self.COLS, height=1, bg=self.BACKGROUND)
-        button = Button(container, text='Entrer')
+        # message en entête
+        self.__messageText = StringVar()
+        label = Label(self,textvariable=self.__messageText)
+        label.grid(row=0, column=0, columnspan=2)
+        # champ de saisie
+        self.__saisie = Text(self, width=self.SAISIE_COLS, height=1, bg=self.BACKGROUND)
+        self.__saisie.grid(row=1, column=0)
+        # bouton de validation
+        button = Button(self, text='Entrer')
+        button.grid(row=1, column=1)
+        # contenu du buffer
         self.__bufferedText = StringVar()
-        self.__buffered = Label(container, textvariable=self.__bufferedText, relief='groove')
-        label.pack()
-        self.__saisie.pack()
-        button.pack()
-        self.__buffered.pack()
+        buffered = Label(self, textvariable=self.__bufferedText, relief='groove')
+        buffered.grid(row=2, column=0, columnspan=2)
         button.bind("<Button-1>", self.bufferize)
         self.refresh()
 
@@ -91,17 +100,25 @@ class BufferWidget:
         try:
             value = int(text)
         except Exception:
-            self.__bufferedText.set('Nombre entier attendu !')
+            self.__messageText.set('Nombre entier attendu !')
+            self.after(1000, self.refresh)
         else:
             self.__executeur.bufferize(value)
             self.refresh()
 
     def refresh(self):
-        buff = self.__executeur.getMemories()["buffer"]
-        buffStrList = [str(item) for item in buff]
-        if len(buffStrList) > self.MAXLENGTH:
-            buffStrList = buffStrList[:self.MAXLENGTH] + ["..."]
-        self.__bufferedText.set(" ; ".join(buffStrList))
+        excuteurState = self.__executeur.getMemories()
+        buff = excuteurState["buffer"]
+        buffStr = " ; ".join([str(item) for item in buff])
+        if len(buffStr) == 0:
+            buffStr = "Buffer vide"
+        elif len(buffStr) > self.MAX_BUFFER_LENGTH:
+            buffStr = buffStr[:self.MAX_BUFFER_LENGTH]+"..."
+        self.__bufferedText.set(buffStr)
+        if excuteurState["waitingInput"]:
+            self.__messageText.set("Saisie en attente")
+        else:
+            self.__messageText.set("Saisie")
 
 
 
@@ -114,7 +131,10 @@ if __name__=="__main__":
     root = Tk()
     testText = "00011101\n11100110"
     textFrame = TextWidget(root, testText, cols=0)
-    buffer = BufferWidget(root, oExecuteur)
+    saisie = BufferWidget(root, oExecuteur)
+    textFrame.pack()
+    saisie.pack()
+
     root.mainloop()
 
 
