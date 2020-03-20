@@ -5,6 +5,8 @@
 
 from typing import List, Tuple, Union, Sequence, Optional
 from processorengine import ProcessorEngine
+from executeurcomponents import Buffer
+
 
 class Executeur:
     """Identifiants des bus :
@@ -44,7 +46,7 @@ class Executeur:
     __memoryAddressRegister: int = 0
     __registers: List[int]
     __currentState: int = 0
-    __inputBuffer: List[int]
+    __inputBuffer: Buffer
     __ualIn1: int = 0
     __ualIn2: int = 0
     __ualOut: int = 0
@@ -52,7 +54,7 @@ class Executeur:
     __ualCommand: str = ""
     __registerNumber: int
 
-    def __init__(self, engine:ProcessorEngine, binary:Union[List[int],List[str]]):
+    def __init__(self, engine:ProcessorEngine, binary:Union[List[int],List[str]], **kwargs):
         """Constructeur
 
         :param engine: modèle de processeur
@@ -60,6 +62,12 @@ class Executeur:
         :param binary: code binaire (liste d'entiers ou représentation binaire en str)
         :type binary: List[int]
         """
+
+        self.__inputBuffer = Buffer()
+        for key, value in kwargs.items():
+            if key == "buffer" and isinstance(value, Buffer):
+                self.__inputBuffer = value
+
         self.__engine = engine
         self.__mask = self.__getMask()
         self.__registerNumber = self.__engine.registersNumber()
@@ -71,7 +79,6 @@ class Executeur:
                 self.__memory.append(item & self.__mask)
         self.__printList = []
         self.__registers = [0]*self.__registerNumber
-        self.__inputBuffer = []
 
     @property
     def printList(self) -> List[int]:
@@ -102,7 +109,6 @@ class Executeur:
     def getMemories(self):
         return {
             "registres": [item for item in self.__registers],
-            "buffer": [item for item in self.__inputBuffer],
             "waitingInput": self.__currentState == -2
         }
 
@@ -122,9 +128,7 @@ class Executeur:
         if source == self.LINE_POINTER:
             return self.__linePointer
         if source == self.BUFFER:
-            if len(self.__inputBuffer) > 0:
-                return self.__inputBuffer.pop(0)
-            return False
+            return self.__inputBuffer.read()
         if source == self.UAL:
             return self.__ualOut
         if self.REGISTERS_OFFSET <= source < self.REGISTERS_OFFSET + self.__registerNumber:
@@ -222,7 +226,7 @@ class Executeur:
         :type value: int
         """
         value &= self.__mask
-        self.__inputBuffer.append(value)
+        self.__inputBuffer.write(value)
 
     def __executeUAL_CMP(self) -> None:
         """Exécute une instruction CMP
