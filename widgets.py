@@ -4,6 +4,7 @@
 """
 
 from tkinter import *
+from executeurcomponents import Buffer
 
 class TextWidget(Frame):
     BACKGROUND = 'white'
@@ -74,10 +75,11 @@ class BufferWidget(Frame):
     SAISIE_COLS = 10
     BACKGROUND = 'white'
     MAX_BUFFER_LENGTH = 30
-    def __init__(self, parent, executeur):
+    def __init__(self, parent, buffer):
         Frame.__init__(self, parent, class_='BufferWidget')
-
-        self.__executeur = executeur
+        self.__buffer = buffer
+        buffer.bind("onread", self.onread)
+        buffer.bind("onwrite", self.onwrite)
         # message en entête
         self.__messageText = StringVar()
         label = Label(self,textvariable=self.__messageText)
@@ -94,6 +96,52 @@ class BufferWidget(Frame):
         buffered.grid(row=2, column=0, columnspan=2)
         button.bind("<Button-1>", self.bufferize)
         self.refresh()
+
+    def bufferize(self, evt):
+        text = self.__saisie.get(1.0, 'end').strip()
+        try:
+            value = int(text)
+        except Exception:
+            self.__messageText.set('Nombre entier attendu !')
+            self.after(1000, self.refresh)
+        else:
+            self.__buffer.write(value)
+
+    def onread(self):
+        self.refresh()
+
+    def onwrite(self):
+        self.refresh()
+
+    def onreadempty(self):
+        self.__messageText.set("Saisie en attente")
+
+    def refresh(self):
+        buffStr = " ; ".join([str(item) for item in self.__buffer.list])
+        if len(buffStr) == 0:
+            buffStr = "Buffer vide"
+        elif len(buffStr) > self.MAX_BUFFER_LENGTH:
+            buffStr = buffStr[:self.MAX_BUFFER_LENGTH]+"..."
+        self.__bufferedText.set(buffStr)
+        self.__messageText.set("Saisie")
+
+class PrintWidget(Frame):
+    SCREEN_COLS = 10
+    SCREEN_LINES = 5
+    BACKGROUND = 'white'
+
+    def __init__(self, parent, executeur):
+        Frame.__init__(self, parent, class_='PrintWidget')
+        # message en entête
+        label = Label(self,text="Écran")
+        label.grid(row=0, column=0)
+        # bouton d'effacement
+        button = Button(self, text='Effacer')
+        button.grid(row=0, column=1)
+        # champ de saisie
+        self.__screen = Text(self, width=self.SAISIE_COLS, height=self.SCREEN_LINES, bg=self.BACKGROUND)
+        self.__saisie.grid(row=1, column=0, columnspan=2)
+        button.bind("<Button-1>", self.clearScreen)
 
     def bufferize(self, evt):
         text = self.__saisie.get(1.0, 'end').strip()
@@ -121,17 +169,11 @@ class BufferWidget(Frame):
             self.__messageText.set("Saisie")
 
 
-
-
 if __name__=="__main__":
-    from processorengine import ProcessorEngine
-    from executeur import Executeur
-    engine16 = ProcessorEngine()
-    oExecuteur = Executeur(engine16,[0])
     root = Tk()
     testText = "00011101\n11100110"
     textFrame = TextWidget(root, testText, cols=0)
-    saisie = BufferWidget(root, oExecuteur)
+    saisie = BufferWidget(root, Buffer())
     textFrame.pack()
     saisie.pack()
 
