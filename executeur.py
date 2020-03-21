@@ -5,7 +5,7 @@
 
 from typing import List, Tuple, Union, Sequence, Optional
 from processorengine import ProcessorEngine
-from executeurcomponents import Buffer
+from executeurcomponents import Buffer, Screen, Register, RegisterGroup
 
 
 class Executeur:
@@ -36,17 +36,17 @@ class Executeur:
     REGISTERS_OFFSET:int = 7
     __engine: ProcessorEngine
     __memory: List[int]
-    __printList: List[int]
-    __linePointer: int = 0
-    __instructionRegister: int = 0
+    __linePointer: Register
+    __memoryAddressRegister: Register
+    __instructionRegister: Register
+    __registers: RegisterGroup
+    __inputBuffer: Buffer
+    __screen: Screen
     __instructionRegister_special: int = -1
     __instructionRegister_regIndex:int = 0
     __ualIsZero: bool = True
     __ualIsPos: bool = True
-    __memoryAddressRegister: int = 0
-    __registers: List[int]
     __currentState: int = 0
-    __inputBuffer: Buffer
     __ualIn1: int = 0
     __ualIn2: int = 0
     __ualOut: int = 0
@@ -62,23 +62,30 @@ class Executeur:
         :param binary: code binaire (liste d'entiers ou représentation binaire en str)
         :type binary: List[int]
         """
+        registersSize = engine.getDataBits()
+        self.__registerNumber = engine.registersNumber()
+
+        self.__memoryAddressRegister = Register("Adresse mémoire", registersSize)
+        self.__instructionRegister = Register("Registre instruction", registersSize)
+        self.__linePointer = Register("Pointeur de ligne", registersSize)
+        self.__registers = RegisterGroup(self.__registerNumber, registersSize)
 
         self.__inputBuffer = Buffer()
+        self.__screen = Screen()
         for key, value in kwargs.items():
             if key == "buffer" and isinstance(value, Buffer):
                 self.__inputBuffer = value
+            elif key == "screen" and isinstance(value, Screen):
+                self.__screen = value
 
         self.__engine = engine
         self.__mask = self.__getMask()
-        self.__registerNumber = self.__engine.registersNumber()
         self.__memory = []
         for item in binary:
             if isinstance(item,str):
                 self.__memory.append(int(item,2) & self.__mask)
             else:
                 self.__memory.append(item & self.__mask)
-        self.__printList = []
-        self.__registers = [0]*self.__registerNumber
 
     @property
     def printList(self) -> List[int]:
@@ -87,7 +94,7 @@ class Executeur:
         :return: liste des valeurs à afficher
         :rtype: List[int]
         """
-        return self.__printList
+        return self.__screen.read()
 
     @property
     def waitingInput(self) -> bool:
@@ -106,12 +113,6 @@ class Executeur:
         nbits = self.__engine.getDataBits()
         return int("1"*nbits,2)
 
-    def getMemories(self):
-        return {
-            "registres": [item for item in self.__registers],
-            "waitingInput": self.__currentState == -2
-        }
-
     def getValue(self, source:int) -> Optional[int]:
         """lit la valeur d'un variable interne du processeur virtuel
 
@@ -126,14 +127,14 @@ class Executeur:
         if source == self.INSTRUCTION_REGISTER:
             return self.__instructionRegister_special
         if source == self.LINE_POINTER:
-            return self.__linePointer
+            return self.__linePointer.read()
         if source == self.BUFFER:
             return self.__inputBuffer.read()
         if source == self.UAL:
             return self.__ualOut
         if self.REGISTERS_OFFSET <= source < self.REGISTERS_OFFSET + self.__registerNumber:
             index = source - self.REGISTERS_OFFSET
-            return self.__registers[index]
+            return self.__registers.read(index)
         return False
 
     def __setValue(self, cible:int, value:int, bus:int) -> None:
@@ -147,23 +148,23 @@ class Executeur:
         value &= self.__mask
         if bus == self.DATA_BUS:
             if cible == self.MEMORY:
-                address = self.__memoryAddressRegister
+                address = self.__memoryAddressRegister.read()
                 self.__memory[address] = value
             elif cible == self.MEMORY_ADDRESS:
-                self.__memoryAddressRegister = value
+                self.__memoryAddressRegister.write(value)
             elif cible == self.INSTRUCTION_REGISTER:
-                self.__instructionRegister = value
+                self.__instructionRegister.write(value)
             elif cible == self.LINE_POINTER:
-                self.__linePointer = value
+                self.__linePointer.write(value)
             elif cible == self.PRINT:
-                self.__printList.append(value)
+                self.__screen.write(value)
             elif cible == self.UAL:
                 self.__ualIn1 = value
             elif cible == self.DATA_BUS_2:
                 self.__dataBus2 = value
             elif self.REGISTERS_OFFSET <= cible < self.REGISTERS_OFFSET + self.__registerNumber:
                 index = cible - self.REGISTERS_OFFSET
-                self.__registers[index] = value
+                self.__registers.write(index, value)
         elif bus == self.DATA_BUS_2 and cible == self.UAL:
             self.__ualIn2 = value
 
@@ -185,18 +186,12 @@ class Executeur:
             return True
         return False
 
-    def __incLinePointer(self) -> None:
-        """incrémente le pointeur de ligne
-        """
-        self.__linePointer += 1
-        self.__linePointer &= self.__mask
-
     def __readMemory(self) -> int:
         """
         :return: valeur mémoire contenue à l'adresse stockée dans __memoryAddressRegister, 0 par défaut
         :rtype: int
         """
-        address = self.__memoryAddressRegister
+        address = self.__memoryAddressRegister.read()
         if address < len(self.__memory):
             return self.__memory[address]
         return 0
@@ -287,7 +282,7 @@ class Executeur:
             # puis incrémentation du pointeur de ligne
             # up de __currentState
             self.__transfert(self.LINE_POINTER, self.MEMORY_ADDRESS, self.DATA_BUS)
-            self.__incLinePointer()
+            self.__linePointer.inc()
             self.__currentState = 1
 
         elif self.__currentState == 1:
@@ -311,7 +306,7 @@ class Executeur:
             #     print charge le registre dans la pile Print puis 0 -> currentState
             #     input charge adresse cible dans registre adresse, ? -> currentState
             #     dans l'état suivant pour input, il faudra lire dans le buffer. Si buffer vide, nécessitera de passer à l'état -2
-            instName, opRegisters, opSpecial = self.__engine.instructionDecode(self.__instructionRegister)
+            instName, opRegisters, opSpecial = self.__engine.instructionDecode(self.__instructionRegister.read())
             self.__instructionRegister_special = opSpecial
             if instName == "halt":
                 self.__currentState = -1
@@ -481,7 +476,7 @@ class Executeur:
         return self.__currentState
 
     def __str__(self) -> str :
-        return f'ligne = {self.__linePointer}'
+        return f'ligne = {self.__linePointer.read()}'
 
 
 if __name__ == '__main__':
