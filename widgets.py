@@ -4,7 +4,7 @@
 """
 
 from tkinter import *
-from executeurcomponents import Buffer
+from executeurcomponents import Buffer, Screen
 
 class TextWidget(Frame):
     BACKGROUND = 'white'
@@ -78,10 +78,11 @@ class BufferWidget(Frame):
     def __init__(self, parent, buffer):
         Frame.__init__(self, parent, class_='BufferWidget')
         self.__buffer = buffer
-        buffer.bind("onread", self.onread)
-        buffer.bind("onwrite", self.onwrite)
+        buffer.bind("onread", self.onreadwrite)
+        buffer.bind("onwrite", self.onreadwrite)
         # message en entête
         self.__messageText = StringVar()
+        self.__messageText.set("Saisie")
         label = Label(self,textvariable=self.__messageText)
         label.grid(row=0, column=0, columnspan=2)
         # champ de saisie
@@ -95,7 +96,7 @@ class BufferWidget(Frame):
         buffered = Label(self, textvariable=self.__bufferedText, relief='groove')
         buffered.grid(row=2, column=0, columnspan=2)
         button.bind("<Button-1>", self.bufferize)
-        self.refresh()
+        self.refreshStrBuffer()
 
     def bufferize(self, evt):
         text = self.__saisie.get(1.0, 'end').strip()
@@ -107,30 +108,32 @@ class BufferWidget(Frame):
         else:
             self.__buffer.write(value)
 
-    def onread(self):
+    def onreadwrite(self, params):
+        self.__messageText.set("Saisie")
+        self.refreshStrBuffer()
         self.refresh()
 
-    def onwrite(self):
-        self.refresh()
-
-    def onreadempty(self):
+    def onreadempty(self, params):
         self.__messageText.set("Saisie en attente")
 
-    def refresh(self):
+    def refreshStrBuffer(self):
         buffStr = " ; ".join([str(item) for item in self.__buffer.list])
         if len(buffStr) == 0:
             buffStr = "Buffer vide"
         elif len(buffStr) > self.MAX_BUFFER_LENGTH:
             buffStr = buffStr[:self.MAX_BUFFER_LENGTH]+"..."
         self.__bufferedText.set(buffStr)
-        self.__messageText.set("Saisie")
 
-class PrintWidget(Frame):
+
+class ScreenWidget(Frame):
     SCREEN_COLS = 10
     SCREEN_LINES = 5
     BACKGROUND = 'white'
 
-    def __init__(self, parent, executeur):
+    def __init__(self, parent, screen):
+        self.__screen = screen
+        screen.bind("onclear", self.onclear)
+        screen.bind("onwrite", self.onwrite)
         Frame.__init__(self, parent, class_='PrintWidget')
         # message en entête
         label = Label(self,text="Écran")
@@ -138,44 +141,41 @@ class PrintWidget(Frame):
         # bouton d'effacement
         button = Button(self, text='Effacer')
         button.grid(row=0, column=1)
-        # champ de saisie
-        self.__screen = Text(self, width=self.SAISIE_COLS, height=self.SCREEN_LINES, bg=self.BACKGROUND)
-        self.__saisie.grid(row=1, column=0, columnspan=2)
         button.bind("<Button-1>", self.clearScreen)
+        # affichage
+        self.__textZone = Text(self, width=self.SCREEN_COLS, height=self.SCREEN_LINES, bg=self.BACKGROUND)
+        self.__textZone.grid(row=1, column=0, columnspan=2)
+        self.__textZone.config(state=DISABLED)
 
-    def bufferize(self, evt):
-        text = self.__saisie.get(1.0, 'end').strip()
-        try:
-            value = int(text)
-        except Exception:
-            self.__messageText.set('Nombre entier attendu !')
-            self.after(1000, self.refresh)
-        else:
-            self.__executeur.bufferize(value)
-            self.refresh()
+    def clearScreen(self, evt):
+        self.__screen.clear()
 
-    def refresh(self):
-        excuteurState = self.__executeur.getMemories()
-        buff = excuteurState["buffer"]
-        buffStr = " ; ".join([str(item) for item in buff])
-        if len(buffStr) == 0:
-            buffStr = "Buffer vide"
-        elif len(buffStr) > self.MAX_BUFFER_LENGTH:
-            buffStr = buffStr[:self.MAX_BUFFER_LENGTH]+"..."
-        self.__bufferedText.set(buffStr)
-        if excuteurState["waitingInput"]:
-            self.__messageText.set("Saisie en attente")
-        else:
-            self.__messageText.set("Saisie")
+    def onclear(self, params):
+        self.__textZone.config(state=NORMAL)
+        self.__textZone.delete('1.0', 'end')
+        self.__textZone.config(state=DISABLED)
 
+
+    def onwrite(self, params):
+        if "writed" in params:
+            value = str(params["writed"])
+            self.__textZone.config(state=NORMAL)
+            self.__textZone.insert('end', value+"\n")
+            self.__textZone.config(state=DISABLED)
 
 if __name__=="__main__":
     root = Tk()
     testText = "00011101\n11100110"
     textFrame = TextWidget(root, testText, cols=0)
     saisie = BufferWidget(root, Buffer())
+    sw = Screen()
+    screen = ScreenWidget(root, sw)
+    sw.write(4)
+    sw.write(45)
     textFrame.pack()
     saisie.pack()
+    screen.pack()
+
 
     root.mainloop()
 
