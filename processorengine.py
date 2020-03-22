@@ -352,17 +352,17 @@ class ProcessorEngine:
         maxLitteralSize = self.getLitteralMaxSizeIn(commandDesc)
         return litteral.isBetween(0, maxLitteralSize)
 
-    def instructionDecode(self, binary:Union[int,str]) -> Tuple[str, Sequence[int], int]:
+    def instructionDecode(self, binary:Union[int,str]) -> Tuple[str, Sequence[int], int, int]:
         """Pour une instruction, fait le décodage en renvoyant le descriptif commande, les opérandes registres et un éventuel opérande non registre
 
         :param binary: code binaire
         :type binary: int ou str
-        :result: tuple contenant la commande, les opérandes registres et l'éventuel opérande spéciale (adresse ou littéral), -1 si pas de spéciale.
-        :rtype: Tuple[str, Tuple[int], int]
+        :result: tuple contenant la commande, les opérandes registres et l'éventuel opérande spéciale (adresse ou littéral), -1 si pas de spéciale, taille en bits de l'éventuel littéral.
+        :rtype: Tuple[str, Tuple[int], int, int]
 
         :Example:
           >>> ProcessorEngine().instructionDecode('0110011001010011')
-          ('/', (1, 2, 3), -1)
+          ('/', (1, 2, 3), -1, 0)
         """
         if isinstance(binary, int):
             strBinary = format(binary, '0'+str(self.__data_bits)+'b')
@@ -373,42 +373,46 @@ class ProcessorEngine:
             if strBinary[:len(opcode)] == opcode:
                 opeBinary = strBinary[len(opcode):]
                 if name == "halt":
-                    return ("halt",(),-1)
+                    return ("halt",(),-1, 0)
                 if name in ("goto", "!=", "==", "<", "<=", ">=", ">", "input"):
                     cible = int(opeBinary,2)
-                    return (name, (), cible)
+                    return (name, (), cible, len(opeBinary))
                 if name in ("store", "load"):
                     reg = int(opeBinary[:self.__register_address_bits],2)
-                    cible = int(opeBinary[self.__register_address_bits:],2)
-                    return (name, (reg,), cible)
+                    strCible = opeBinary[self.__register_address_bits:]
+                    cible = int(strCible,2)
+                    return (name, (reg,), cible, len(strCible))
                 if name in ("cmp", "move"):
                     reg1 = int(opeBinary[:self.__register_address_bits],2)
                     reg2 = int(opeBinary[self.__register_address_bits:2*self.__register_address_bits],2)
-                    return (name, (reg1, reg2), -1)
+                    return (name, (reg1, reg2), -1, 0)
                 if name == "print":
                     reg = int(opeBinary[:self.__register_address_bits],2)
-                    return ("print", (reg,), -1)
+                    return ("print", (reg,), -1, 0)
                 opNumber = self.__opNumber[name]
                 regs = tuple([ int(opeBinary[self.__register_address_bits*i:self.__register_address_bits*(i+1)],2) for i in range(opNumber)])
                 if not self.ualOutputIsFree():
                     regs = (0,) + regs
-                return (name, regs, -1)
+                return (name, regs, -1, 0)
         for name, attr in self.__litteralsCommands.items():
             opcode = attr["opcode"]
             if strBinary[:len(opcode)] == opcode:
                 opeBinary = strBinary[len(opcode):]
                 if name == "move":
                     reg = int(opeBinary[:self.__register_address_bits],2)
-                    litt = int(opeBinary[self.__register_address_bits:],2)
-                    return ("move", (reg,), litt)
+                    strLitt = opeBinary[self.__register_address_bits:]
+                    litt = int(strLitt,2)
+                    return ("move", (reg,), litt, len(strLitt))
                 opNumber = self.__opNumber[name]
                 regs = tuple([ int(opeBinary[self.__register_address_bits*i:self.__register_address_bits*(i+1)],2) for i in range(opNumber-1)])
-                litt = int(opeBinary[self.__register_address_bits*opNumber:],2)
+                strLitteral = opeBinary[self.__register_address_bits*opNumber:]
+                litt = int(strLitteral,2)
+                sizeLitt = len(strLitteral)
                 if not self.ualOutputIsFree():
                     regs = (0,) + regs
-                return (name, regs, litt)
+                return (name, regs, litt, sizeLitt)
         # par défaut, retour halt
-        return ("halt",(),-1)
+        return ("halt",(),-1, 0)
 
     def getLitteralMaxSizeIn(self, commandDesc:str) -> int:
         """Considérant une commande, détermine le nombre de bits utilisés par l'encodage des attributs de la commande et déduit le nombre de bits laissés pour le codage en nombre positif d'un éventuel littéral, et donc la taille maximal de ce littéral.
