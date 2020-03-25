@@ -19,11 +19,11 @@ class DataValue:
         self._mask = 2**size - 1
         self._negMask = 2**(size-1)
         self._value = value & self._mask
-        self._binFormat = "{:0"+str(size)+"b}"
+        self._binFormat = "0b{:0"+str(size)+"b}"
         if size % 4 > 0:
-            self._hexFormat = "{:0"+str(size//4 + 1)+"X}"
+            self._hexFormat = "0x{:0"+str(size//4 + 1)+"X}"
         else:
-            self._hexFormat = "{:0"+str(size//4)+"X}"
+            self._hexFormat = "0x{:0"+str(size//4)+"X}"
 
     @property
     def intValue(self) -> int:
@@ -184,7 +184,7 @@ class BaseComponent:
             if evt == eventName:
                 callback(params)
 
-class Buffer(BaseComponent):
+class BufferComponent(BaseComponent):
     """
     Gestion du buffer d'entrée
     """
@@ -230,7 +230,7 @@ class Buffer(BaseComponent):
         '''
         return [item for item in self.__list]
 
-class Screen(BaseComponent):
+class ScreenComponent(BaseComponent):
     """
     Gestion de l'écran
     """
@@ -247,7 +247,7 @@ class Screen(BaseComponent):
         '''
         return len(self.__list) == 0
 
-    def read(self, base:int = 2) -> List[str]:
+    def getStringList(self, base:int = 2) -> List[str]:
         '''
         :param base: base de la lecture, parmi 2, 10, 16
         :type base: int
@@ -262,13 +262,15 @@ class Screen(BaseComponent):
         self.__list = []
         self.trigger("clear", {})
 
-    def write(self, value:DataValue) -> None:
+    def write(self, value:Union[DataValue,int]) -> None:
         '''
         :param value: ajoute valeur à l'écran
-        :type value: DataValue
+        :type value: Union[DataValue,int]
         '''
+        if isinstance(value,int):
+            value = DataValue(self._size, value)
         self.__list.append(value)
-        self.trigger("write", { "writed":value })
+        self.trigger("write", { "writed":value.clone() })
 
 class Ual(BaseComponent):
     """
@@ -424,7 +426,7 @@ class RegisterGroup(BaseComponent):
 
     @property
     def content(self) -> List[DataValue]:
-        return self.__list
+        return [item.clone() for item in self.__list]
 
     def __fill(self, index) -> None:
         '''Complète la mémoire pour que l'indice index soit défini
@@ -448,7 +450,7 @@ class RegisterGroup(BaseComponent):
             self.fill(index)
         if 0 <= index < len(self.__list):
             newValue = self.__list[index].inc()
-            self.trigger("inc", {"value": newValue} )
+            self.trigger("inc", {"value": newValue, "index":index} )
             return newValue
         return None
 
@@ -465,19 +467,21 @@ class RegisterGroup(BaseComponent):
             return self.__list[index].clone()
         return None
 
-    def write(self, index:int, value:DataValue) -> None:
+    def write(self, index:int, value:Union[DataValue,int]) -> None:
         ''' écrit la valeur dans le registre
 
         :param index: indice du registre écrit
         :type index: int
-        :param value: ajoute valeur à l'écran
-        :type value: int
+        :param value: écrit la valeur dans le registre
+        :type value: Union[DataValue,int]
         '''
+        if isinstance(value, int):
+            value = DataValue(self.size, value)
         if self.__unlimited and index > len(self.__list):
             self.fill(index)
         if 0 <= index < len(self.__list):
             self.__list[index] = value
-            self.trigger("write", { "writed":value })
+            self.trigger("write", { "writed":value, "index":index })
 
 
 class Memory(RegisterGroup):
@@ -504,7 +508,9 @@ class Memory(RegisterGroup):
         address = self.__addressRegister.intValue
         return super().read(address)
 
-    def write(self, value:DataValue) -> None:
+    def write(self, value:Union[DataValue,int]) -> None:
+        if isinstance(value, int):
+            value = DataValue(self.size, value)
         address = self.__addressRegister.intValue
         super().write(address, value)
 
