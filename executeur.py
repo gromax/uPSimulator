@@ -5,7 +5,7 @@
 
 from typing import List, Tuple, Union, Sequence, Optional
 from processorengine import ProcessorEngine
-from executeurcomponents import Buffer, Screen, Register, RegisterGroup, Ual, Memory, DataValue
+from executeurcomponents import BufferComponent, ScreenComponent, Register, RegisterGroup, Ual, Memory, DataValue
 
 
 class Executeur:
@@ -39,8 +39,8 @@ class Executeur:
     __linePointer: Register
     __instructionRegister: Register
     __registers: RegisterGroup
-    __inputBuffer: Buffer
-    __screen: Screen
+    __inputBuffer: BufferComponent
+    __screen: ScreenComponent
     __instructionRegisterMask: int = 0
     __instructionRegister_regIndex:int = 0
     __currentState: int = 0
@@ -64,12 +64,12 @@ class Executeur:
         self.__ual = Ual(registersSize)
         self.__memory = Memory(registersSize, binary)
 
-        self.__inputBuffer = Buffer(registersSize)
-        self.__screen = Screen(registersSize)
+        self.__inputBuffer = BufferComponent(registersSize)
+        self.__screen = ScreenComponent(registersSize)
         for key, value in kwargs.items():
-            if key == "buffer" and isinstance(value, Buffer):
+            if key == "buffer" and isinstance(value, BufferComponent):
                 self.__inputBuffer = value
-            elif key == "screen" and isinstance(value, Screen):
+            elif key == "screen" and isinstance(value, ScreenComponent):
                 self.__screen = value
 
         self.__engine = engine
