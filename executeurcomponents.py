@@ -91,24 +91,25 @@ class DataValue:
         '''
         return DataValue(self._size, self._value & mask)
 
-    def toStr(self, base:int = 2) -> str:
+    def toStr(self, base:str = 'bin') -> str:
         '''transtypage tenant compte que value n'est pas forcément sur 32 bits
         comme les int ordinaire de python pour lesquels str() est conçu
 
-        :param base: base de l'écriture souhaitée
-        :type base: int parmi 2, 10, 16
+        :param base: base de l'écriture parmi 'bin', 'hex', 'dec', 'udec'
+        :type base: str
         :result: valeur sous forme str
         :rtype: str
         '''
-        if base == 2:
+        if base == 'bin':
             return self._binFormat.format(self._value)
-        if base == 16:
+        if base == 'hex':
             return self._hexFormat.format(self._value)
+        if base == 'udec' or self.isPos():
+            # décimal non signé
+            return str(self._value)
         # pour base 10, on ajoute une notation avec - pour nombre négatif
         # dans ce cas, il faut tenir compte du codage CA2 avec une taille
         # de mot qui n'est pas forcément le 32 bits de python
-        if self.isPos():
-            return str(self._value)
         return "-"+str(((~self._value) + 1) & self._mask)
 
     def calc(self, otherValue:"DataValue", operation:str) -> "DataValue":
@@ -247,10 +248,10 @@ class ScreenComponent(BaseComponent):
         '''
         return len(self.__list) == 0
 
-    def getStringList(self, base:int = 2) -> List[str]:
+    def getStringList(self, base:str = 'bin') -> List[str]:
         '''
-        :param base: base de la lecture, parmi 2, 10, 16
-        :type base: int
+        :param base: base de la lecture, parmi 'bin', 'dec', 'hex', 'udec'
+        :type base: str
         :return: liste du contenu de l'écran
         :rtype: List[str]
         '''
@@ -434,9 +435,12 @@ class RegisterGroup(BaseComponent):
         :param index: indice à atteindre
         :type index: int
         '''
-
+        filled = False
         while len(self.__list) <= index:
+            filled = True
             self.__list.append(DataValue(self._size))
+        if filled:
+            self.trigger("fill", {})
 
     def inc(self, index:int) -> Optional[DataValue]:
         '''incrémente la valeur du registre
@@ -462,8 +466,9 @@ class RegisterGroup(BaseComponent):
         :rtype: int
         '''
         if self.__unlimited and index > len(self.__list):
-            self.fill(index)
+            self.__fill(index)
         if 0 <= index < len(self.__list):
+            self.trigger("read", {"value": newValue, "index":index} )
             return self.__list[index].clone()
         return None
 
@@ -478,13 +483,13 @@ class RegisterGroup(BaseComponent):
         if isinstance(value, int):
             value = DataValue(self.size, value)
         if self.__unlimited and index > len(self.__list):
-            self.fill(index)
+            self.__fill(index)
         if 0 <= index < len(self.__list):
             self.__list[index] = value
             self.trigger("write", { "writed":value, "index":index })
 
 
-class Memory(RegisterGroup):
+class MemoryComponent(RegisterGroup):
     """
     Gestion de la mémoire
     équivalent à RegisterGroup avec adresseRegister en plus
@@ -514,11 +519,13 @@ class Memory(RegisterGroup):
         address = self.__addressRegister.intValue
         super().write(address, value)
 
-    def setAddress(self, value:DataValue) -> None:
+    def setAddress(self, value:Union[DataValue,int]) -> None:
+        if isinstance(value, int):
+            value = DataValue(self.size, value)
         self.__addressRegister.write(value)
-        self.trigger("writeaddress", {"address": value})
+        self.trigger("writeaddress", {"address": value.clone()})
 
     @property
     def address(self):
-        return self.__addressRegister.intValue
+        return self.__addressRegister.read()
 
