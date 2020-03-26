@@ -180,6 +180,7 @@ class BufferWidget(LabelFrame):
     MAX_BUFFER_LENGTH = 30
     MODES = ("bin", "hex", "dec")
     __mode = "bin"
+    __waitingInput = True
 
     def __init__(self, parent, bufferComp):
         LabelFrame.__init__(self, parent, class_='BufferWidget', text="Saisie")
@@ -187,21 +188,21 @@ class BufferWidget(LabelFrame):
         bufferComp.bind("onread", self.onreadwrite)
         bufferComp.bind("onwrite", self.onreadwrite)
         # message en entête
-        self.__messageText = StringVar()
-        self.__messageText.set("Saisie")
-        label = Label(self,textvariable=self.__messageText)
+        self.__messageStringVar = StringVar()
+        self.__messageStringVar.set("Saisie")
+        label = Label(self,textvariable=self.__messageStringVar)
         label.grid(row=0, column=0, columnspan=2)
         # champ de saisie
         self.__saisie = Text(self, width=self.SAISIE_COLS, height=1, bg=self.BACKGROUND)
         self.__saisie.grid(row=1, column=0)
         # bouton de validation
-        button = Button(self, text='Entrer')
-        button.grid(row=1, column=1)
+        validationButton = Button(self, text='Entrer')
+        validationButton.grid(row=1, column=1)
+        validationButton.bind("<Button-1>", self.bufferize)
         # contenu du buffer
-        self.__bufferedText = StringVar()
-        buffered = Label(self, textvariable=self.__bufferedText, relief='groove')
-        buffered.grid(row=2, column=0, columnspan=2)
-        button.bind("<Button-1>", self.bufferize)
+        self.__bufferedStringVar = StringVar()
+        bufferedLabel = Label(self, textvariable=self.__bufferedStringVar, relief='groove')
+        bufferedLabel.grid(row=2, column=0, columnspan=2)
         self.refreshStrBuffer()
 
     def selectMode(self, mode):
@@ -219,28 +220,34 @@ class BufferWidget(LabelFrame):
             else:
                 value = int(text)
         except Exception:
-            self.__messageText.set('Nombre entier attendu !')
+            self.__messageStringVar.set('Nombre entier attendu !')
             self.after(1000, self.resetMessage)
         else:
             self.__buffer.write(value)
 
     def resetMessage(self):
-        self.__messageText.set('Saisie')
+        if self.__waitingInput:
+            self.__messageStringVar.set("Saisie en attente")
+        else:
+            self.__messageStringVar.set('Saisie')
 
     def onreadwrite(self, params):
-        self.__messageText.set("Saisie")
+        self.__waitingInput = False
+        self.__messageStringVar.set("Saisie")
         self.refreshStrBuffer()
 
     def onreadempty(self, params):
-        self.__messageText.set("Saisie en attente")
+        self.__waitingInput = True
+        self.__messageStringVar.set("Saisie en attente")
 
     def refreshStrBuffer(self):
         buffStr = " ; ".join([item.toStr(self.__mode) for item in self.__buffer.list])
+        print(buffStr)
         if len(buffStr) == 0:
             buffStr = "Buffer vide"
         elif len(buffStr) > self.MAX_BUFFER_LENGTH:
             buffStr = buffStr[:self.MAX_BUFFER_LENGTH]+"..."
-        self.__bufferedText.set(buffStr)
+        self.__bufferedStringVar.set(buffStr)
 
 class ScreenWidget(LabelFrame):
     SCREEN_COLS = 10
@@ -423,25 +430,10 @@ class UalWidget(LabelFrame):
 
 if __name__=="__main__":
     root = Tk()
-    '''
-    testText = "00011101\n11100110"
-    textFrame = TextWidget(root, testText, cols=0)
     saisie = BufferWidget(root, BufferComponent(8))
-    sc = ScreenComponent(8)
-    screen = ScreenWidget(root, sc)
-    sc.write(4)
-    sc.write(45)
-    textFrame.pack()
     saisie.pack()
-    screen.pack()
-    '''
-    ual = UalComponent(8)
-    ualWidget = UalWidget(root, ual)
-    ualWidget.pack()
-    ual.writeFirstOperand(0)
-    ual.writeSecondOperand(0)
-    ual.setOperation("+")
-    ual.execCalc()
+
+
 
     root.mainloop()
 
