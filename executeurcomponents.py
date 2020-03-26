@@ -273,7 +273,7 @@ class ScreenComponent(BaseComponent):
         self.__list.append(value)
         self.trigger("write", { "writed":value.clone() })
 
-class Ual(BaseComponent):
+class UalComponent(BaseComponent):
     """
     Gestion de l'Unité Arithmétique et Logique
     """
@@ -299,23 +299,27 @@ class Ual(BaseComponent):
             self.__operation = opName
             self.trigger("setoperation", { "operation":opName })
 
-    def writeFirstOperand(self, value:DataValue) -> None:
+    def writeFirstOperand(self, value:Union[DataValue,int]) -> None:
         '''Fixe l'opérande 1
 
         :param value: valeur de l'opérande
-        :type value: DataValue
+        :type value: Union[DataValue,int]
         '''
+        if isinstance(value,int):
+            value = DataValue(self._size, value)
         self.__op1 = value
-        self.trigger("writeop1", { "writed": value})
+        self.trigger("writeop1", { "writed": value.clone()})
 
-    def writeSecondOperand(self, value:DataValue) -> None:
+    def writeSecondOperand(self, value:Union[DataValue,int]) -> None:
         '''Fixe l'opérande 2
 
         :param value: valeur de l'opérande
-        :type value: DataValue
+        :type value: Union[DataValue,int]
         '''
+        if isinstance(value,int):
+            value = DataValue(self._size, value)
         self.__op2 = value
-        self.trigger("writeop2", { "writed": value})
+        self.trigger("writeop2", { "writed": value.clone()})
 
     def read(self) -> DataValue:
         '''lit le résultat
@@ -341,7 +345,7 @@ class Ual(BaseComponent):
             result = self.__op1.calc(self.__op2, self.__operation)
         self.__isPos = result.isPos()
         self.__isZero = result.isNul()
-        self.trigger("calc", { "result":result, "iszero":self.__isZero, "ispos":self.__isPos } )
+        self.trigger("calc", { "result":result.clone(), "iszero":self.__isZero, "ispos":self.__isPos } )
         if self.__operation != "cmp":
             self.__result = result
         return result
@@ -356,7 +360,7 @@ class Ual(BaseComponent):
 
 
 
-class Register(BaseComponent):
+class RegisterComponent(BaseComponent):
     """
     Gestion d'un registre
     """
@@ -394,14 +398,16 @@ class Register(BaseComponent):
         '''
         return self.__value.clone()
 
-    def write(self, value:DataValue) -> None:
+    def write(self, value:Union[DataValue,int]) -> None:
         ''' écrit la valeur dans le registre
 
         :param value: ajoute valeur à l'écran
-        :type value: DataValue
+        :type value: Union[DataValue,int]
         '''
+        if isinstance(value,int):
+            value = DataValue(self._size, value)
         self.__value = value
-        self.trigger("write", { "writed":self.__value })
+        self.trigger("write", { "writed":self.__value.clone() })
 
 class RegisterGroup(BaseComponent):
     """
@@ -494,9 +500,9 @@ class MemoryComponent(RegisterGroup):
     Gestion de la mémoire
     équivalent à RegisterGroup avec adresseRegister en plus
     """
-    __addressRegister: Register
+    __addressRegister: RegisterComponent
     def __init__(self, size:int, initialValues:List[Union[int,str]]=[]):
-        self.__addressRegister = Register("Registre d'adresse", size)
+        self.__addressRegister = RegisterComponent("Registre d'adresse", size)
         memory = []
         for index, item in enumerate(initialValues):
             if isinstance(item,str):
