@@ -5,7 +5,7 @@
 
 from typing import List, Tuple, Union, Sequence, Optional
 from processorengine import ProcessorEngine
-from executeurcomponents import BufferComponent, ScreenComponent, Register, RegisterGroup, Ual, MemoryComponent, DataValue
+from executeurcomponents import BufferComponent, ScreenComponent, RegisterComponent, RegisterGroup, UalComponent, MemoryComponent, DataValue
 
 
 class Executeur:
@@ -36,8 +36,8 @@ class Executeur:
     REGISTERS_OFFSET:int = 7
     __engine: ProcessorEngine
     __memory: MemoryComponent
-    __linePointer: Register
-    __instructionRegister: Register
+    __linePointer: RegisterComponent
+    __instructionRegister: RegisterComponent
     __registers: RegisterGroup
     __inputBuffer: BufferComponent
     __screen: ScreenComponent
@@ -58,10 +58,10 @@ class Executeur:
         registersSize = engine.getDataBits()
         self.__registerNumber = engine.registersNumber()
 
-        self.__instructionRegister = Register("Registre instruction", registersSize)
-        self.__linePointer = Register("Pointeur de ligne", registersSize)
+        self.__instructionRegister = RegisterComponent("Registre instruction", registersSize)
+        self.__linePointer = RegisterComponent("Pointeur de ligne", registersSize)
         self.__registers = RegisterGroup(self.__registerNumber, registersSize)
-        self.__ual = Ual(registersSize)
+        self.__ual = UalComponent(registersSize)
         self.__memory = Memory(registersSize, binary)
 
         self.__inputBuffer = BufferComponent(registersSize)
