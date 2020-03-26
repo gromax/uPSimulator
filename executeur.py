@@ -7,7 +7,6 @@ from typing import List, Tuple, Union, Sequence, Optional
 from processorengine import ProcessorEngine
 from executeurcomponents import BufferComponent, ScreenComponent, RegisterComponent, RegisterGroup, UalComponent, MemoryComponent, DataValue
 
-
 class Executeur:
     """Identifiants des bus :
     - DATA_BUS : bus de données
@@ -35,19 +34,19 @@ class Executeur:
     UAL:int = 6
     REGISTERS_OFFSET:int = 7
     __engine: ProcessorEngine
-    __memory: MemoryComponent
-    __linePointer: RegisterComponent
-    __instructionRegister: RegisterComponent
-    __registers: RegisterGroup
-    __inputBuffer: BufferComponent
-    __screen: ScreenComponent
+    memory: MemoryComponent
+    linePointer: RegisterComponent
+    instructionRegister: RegisterComponent
+    registers: RegisterGroup
+    inputBuffer: BufferComponent
+    screen: ScreenComponent
     __instructionRegisterMask: int = 0
     __instructionRegister_regIndex:int = 0
     __currentState: int = 0
     __ualCible: int = 0
     __registerNumber: int
 
-    def __init__(self, engine:ProcessorEngine, binary:Union[List[int],List[str]], **kwargs):
+    def __init__(self, engine:ProcessorEngine, binary:Union[List[int],List[str]]):
         """Constructeur
 
         :param engine: modèle de processeur
@@ -58,33 +57,17 @@ class Executeur:
         registersSize = engine.getDataBits()
         self.__registerNumber = engine.registersNumber()
 
-        self.__instructionRegister = RegisterComponent("Registre instruction", registersSize)
-        self.__linePointer = RegisterComponent("Pointeur de ligne", registersSize)
-        self.__registers = RegisterGroup(self.__registerNumber, registersSize)
-        self.__ual = UalComponent(registersSize)
-        self.__memory = Memory(registersSize, binary)
+        self.instructionRegister = RegisterComponent("Registre instruction", registersSize)
+        self.linePointer = RegisterComponent("Pointeur de ligne", registersSize)
+        self.registers = RegisterGroup(self.__registerNumber, registersSize)
+        self.ual = UalComponent(registersSize)
+        self.memory = MemoryComponent(registersSize, binary)
 
-        self.__inputBuffer = BufferComponent(registersSize)
-        self.__screen = ScreenComponent(registersSize)
-        for key, value in kwargs.items():
-            if key == "buffer" and isinstance(value, BufferComponent):
-                self.__inputBuffer = value
-            elif key == "screen" and isinstance(value, ScreenComponent):
-                self.__screen = value
+        self.inputBuffer = BufferComponent(registersSize)
+        self.screen = ScreenComponent(registersSize)
 
         self.__engine = engine
         self.__mask = self.__getMask()
-
-
-
-    @property
-    def printList(self) -> List[int]:
-        """Accesseur.
-
-        :return: liste des valeurs à afficher
-        :rtype: List[int]
-        """
-        return self.__screen.read()
 
     @property
     def waitingInput(self) -> bool:
@@ -113,18 +96,18 @@ class Executeur:
         """
 
         if source == self.MEMORY:
-            return self.__memory.read()
+            return self.memory.read()
         if source == self.INSTRUCTION_REGISTER:
-            return self.__instructionRegister.read().mask(self.__instructionRegisterMask)
+            return self.instructionRegister.read().mask(self.__instructionRegisterMask)
         if source == self.LINE_POINTER:
-            return self.__linePointer.read()
+            return self.linePointer.read()
         if source == self.BUFFER:
-            return self.__inputBuffer.read()
+            return self.inputBuffer.read()
         if source == self.UAL:
-            return self.__ual.read()
+            return self.ual.read()
         if self.REGISTERS_OFFSET <= source < self.REGISTERS_OFFSET + self.__registerNumber:
             index = source - self.REGISTERS_OFFSET
-            return self.__registers.read(index)
+            return self.registers.read(index)
         return False
 
     def __setValue(self, cible:int, value:DataValue, bus:int) -> None:
@@ -137,22 +120,22 @@ class Executeur:
         """
         if bus == self.DATA_BUS:
             if cible == self.MEMORY:
-                self.__memory.write(value)
+                self.memory.write(value)
             elif cible == self.MEMORY_ADDRESS:
-                self.__memory.setAddress(value)
+                self.memory.setAddress(value)
             elif cible == self.INSTRUCTION_REGISTER:
-                self.__instructionRegister.write(value)
+                self.instructionRegister.write(value)
             elif cible == self.LINE_POINTER:
-                self.__linePointer.write(value)
+                self.linePointer.write(value)
             elif cible == self.PRINT:
-                self.__screen.write(value)
+                self.screen.write(value)
             elif cible == self.UAL:
-                self.__ual.writeFirstOperand(value)
+                self.ual.writeFirstOperand(value)
             elif self.REGISTERS_OFFSET <= cible < self.REGISTERS_OFFSET + self.__registerNumber:
                 index = cible - self.REGISTERS_OFFSET
-                self.__registers.write(index, value)
+                self.registers.write(index, value)
         elif bus == self.DATA_BUS_2 and cible == self.UAL:
-            self.__ual.writeSecondOperand(value)
+            self.ual.writeSecondOperand(value)
 
     def __transfert(self, source:int, cible:int, bus:int) -> bool:
         """déplacement d'une donnée, depuis une source vers une cible, via un certain bus
@@ -197,7 +180,7 @@ class Executeur:
         :type value: int
         """
         value &= self.__mask
-        self.__inputBuffer.write(value)
+        self.inputBuffer.write(value)
 
     def step(self) -> int:
         """Exécution d'un pas.
@@ -217,7 +200,7 @@ class Executeur:
             # puis incrémentation du pointeur de ligne
             # up de __currentState
             self.__transfert(self.LINE_POINTER, self.MEMORY_ADDRESS, self.DATA_BUS)
-            self.__linePointer.inc()
+            self.linePointer.inc()
             self.__currentState = 1
 
         elif self.__currentState == 1:
@@ -229,7 +212,7 @@ class Executeur:
 
         elif self.__currentState == 2:
             # décodage de l'instruction en utilisant :
-            # self.__engine.instructionDecode(self.__instructionRegister)
+            # self.__engine.instructionDecode(self.instructionRegister)
             # voir la doc de la fonction
             # il faut stocker la réponse dans des attributs ad hoc pour pouvoir les utiliser au pas suivants (le cas échéant)
             # la suite va dépendre de l'instruction, les currentState pour certains cas sont à choisir (? dans la suite) :
@@ -241,7 +224,7 @@ class Executeur:
             #     print charge le registre dans la pile Print puis 0 -> currentState
             #     input charge adresse cible dans registre adresse, ? -> currentState
             #     dans l'état suivant pour input, il faudra lire dans le buffer. Si buffer vide, nécessitera de passer à l'état -2
-            instName, opRegisters, opSpecial, sizeSpecial = self.__engine.instructionDecode(self.__instructionRegister.intValue)
+            instName, opRegisters, opSpecial, sizeSpecial = self.__engine.instructionDecode(self.instructionRegister.intValue)
             self.__instructionRegisterMask = 2**sizeSpecial - 1
             if instName == "halt":
                 self.__currentState = -1
@@ -251,42 +234,42 @@ class Executeur:
                 self.__currentState = 0
 
             elif instName == "!=":
-                if(not(self.__ual.isZero)):
+                if(not(self.ual.isZero)):
                     self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == "==":
-                if(self.__ual.isZero):
+                if(self.ual.isZero):
                     self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == "<":
-                if not (self.__ual.isPos or self.__ual.isZero):
+                if not (self.ual.isPos or self.ual.isZero):
                     self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == ">":
-                if self.__ual.isPos and not self.__ual.isZero:
+                if self.ual.isPos and not self.ual.isZero:
                     self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == ">=":
-                if self.__ual.isPos:
+                if self.ual.isPos:
                     self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
                     self.__currentState = 0
 
             elif instName == "<=":
-                if((self.__ual.isZero)|(not(self.__ual.isPos))):
+                if((self.ual.isZero)|(not(self.ual.isPos))):
                     self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                     self.__currentState = 0
                 else:
@@ -328,7 +311,7 @@ class Executeur:
                 self.__transfert(registerIndex+self.REGISTERS_OFFSET, self.UAL, self.DATA_BUS)
                 registerIndex = opRegisters[1]
                 self.__transfert(registerIndex+self.REGISTERS_OFFSET, self.UAL, self.DATA_BUS_2)
-                self.__ual.setOperation("cmp")
+                self.ual.setOperation("cmp")
                 self.__currentState = 3
 
             elif instName in ["neg", "~", "+", "-", "*", "/", "%", "&", "|", "^"]:
@@ -343,7 +326,7 @@ class Executeur:
                     self.__transfert(registerIndex+self.REGISTERS_OFFSET, self.UAL, self.DATA_BUS_2)
                 elif opSpecial != -1:
                     self.__transfert(self.INSTRUCTION_REGISTER, self.UAL, self.DATA_BUS_2)
-                self.__ual.setOperation(instName)
+                self.ual.setOperation(instName)
                 self.__currentState = 4
 
         # Chaque état est particulier ensuite. Il faut tracer un diagramme avec tous les schémas possibles.
@@ -354,12 +337,12 @@ class Executeur:
         # on sait déjà où on est, ce qui est plus simple.
         elif self.__currentState == 3:
             # exécution UAL CMP (sans transfert)
-            self.__ual.execCalc()
+            self.ual.execCalc()
             self.__currentState = 0
 
         elif self.__currentState == 4:
             # exécution UAL
-            self.__ual.execCalc()
+            self.ual.execCalc()
             self.__currentState = 5
 
         elif self.__currentState == 5:
@@ -423,7 +406,7 @@ class Executeur:
         return self.__currentState
 
     def __str__(self) -> str :
-        return f'ligne = {self.__linePointer.read()}'
+        return f'ligne = {self.linePointer.read()}'
 
 if __name__ == '__main__':
     from processorengine import ProcessorEngine
@@ -465,7 +448,7 @@ if __name__ == '__main__':
     myExec = Executeur(engine, binary)
 
     myExec.nonStopRun()
-    print(myExec.printList)
+    print(myExec.screen.getStringList("bin"))
 
     tests = [ 'example.code' ]
     '''
@@ -497,7 +480,7 @@ if __name__ == '__main__':
         myExec16.bufferize(88)
         myExec16.nonStopRun()
         print("PrintList")
-        print(myExec16.printList)
+        print(myExec16.screen.getStringList("bin"))
         print()
 
         cm12 = CompilationManager(engine12, structuredList)
@@ -507,6 +490,6 @@ if __name__ == '__main__':
         myExec12.bufferize(88)
         myExec12.nonStopRun()
         print("PrintList")
-        print(myExec12.printList)
+        print(myExec12.screen.getStringList("bin"))
         print()
 
