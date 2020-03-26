@@ -474,8 +474,9 @@ class RegisterGroup(BaseComponent):
         if self.__unlimited and index > len(self.__list):
             self.__fill(index)
         if 0 <= index < len(self.__list):
-            self.trigger("read", {"value": newValue, "index":index} )
-            return self.__list[index].clone()
+            value = self.__list[index].clone()
+            self.trigger("read", {"value": value, "index":index} )
+            return value
         return None
 
     def write(self, index:int, value:Union[DataValue,int]) -> None:
