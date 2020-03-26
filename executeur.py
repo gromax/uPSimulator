@@ -5,7 +5,7 @@
 
 from typing import List, Tuple, Union, Sequence, Optional
 from processorengine import ProcessorEngine
-from executeurcomponents import BufferComponent, ScreenComponent, Register, RegisterGroup, Ual, Memory, DataValue
+from executeurcomponents import BufferComponent, ScreenComponent, Register, RegisterGroup, Ual, MemoryComponent, DataValue
 
 
 class Executeur:
@@ -35,7 +35,7 @@ class Executeur:
     UAL:int = 6
     REGISTERS_OFFSET:int = 7
     __engine: ProcessorEngine
-    __memory: Memory
+    __memory: MemoryComponent
     __linePointer: Register
     __instructionRegister: Register
     __registers: RegisterGroup
