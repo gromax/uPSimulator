@@ -15,9 +15,8 @@ class TextWidget(Frame):
     lineNumberFormat = '{:03d}:   '
     lines = 25
     lineNumberOffset = 0
+    __name = "code"
     def __init__(self, parent, text, **kwargs):
-        Frame.__init__(self, parent, class_='TextWidget')
-
         for key, value in kwargs.items():
             if key == "cols":
                 self.cols = value
@@ -27,6 +26,9 @@ class TextWidget(Frame):
                 self.lines = value
             elif key == 'offset':
                 self.lineNumberOffset = value
+            elif key == "name":
+                self.__name = value
+        LabelFrame.__init__(self, parent, class_='TextWidget', text=self.__name)
 
         textLines = self.formatText(text)
         if self.lineNumberFormat != '':
@@ -51,7 +53,6 @@ class TextWidget(Frame):
         for indexSlice in range(slicesNumber):
             size = max([len(line[indexSlice]) for line in textLines if len(line)>indexSlice])
             size = max(self.MIN_TAB_SIZE, size)
-            print(size)
             for indexLine in range(len(textLines)):
                 line = textLines[indexLine]
                 if len(line)>indexSlice:
@@ -59,7 +60,6 @@ class TextWidget(Frame):
                     line[indexSlice] += " "*(size - l)
                 else:
                     line[indexSlice] = " "*size
-        print(textLines)
         formatedTextLines = [ " ".join(line) for line in textLines]
         return formatedTextLines
 
@@ -181,11 +181,11 @@ class BufferWidget(LabelFrame):
     MODES = ("bin", "hex", "dec")
     __mode = "bin"
 
-    def __init__(self, parent, buffer):
+    def __init__(self, parent, bufferComp):
         LabelFrame.__init__(self, parent, class_='BufferWidget', text="Saisie")
-        self.__buffer = buffer
-        buffer.bind("onread", self.onreadwrite)
-        buffer.bind("onwrite", self.onreadwrite)
+        self.__buffer = bufferComp
+        bufferComp.bind("onread", self.onreadwrite)
+        bufferComp.bind("onwrite", self.onreadwrite)
         # message en entête
         self.__messageText = StringVar()
         self.__messageText.set("Saisie")
@@ -220,14 +220,16 @@ class BufferWidget(LabelFrame):
                 value = int(text)
         except Exception:
             self.__messageText.set('Nombre entier attendu !')
-            self.after(1000, self.refresh)
+            self.after(1000, self.resetMessage)
         else:
             self.__buffer.write(value)
+
+    def resetMessage(self):
+        self.__messageText.set('Saisie')
 
     def onreadwrite(self, params):
         self.__messageText.set("Saisie")
         self.refreshStrBuffer()
-        self.refresh()
 
     def onreadempty(self, params):
         self.__messageText.set("Saisie en attente")
