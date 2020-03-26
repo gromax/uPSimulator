@@ -4,7 +4,7 @@
 """
 
 from tkinter import *
-from executeurcomponents import BufferComponent, ScreenComponent, RegisterGroup, MemoryComponent
+from executeurcomponents import BufferComponent, ScreenComponent, RegisterGroup, MemoryComponent, RegisterComponent, UalComponent
 
 class TextWidget(Frame):
     BACKGROUND = 'white'
@@ -78,9 +78,8 @@ class MemoryWidget(LabelFrame):
     cols = 30
     lineNumberFormat = '{:03d}:   '
     lines = 25
-    name = "mémoire"
+    __name = "mémoire"
     __mode = "bin"
-    __showModeButton = True
     __isMemory = False
     def __init__(self, parent, memory, **kwargs):
 
@@ -92,13 +91,11 @@ class MemoryWidget(LabelFrame):
             elif key == 'lines':
                 self.lines = value
             elif key == 'name':
-                self.name = value
+                self.__name = value
             elif key == 'mode' and value in self.MODES.keys():
                 self.__mode = value
-            elif key == 'modebutton':
-                self.__showModeButton = (value == True)
 
-        LabelFrame.__init__(self, parent, class_='MemoryWidget', text=self.name)
+        LabelFrame.__init__(self, parent, class_='MemoryWidget', text=self.__name)
         self.__textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
         self.__memory = memory
         self.__memory.bind("onwrite", self.onwrite)
@@ -113,35 +110,17 @@ class MemoryWidget(LabelFrame):
             labelAddressTag = Label(self, text="Adresse")
             labelAddressTag.grid(row=1, column=0)
             self.__isMemory = True
-            self.__AddressStringVar = StringVar()
-            labelAddress = Label(self, textvariable = self.__AddressStringVar)
+            self.__addressStringVar = StringVar()
+            labelAddress = Label(self, textvariable = self.__addressStringVar)
             labelAddress.grid(row=2, column=0)
             self.__memory.bind("onwriteaddress", self.onwriteaddress)
 
-        # bouton de mode
-        if self.__showModeButton:
-            self.__modeText = StringVar()
-            self.__modeText.set(self.__mode)
-            buttonMode = Button(self, textvariable=self.__modeText)
-            if self.__isMemory:
-                buttonMode.grid(row=3, column=0)
-            else:
-                buttonMode.grid(row=1, column=0)
-            buttonMode.bind("<Button-1>", self.switchMode)
-
-        self.selectMode(self.__mode)
-
+        self.refresh()
 
     def selectMode(self, mode):
         if mode in self.MODES:
             self.__mode = mode
-            if self.__showModeButton:
-                self.__modeText.set(self.__mode)
             self.refresh()
-
-    def switchMode(self, evt):
-        index = (self.MODES.index(self.__mode) + 1) % len(self.MODES)
-        self.selectMode(self.MODES[index])
 
     def highlightLine(self, index:int):
         self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
@@ -163,7 +142,7 @@ class MemoryWidget(LabelFrame):
             strAddress = self.lineNumberFormat.format(intAddress) + address.toStr("udec")
         else:
             strAddress = self.lineNumberFormat.format(intAddress) + address.toStr(self.__mode)
-        self.__AddressStringVar.set(strAddress)
+        self.__addressStringVar.set(strAddress)
         self.highlightLine(intAddress)
 
     def refresh(self):
@@ -199,6 +178,9 @@ class BufferWidget(LabelFrame):
     SAISIE_COLS = 10
     BACKGROUND = 'white'
     MAX_BUFFER_LENGTH = 30
+    MODES = ("bin", "hex", "dec")
+    __mode = "bin"
+
     def __init__(self, parent, buffer):
         LabelFrame.__init__(self, parent, class_='BufferWidget', text="Saisie")
         self.__buffer = buffer
@@ -221,6 +203,11 @@ class BufferWidget(LabelFrame):
         buffered.grid(row=2, column=0, columnspan=2)
         button.bind("<Button-1>", self.bufferize)
         self.refreshStrBuffer()
+
+    def selectMode(self, mode):
+        if mode in self.MODES:
+            self.__mode = mode
+            self.refreshStrBuffer()
 
     def bufferize(self, evt):
         text = self.__saisie.get(1.0, 'end').strip()
@@ -246,7 +233,7 @@ class BufferWidget(LabelFrame):
         self.__messageText.set("Saisie en attente")
 
     def refreshStrBuffer(self):
-        buffStr = " ; ".join([str(item) for item in self.__buffer.list])
+        buffStr = " ; ".join([item.toStr(self.__mode) for item in self.__buffer.list])
         if len(buffStr) == 0:
             buffStr = "Buffer vide"
         elif len(buffStr) > self.MAX_BUFFER_LENGTH:
@@ -267,32 +254,21 @@ class ScreenWidget(LabelFrame):
         screen.bind("onclear", self.onclear)
         screen.bind("onwrite", self.onwrite)
         LabelFrame.__init__(self, parent, class_='PrintWidget', text="Écran")
-        # bouton de mode
-        self.__modeText = StringVar()
-        self.__modeText.set(self.__mode)
-        buttonMode = Button(self, textvariable=self.__modeText)
-        buttonMode.grid(row=0, column=0)
-        buttonMode.bind("<Button-1>", self.switchMode)
 
         # bouton d'effacement
         button = Button(self, text='Effacer')
-        button.grid(row=0, column=1)
+        button.grid(row=0, column=0)
         button.bind("<Button-1>", self.clearScreen)
         # affichage
         self.__textZone = Text(self, width=self.SCREEN_COLS, height=self.SCREEN_LINES, bg=self.BACKGROUND)
-        self.__textZone.grid(row=1, column=0, columnspan=2)
+        self.__textZone.grid(row=1, column=0)
         self.__textZone.config(state=DISABLED)
+        self.refresh()
 
     def selectMode(self, mode):
         if mode in self.MODES:
             self.__mode = mode
-            self.__modeText.set(self.__mode)
             self.refresh()
-
-    def switchMode(self, evt):
-        modes = list(self.MODES.keys())
-        index = (modes.index(self.__mode) + 1) % len(modes)
-        self.selectMode(modes[index])
 
     def clearScreen(self, evt):
         self.__screen.clear()
@@ -319,6 +295,130 @@ class ScreenWidget(LabelFrame):
             self.addLine(strItem)
         self.__textZone.config(state=DISABLED)
 
+class RegisterWidget(LabelFrame):
+    BACKGROUND = 'white'
+    HL_BACKGROUND = 'orange3'
+    MODES = ("bin", "hex", "dec")
+    __unsigned = False
+    __mode = 'bin'
+
+    def __init__(self, parent, register, **kwargs):
+        for key, value in kwargs.items():
+            if key == 'mode' and value in self.MODES.keys():
+                self.__mode = value
+            elif key == 'unsigned':
+                self.__unsigned = (value == True)
+        self.__register = register
+        register.bind("onwrite", self.onwrite)
+        LabelFrame.__init__(self, parent, class_='RegisterWidget', text=register.name)
+        self.__valueStringVar = StringVar()
+        labelValue = Label(self, textvariable = self.__valueStringVar, bg = self.BACKGROUND)
+        labelValue.pack()
+        self.refresh()
+
+    def selectMode(self, mode):
+        if mode in self.MODES:
+            self.__mode = mode
+            self.refresh()
+
+    def writeValue(self, value):
+        if self.__unsigned and self.__mode == 'dec':
+            strValue = value.toStr('udec')
+        else:
+            strValue = value.toStr(self.__mode)
+        self.__valueStringVar.set(strValue)
+
+    def refresh(self):
+        self.writeValue(self.__register.read())
+
+    def onwrite(self, params):
+        if "writed" in params:
+            self.writeValue(params["writed"])
+
+class UalWidget(LabelFrame):
+    BACKGROUND = 'white'
+    MODES = ("bin", "hex", "dec")
+    __mode = 'bin'
+
+    def __init__(self, parent, ual, **kwargs):
+        for key, value in kwargs.items():
+            if key == 'mode' and value in self.MODES.keys():
+                self.__mode = value
+        self.__ual = ual
+        LabelFrame.__init__(self, parent, class_='RegisterWidget', text="UAL")
+
+        self.__op1StringVar = StringVar()
+        self.__op2StringVar = StringVar()
+        self.__resultStringVar = StringVar()
+
+        self.__op1StringVar.set("...")
+        self.__op2StringVar.set("...")
+        self.__resultStringVar.set("...")
+
+        op1Label = Label(self, textvariable = self.__op1StringVar, bg = self.BACKGROUND)
+        op2Label = Label(self, textvariable = self.__op2StringVar, bg = self.BACKGROUND)
+        resultLabel = Label(self, textvariable = self.__resultStringVar, bg = self.BACKGROUND)
+
+        a = 100
+        m = 10
+        b = 20
+        self.__canvasWidth = 2*m+2*a+b
+        self.__canvasHeight = (a+b)//2+2*m
+        canvas = Canvas(self, height=self.__canvasHeight, width=self.__canvasWidth)
+        self.__canvas = canvas
+        p = canvas.create_polygon(m, m, m+a, m, m+a+b/2, m+b/2, m+a+b, m, m+2*a+b, m, m +(a+b)/2+a, m+(a+b)/2, m+(a+b)/2, m+(a+b)/2, fill='', outline='black')
+        self.__operationLabel = canvas.create_text(self.__canvasWidth/2, self.__canvasHeight/2, text='...')
+        self.__zeroLabel = -1
+        self.__posLabel = -1
+
+        op1Label.grid(row=0, column=0)
+        op2Label.grid(row=0, column=1)
+        canvas.grid(row=1, column=0, columnspan=2)
+        resultLabel.grid(row=2, column=0, columnspan=2)
+
+        ual.bind("oncalc", self.oncalc)
+        ual.bind("onwriteop1", self.onwriteop1)
+        ual.bind("onwriteop2", self.onwriteop2)
+        ual.bind("onsetoperation", self.onsetoperation)
+
+    def selectMode(self, mode):
+        if mode in self.MODES:
+            self.__mode = mode
+            self.refresh()
+
+    def onwriteop1(self, params):
+        if "writed" in params:
+            self.__op1StringVar.set(params["writed"].toStr(self.__mode))
+
+    def onwriteop2(self, params):
+        if "writed" in params:
+            self.__op2StringVar.set(params["writed"].toStr(self.__mode))
+
+    def oncalc(self, params):
+        if "result" in params:
+            self.__resultStringVar.set(params["result"].toStr(self.__mode))
+        if ("iszero" in params) and params["iszero"] and self.__zeroLabel == -1:
+            # création d'un label zéro
+            self.__zeroLabel = self.__canvas.create_text(70, 40, text="Zéro", anchor='w', fill='#0A0', font=('Times', 12, 'bold'))
+        else:
+            # effacement d'un éventuel label
+            self.__canvas.delete(self.__zeroLabel)
+            self.__zeroLabel = -1
+        if ("ispos" in params) and params["ispos"] and self.__posLabel == -1:
+            # création d'un label pos
+            self.__posLabel = self.__canvas.create_text(70, 60, text="≥ 0", anchor='w', fill='#0A0', font=('Times', 12, 'bold'))
+        else:
+            # effacement d'un éventuel label
+            self.__canvas.delete(self.__posLabel)
+            self.__posLabel = -1
+
+
+    def onsetoperation(self, params):
+        if "operation" in params:
+            opName = params["operation"]
+            self.__canvas.delete(self.__operationLabel)
+            self.__operationLabel = self.__canvas.create_text(self.__canvasWidth/2, self.__canvasHeight/2, text=opName, font=('Helvetica', 24, 'bold'))
+
 if __name__=="__main__":
     root = Tk()
     '''
@@ -333,14 +433,14 @@ if __name__=="__main__":
     saisie.pack()
     screen.pack()
     '''
-    rg = MemoryComponent(8, [4, 117, 25, 33])
-    rgWidget = MemoryWidget(root, rg, name="Registres")
-    rgWidget.pack()
-    rg.setAddress(3)
-    rg.write(15)
-    rg.setAddress(8)
-    rg.write(21)
-    #rgWidget.highlightLine(2)
+    ual = UalComponent(8)
+    ualWidget = UalWidget(root, ual)
+    ualWidget.pack()
+    ual.writeFirstOperand(0)
+    ual.writeSecondOperand(0)
+    ual.setOperation("+")
+    ual.execCalc()
+
     root.mainloop()
 
 
