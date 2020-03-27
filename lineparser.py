@@ -115,7 +115,7 @@ class LineParser: # Définition classe
         assert testStructureKeyword in ("if", "elif", "while")
         regex = "^\s*" + testStructureKeyword + "\s("+ ExpressionParser.expressionRegex() +")\s*:$"
         allGroup = re.search(regex,line)
-        if not isinstance(allGroup,re.Match):
+        if allGroup is None:
             return False
         firstGroup = allGroup[1] # tout ce qui match après testStructureKeyword et avant les :
         expr = self.__expressionParser.buildExpression(firstGroup)
@@ -152,7 +152,7 @@ class LineParser: # Définition classe
         """
         regex = "^\s*print\s*\(("+ ExpressionParser.expressionRegex() +")\)$"
         allGroup = re.search(regex,line)
-        if not isinstance(allGroup,re.Match):
+        if allGroup is None:
             return False
         firstGroup = allGroup[1] # tout ce qui match dans les ( )
         expr = self.__expressionParser.buildExpression(firstGroup)
@@ -174,7 +174,7 @@ class LineParser: # Définition classe
         """
         regex = "^\s*(" + ExpressionParser.variableRegex() +")\s*=\s*input\s*\(\)$"
         allGroup = re.search(regex,line)
-        if not isinstance(allGroup,re.Match):
+        if allGroup is None:
             return False
         variableName = allGroup[1].strip() # la variable
         if not ExpressionParser.strIsVariableName(variableName):
@@ -194,7 +194,7 @@ class LineParser: # Définition classe
         """
         regex = "^\s*(" + ExpressionParser.variableRegex() + ")\s*=\s*(" + ExpressionParser.expressionRegex() + ")$"
         allGroup = re.search(regex,line)
-        if not isinstance(allGroup,re.Match):
+        if allGroup is None:
             return False
         variableName = allGroup[1].strip() # la variable
         expressionStr = allGroup[2] # tout ce qu'il y a dans les ( ) de l'input
