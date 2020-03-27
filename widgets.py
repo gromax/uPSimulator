@@ -428,6 +428,93 @@ class UalWidget(LabelFrame):
             self.__canvas.delete(self.__operationLabel)
             self.__operationLabel = self.__canvas.create_text(self.__canvasWidth/2, self.__canvasHeight/2, text=opName, font=('Helvetica', 24, 'bold'))
 
+class InputCodeWidget(LabelFrame):
+    # Cadre pour la saisie du code avec champ message erreurs
+    def __init__(self, parent, compileCallBack):
+        LabelFrame.__init__(self, parent, class_='InputCodeWidget', text='Votre code')
+        self.__programInput = Text(self, width = 30, height = 10, bg = 'white')
+        self.__programInput.pack(padx=10, pady=10)
+        self.__programInput.bind('<Double-Button-1>', self.__clear_programInput)
+        compileButton = Button(self, text='Compile', command = self.__doCompile)
+        compileButton.pack()
+
+        self.__errorStringVar = StringVar()
+        self.__errorStringVar.set("Aucun message...")
+        errorMessageFrame = Message(self, width = 300, textvariable=self.__errorStringVar, bg = '#faa', relief='groove')
+        errorMessageFrame.pack(padx=10, pady=10)
+        self.__compileCallBack = compileCallBack
+
+    def __clear_programInput(self,event):
+        self.__programInput.delete('1.0', 'end')
+
+    def __doCompile(self):
+        self.__errorStringVar.set("Compilation...")
+        textCode = self.__programInput.get('1.0', 'end')
+        self.__compileCallBack(textCode, self)
+
+    def writeMessage(self, message):
+        self.__errorStringVar.set(message)
+
+
+
+class SimulationWidget(Frame):
+    def __init__(self, parent, executeur, textCode, asm):
+        Frame.__init__(self, parent, class_='SimulationWidget')
+        self.asm = asm
+        # grille
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.columnconfigure(2, weight=3)
+
+        # partie programme
+        self.__program = TextWidget(self, textCode, numbersdigits=2, lines=20, offset=1, name="Votre code")
+        self.__program.grid(row=0, column=0)
+
+        self.__stepButton = Button(self.__program, width=20, height=1, text='Pas')
+        self.__stepButton.pack()
+
+        self.__stepButton.bind('<Button-1>', self.stepRun)
+
+        # partie asm
+        self.__asmFrame = TextWidget(self, str(asm), cols=0, numbertab=' ', name='Assembleur')
+        self.__asmFrame.grid(row=0, column=1)
+
+
+        self.executeur = executeur
+        ualW = UalWidget(self, self.executeur.ual)
+        inputBufferW = BufferWidget(self, self.executeur.inputBuffer)
+        instrRegW = RegisterWidget(self, self.executeur.instructionRegister, unsigned = True)
+        linePointerW = RegisterWidget(self, self.executeur.linePointer, unsigned = True)
+        memoryW = MemoryWidget(self, self.executeur.memory)
+        screenW = ScreenWidget(self, self.executeur.screen)
+
+        inputBufferW.grid(row=0, column=2)
+        screenW.grid(row=1, column=2)
+        instrRegW.grid(row=2, column=2)
+        memoryW.grid(row=0, column=3)
+
+        self.highlightCodeLine(0)
+
+    def highlightCodeLine(self, memoryLine:int) -> int:
+        '''pour un numéro de ligne en mémoire, retourne le numéro
+        de la ligne correspondante dans le programme d'origine
+        '''
+        indexCodeLine = self.asm.getLineNumber(memoryLine)
+        self.__asmFrame.highlightLine(memoryLine)
+        self.__program.highlightLine(indexCodeLine)
+
+    def show(self):
+        self.__root.mainloop()
+
+    def stepRun(self, evt):
+        self.executeur.step()
+        currentLineIndex = self.executeur.linePointer.intValue
+        self.highlightCodeLine(currentLineIndex)
+
+
+
 if __name__=="__main__":
     root = Tk()
     saisie = BufferWidget(root, BufferComponent(8))
