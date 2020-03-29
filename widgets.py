@@ -319,6 +319,7 @@ class RegisterWidget(LabelFrame):
                 self.__unsigned = (value == True)
         self.__register = register
         register.bind("onwrite", self.onwrite)
+        register.bind("oninc", self.onwrite)
         LabelFrame.__init__(self, parent, class_='RegisterWidget', text=register.name)
         self.__valueStringVar = StringVar()
         labelValue = Label(self, textvariable = self.__valueStringVar, bg = self.BACKGROUND)
@@ -473,7 +474,7 @@ class SimulationWidget(Frame):
 
         # partie programme
         self.__program = TextWidget(self, textCode, numbersdigits=2, lines=20, offset=1, name="Votre code")
-        self.__program.grid(row=1, column=0, columnspan=3, rowspan=9)
+        self.__program.grid(row=1, column=0, columnspan=3, rowspan=11)
 
         stepButton = Button(self, width=10, height=1, text='Pas')
         stepButton.grid(row=0, column=0)
@@ -483,8 +484,11 @@ class SimulationWidget(Frame):
         goButton = Button(self, width=10, height=1, text='Réinit')
         goButton.grid(row=0, column=2)
 
-        self.__messages = Text(self, width=self.__program.cols, height=2)
-        self.__messages.grid(row=10, column=0, rowspan=2, columnspan=3)
+        self.__messages = Text(self, width=150, height=5)
+        self.__messages.grid(row=12, column=0, rowspan=5, columnspan=6)
+        self.__messages.insert(END, "Initialisations\n")
+        self.__messages.config(state=DISABLED)
+
 
         # partie asm
         self.__asmFrame = TextWidget(self, str(asm), cols=0, numbertab=' ', name='Assembleur')
@@ -509,12 +513,12 @@ class SimulationWidget(Frame):
 
         self.highlightCodeLine(0)
 
-    def highlightCodeLine(self, memoryLine:int) -> int:
+    def highlightCodeLine(self, currentAsmLine:int) -> int:
         '''pour un numéro de ligne en mémoire, retourne le numéro
         de la ligne correspondante dans le programme d'origine
         '''
-        indexCodeLine = self.asm.getLineNumber(memoryLine)
-        self.__asmFrame.highlightLine(memoryLine)
+        indexCodeLine = self.asm.getLineNumber(currentAsmLine)
+        self.__asmFrame.highlightLine(currentAsmLine)
         self.__program.highlightLine(indexCodeLine)
 
     def show(self):
@@ -522,10 +526,10 @@ class SimulationWidget(Frame):
 
     def stepRun(self, evt):
         self.executeur.step()
-        currentLineIndex = self.executeur.linePointer.intValue
-        self.highlightCodeLine(currentLineIndex)
-
-
+        self.highlightCodeLine(self.executeur.currentAsmLine)
+        self.__messages.config(state=NORMAL)
+        self.__messages.insert(END, self.executeur.messages[-1]+"\n")
+        self.__messages.config(state=DISABLED)
 
 if __name__=="__main__":
     root = Tk()
