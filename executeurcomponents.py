@@ -289,6 +289,10 @@ class UalComponent(BaseComponent):
         self.__op2 = DataValue(size, 0)
         self.__result = DataValue(size, 0)
 
+    @property
+    def operation(self):
+        return self.__operation
+
     def setOperation(self, opName:str) -> None:
         '''Fixe l'opération
 
@@ -388,7 +392,9 @@ class RegisterComponent(BaseComponent):
 
     def inc(self) -> int:
         """incrémente la valeur du registre"""
-        return self.__value.inc()
+        self.__value.inc()
+        self.trigger("inc", { "writed":self.__value.clone() })
+        return self.__value
 
     def read(self) -> int:
         '''lecture de value
@@ -460,7 +466,7 @@ class RegisterGroup(BaseComponent):
             self.fill(index)
         if 0 <= index < len(self.__list):
             newValue = self.__list[index].inc()
-            self.trigger("inc", {"value": newValue, "index":index} )
+            self.trigger("inc", {"value": newValue.clone(), "index":index} )
             return newValue
         return None
 
