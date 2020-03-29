@@ -435,6 +435,7 @@ class InputCodeWidget(LabelFrame):
         self.__programInput = Text(self, width = 30, height = 10, bg = 'white')
         self.__programInput.pack(padx=10, pady=10)
         self.__programInput.bind('<Double-Button-1>', self.__clear_programInput)
+
         compileButton = Button(self, text='Compile', command = self.__doCompile)
         compileButton.pack()
 
@@ -462,25 +463,32 @@ class SimulationWidget(Frame):
         Frame.__init__(self, parent, class_='SimulationWidget')
         self.asm = asm
         # grille
+        '''
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=3)
+        '''
 
         # partie programme
         self.__program = TextWidget(self, textCode, numbersdigits=2, lines=20, offset=1, name="Votre code")
-        self.__program.grid(row=0, column=0)
+        self.__program.grid(row=1, column=0, columnspan=3, rowspan=9)
 
-        self.__stepButton = Button(self.__program, width=20, height=1, text='Pas')
-        self.__stepButton.pack()
+        stepButton = Button(self, width=10, height=1, text='Pas')
+        stepButton.grid(row=0, column=0)
+        stepButton.bind('<Button-1>', self.stepRun)
+        reinitButton = Button(self, width=10, height=1, text='Réinit')
+        reinitButton.grid(row=0, column=1)
+        goButton = Button(self, width=10, height=1, text='Réinit')
+        goButton.grid(row=0, column=2)
 
-        self.__stepButton.bind('<Button-1>', self.stepRun)
+        self.__messages = Text(self, width=self.__program.cols, height=2)
+        self.__messages.grid(row=10, column=0, rowspan=2, columnspan=3)
 
         # partie asm
         self.__asmFrame = TextWidget(self, str(asm), cols=0, numbertab=' ', name='Assembleur')
-        self.__asmFrame.grid(row=0, column=1)
-
+        self.__asmFrame.grid(row=0, column=3, rowspan=12)
 
         self.executeur = executeur
         ualW = UalWidget(self, self.executeur.ual)
@@ -488,12 +496,16 @@ class SimulationWidget(Frame):
         instrRegW = RegisterWidget(self, self.executeur.instructionRegister, unsigned = True)
         linePointerW = RegisterWidget(self, self.executeur.linePointer, unsigned = True)
         memoryW = MemoryWidget(self, self.executeur.memory)
+        registersW = MemoryWidget(self, self.executeur.registers, name="Registres", lines="8")
         screenW = ScreenWidget(self, self.executeur.screen)
 
-        inputBufferW.grid(row=0, column=2)
-        screenW.grid(row=1, column=2)
-        instrRegW.grid(row=2, column=2)
-        memoryW.grid(row=0, column=3)
+        inputBufferW.grid(row=0, column=4, rowspan=4)
+        screenW.grid(row=4, column=4, rowspan=4)
+        instrRegW.grid(row=8, column=4, rowspan=2)
+        linePointerW.grid(row=10, column=4, rowspan=2)
+        ualW.grid(row=0, column=5, rowspan=6)
+        registersW.grid(row=6, column=5, rowspan=6)
+        memoryW.grid(row=0, column=6, rowspan=12)
 
         self.highlightCodeLine(0)
 
