@@ -14,23 +14,24 @@ class Variable:
         :param value: valeur initiale. 0 par défaut
         :type value: int
         """
-        self.__nom = nom
-        self.__value = value
+        self._name = nom
+        self._value = value
 
-    def getName(self) -> str:
-        """Retourne le nom de la variable : attribut __name
+    @property
+    def name(self) -> str:
+        """Retourne le nom de la variable
 
         :return: nom de la variable
         :rtype: str
 
         :Example:
-            >>> Variable("x").getName()
+            >>> Variable("x").name
             'x'
 
         .. warning:: Il est possible que l'on crée plusieurs variables pour un même nom
         """
 
-        return self.__nom
+        return self._name
 
     def __str__(self) -> 'str':
         """Transtypage -> str. Affiche le nom de la variable préfixé par @
@@ -44,10 +45,10 @@ class Variable:
 
         """
 
-        return "@"+self.__nom
+        return "@"+self._name
 
     def getValueBinary(self, wordSize:int) -> 'str':
-        """Retourne chaîne de caractère représentant le code CA2 de self.__value,
+        """Retourne chaîne de caractère représentant le code CA2 de self._value,
         pour un mot de taille wordSize bits
 
         :param wordSize: taille du mot binaire
@@ -68,28 +69,29 @@ class Variable:
             errors.CompilationError: @x : Variable de valeur trop grande !
         """
 
-        if self.__value < 0:
+        if self._value < 0:
             # utilise le CA2
-            valueToCode = (~(-self.__value) + 1) & (2**wordSize - 1)
+            valueToCode = (~(-self._value) + 1) & (2**wordSize - 1)
         else:
-            valueToCode = self.__value
+            valueToCode = self._value
         outStr = format(valueToCode, '0'+str(wordSize)+'b')
-        if len(outStr) > wordSize or self.__value > 0 and outStr[0] == '1':
+        if len(outStr) > wordSize or self._value > 0 and outStr[0] == '1':
             raise CompilationError(f"{self} : Variable de valeur trop grande !")
         return outStr
 
-    def getValue(self) -> int:
+    @property
+    def value(self) -> int:
         """Retourne la valeur initiale de la variable
 
         :return: valeur initiale de la variable
         :rtype: int
 
         :Example:
-            >>> Variable("x").getValue()
+            >>> Variable("x").value
             0
 
-            >>> Variable("x",15).getValue()
+            >>> Variable("x",15).value
             15
 
         """
-        return self.__value
+        return self._value
