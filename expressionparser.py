@@ -4,290 +4,12 @@
 
 """
 
-from typing import List, Union
-
+from typing import List
 
 from errors import *
-from litteral import Litteral
-from variable import Variable
 from expressionnodes import ExpressionNode, ValueNode, UnaryNode, BinaryNode
+from parsertokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
 import re
-
-class Token:
-    regex:str
-    @classmethod
-    def test(cls, expression:str) -> bool:
-        """Chaque type de noeud est associé à une expression régulière
-
-        :param expression: expression à tester
-        :type expression: str
-        :return: vrai si l'expression valide l'expression régulière
-        :rtype: bool
-        """
-        return re.match("^"+cls.regex+"$", expression.strip()) != None
-
-    def __init__(self,expression):
-        """Constructeur
-
-        :param expression: expression
-        :type expression: str
-        """
-        self.expression = expression.strip()
-
-    def isOperand(self) -> bool:
-        """Le token est-il une opérande ?
-
-        :return: vrai le token est un nombre ou une variable
-        :rtype: bool
-        """
-        return isinstance(self,TokenVariable) or isinstance(self,TokenNumber)
-
-    def isOperator(self) -> bool:
-        """Le token est-il une opérateur de calcul ?
-
-        :return: vrai le token est un opérateur, binaire ou unaire
-        :rtype: bool
-        """
-        return isinstance(self,TokenBinaryOperator) or isinstance(self,TokenUnaryOperator)
-
-    def getPriority(self) -> int:
-        """Fonction par défaut
-
-        :return: priorité de l'opérateur
-        :rtype: int
-        """
-        return 0
-
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: version chaîne de caractères de ce token
-        :rtype: str
-        """
-        return "Token ?"
-
-
-class TokenBinaryOperator(Token):
-    regex:str = "<=|==|>=|!=|[\^<>+\-*\/%&|]|and|or"
-
-    def __init__(self,operator:str):
-        """Constructeur
-
-        :param operator: operateur
-        :type operator: str
-        """
-        self.__operator = operator.strip()
-
-    def getOperator(self) -> str:
-        """Accesseur
-
-        :return: opérateur
-        :rtype: str
-        """
-        return self.__operator
-
-    def getPriority(self) -> int:
-        """
-        :return: priorité de l'opérateur
-        :rtype: int
-        """
-        if self.__operator == "and":
-            return 3
-        elif self.__operator in "<==>":
-            return 4
-        elif self.__operator in "+-":
-            return 5
-        elif self.__operator == "|":
-            return 6
-        elif self.__operator in "*/&^":
-            return 7
-        elif self.__operator == "%":
-            return 8
-        else:
-            # cas du or
-            return 1
-
-    def toNode(self, operandsList:List[ExpressionNode]) -> BinaryNode:
-        """Conversion en objet ExpressionNode
-
-        :param operandsList: opérandes enfants
-        :type operandsList: list(ExpressionNode)
-        :return: noeud binaire expression correspondant
-        :rtype: BinaryNode
-        :raises: ExpressionError si pas assez d'opérandes pour l'opérateur demandé
-        """
-        if len(operandsList) <2:
-            raise ExpressionError(f"Pas assez d'opérandes pour : {self.__operator}")
-        operand2 = operandsList.pop()
-        operand1 = operandsList.pop()
-        return BinaryNode(self.__operator, operand1, operand2)
-
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: version chaîne de caractères de ce token
-        :rtype: str
-        """
-        return str(self.__operator)
-
-class TokenUnaryOperator(Token):
-    regex:str = "~|not"
-
-    def __init__(self,operator:str):
-        """Constructeur
-
-        :param operator: operateur
-        :type operator: str
-        """
-        self.__operator = operator.strip()
-
-    def getOperator(self) -> str:
-        """Accesseur
-
-        :return: opérateur
-        :rtype: str
-        """
-        return self.__operator
-
-    def getPriority(self) -> int:
-        """
-        :return: priorité de l'opérateur
-        :rtype: int
-        """
-        if self.__operator == "not":
-            return 2
-        return 6
-
-    def toNode(self, operandsList:List[ExpressionNode]) -> Union[ValueNode,UnaryNode]:
-        """Conversion en objet ExpressionNode
-
-        :param operandsList: opérandes enfants
-        :type operandsList: list(ExpressionNode,ExpressionNode)
-        :return: noeud unaire ou valeur correspondant
-        :rtype: UnaryNode / ValueNode
-        :raises: ExpressionError s'il n'y a plus d'opérande à dépiler dans la pile des opérandes
-
-        .. note:
-
-        un - unaire sur un littéral est aussitôt convertit en l'opposé de ce littéral
-        """
-        if len(operandsList) == 0:
-            raise ExpressionError(f"Plus d'opérande pour : {self.__operator}")
-        operand = operandsList.pop()
-        # Le cas NEG sur litteral devrait se contenter de preondre l'opposé du littéral
-        opTryValue = operand.getValue()
-        if self.__operator == "neg" and isinstance(opTryValue,Litteral):
-            negLitt = opTryValue.negClone()
-            return ValueNode(negLitt)
-        return UnaryNode(self.__operator, operand)
-
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: version chaîne de caractères de ce token
-        :rtype: str
-        """
-        return str(self.__operator)
-
-
-class TokenVariable(Token):
-    regex:str = "[a-zA-Z][a-zA-Z_0-9]*"
-
-    @classmethod
-    def test(cls, expression:str) -> bool:
-        """Teste si l'expression correspond à nom de variable valide
-
-        :param expression: expression à tester
-        :type expression: str
-        :return: vrai si l'expression valide l'expression régulière
-        :rtype: bool
-
-        .. note: Les mots and, not, or vont valider l'expression régulière mais doivent être rejetés
-        """
-
-        expression_stripped = expression.strip()
-        if expression_stripped in "and;or;not":
-            return False
-        return super().test(expression_stripped)
-
-    def getValue(self) -> str:
-        """Accesseur
-
-        :return: expression
-        :rtype: str
-        """
-        return self.expression
-
-    def toNode(self):
-        """Conversion en objet ExpressionNode
-
-        .. note:: Crée un objet Variable correspondant
-
-        :return: noeud valeur correspondant
-        :rtype: ValueNode
-        """
-        nomVariable = self.expression
-        variableObject = Variable(nomVariable)
-        return ValueNode(variableObject)
-
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: version chaîne de caractères de ce token
-        :rtype: str
-        """
-        return str(self.expression)
-
-class TokenNumber(Token):
-    regex:str = "[0-9]+"
-    __value:int
-
-    def __init__(self,expression):
-        """Constructeur
-
-        :param expression: chaîne de texte représentannt le nombre
-        :type operator: str
-        """
-        self.__value = int(expression.strip())
-
-    def getValue(self) -> int:
-        """Accesseur
-
-        :return: valeur
-        :rtype: int
-        """
-        return self.__value
-
-    def toNode(self):
-        """Conversion en objet ExpressionNode
-
-        .. note:: Crée un objet Litteral correspondant
-
-        :return: noeud valeur correspondant
-        :rtype: ValueNode
-        """
-        litteralObject = Litteral(self.__value)
-        return ValueNode(litteralObject)
-
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: version chaîne de caractères de ce token
-        :rtype: str
-        """
-        return str(self.__value)
-
-
-class TokenParenthesis(Token):
-    regex:str = "\(|\)"
-
-    def isOpening(self) -> bool:
-        """
-
-        :return: vrai si la parenthèse est ouvrante
-        :rtype: bool
-        """
-        return self.expression == "("
 
 class ExpressionParser:
     TokensList =  [TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]
@@ -479,6 +201,19 @@ class ExpressionParser:
         :type tokensList: list[Token]
         :return: Vrai si l'enchaînement de token est autorisé
         :rtype: bool
+
+        :Exemple:
+          >>> ExpressionParser._ExpressionParser__tokensListIsLegal([])
+          True
+          >>> pOuvrante = TokenParenthesis('(')
+          >>> pFermante = TokenParenthesis(')')
+          >>> un = TokenNumber('1')
+          >>> deux = TokenNumber('2')
+          >>> fois = TokenBinaryOperator('*')
+          >>> ExpressionParser._ExpressionParser__tokensListIsLegal([un, fois, deux])
+          True
+          >>> ExpressionParser._ExpressionParser__tokensListIsLegal([un, fois])
+          False
         """
 
         if len(tokensList) == 0:
@@ -611,9 +346,9 @@ class ExpressionParser:
             else:
                 tokenSuivant = tokensList[indice+1]
 
-            if isinstance(token,TokenBinaryOperator) and token.getOperator() in "+-" and not ExpressionParser.isLegal(tokenPrecedent, token):
+            if isinstance(token,TokenBinaryOperator) and token.operator in "+-" and not ExpressionParser.isLegal(tokenPrecedent, token):
                 # Ce + ou - doit être rectifié car il ne devrait pas se trouver à la suite de ce qui précède
-                if token.getOperator() == "+":
+                if token.operator == "+":
                     # Dans le cas d'un +, il suffit de le supprimer
                     del tokensList[indice]
                     # inutile de passer au suivant
