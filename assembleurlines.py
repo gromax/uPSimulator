@@ -139,7 +139,7 @@ class AsmLine:
             bitsForLast = self.__getLastOperandSize(wordSize,regSize)
 
             if isinstance(self.__specialOperand, Litteral):
-                valueToCode = self.__specialOperand.getValue()
+                valueToCode = self.__specialOperand.value
             elif isinstance(self.__specialOperand,Variable):
                 valueToCode = self.__parent.getMemAbsPos(self.__specialOperand)
                 if valueToCode == None:
