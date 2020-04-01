@@ -154,7 +154,8 @@ class ExpressionNode:
         """
         return self
 
-    def getValue(self) -> Union[None,Variable,Litteral]:
+    @property
+    def value(self) -> Union[None,Variable,Litteral]:
         """Fonction par défaut. Utilisée dans ValueNode
 
         :return: None par défaut
@@ -324,7 +325,7 @@ class UnaryNode(ExpressionNode):
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
         super(UnaryNode,self).calcCompile(CEMObject)
         engine = CEMObject.getEngine()
-        opTryValue = self.__operand.getValue()
+        opTryValue = self.__operand.value
         if isinstance(opTryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, opTryValue):
             CEMObject.pushUnaryOperatorWithLitteral(self.__operator, opTryValue)
         else:
@@ -384,9 +385,9 @@ class BinaryNode(ExpressionNode):
         self.__operands = operand1, operand2
         if operator in self.__symetricOperators:
             # pour un opérateur symétrique, on place de préférence un opérateur littéral (le plus petit si deux) à droite
-            op1TryValue = operand1.getValue()
-            op2TryValue = operand2.getValue()
-            if isinstance(op1TryValue, Litteral) and not (isinstance(op2TryValue, Litteral) and op2TryValue.getValue() <= op1TryValue.getValue()):
+            op1TryValue = operand1.value
+            op2TryValue = operand2.value
+            if isinstance(op1TryValue, Litteral) and not (isinstance(op2TryValue, Litteral) and op2TryValue.value <= op1TryValue.value):
                 self.__operands = operand2, operand1
 
     def isComplexeCondition(self) -> bool:
@@ -522,7 +523,7 @@ class BinaryNode(ExpressionNode):
         :rtype: int
         """
         op1, op2 = self.__operands
-        op2TryValue = op2.getValue()
+        op2TryValue = op2.value
         if isinstance(op2TryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, op2TryValue):
             return op1.getRegisterCost(engine)
         costOperand1 = op1.getRegisterCost(engine)
@@ -562,7 +563,7 @@ class BinaryNode(ExpressionNode):
         super(BinaryNode,self).calcCompile(CEMObject)
         op1, op2 = self.__operands
         engine = CEMObject.getEngine()
-        op2TryValue = op2.getValue()
+        op2TryValue = op2.value
         if (not isComparaison) and isinstance(op2TryValue,Litteral) and engine.litteralOperatorAvailable(operator, op2TryValue):
             firstToCalc = op1
             secondToCalc = op2
@@ -614,7 +615,16 @@ class ValueNode(ExpressionNode):
         :param value: valeur du noeud
         :type value: Litteral ou Variable
         """
-        self.__value = value
+        self._value = value
+
+    @property
+    def value(self) -> Union[Variable,Litteral]:
+        """Accesseur
+
+        :return: valeur
+        :rtype: Union[Variable,Litteral]
+        """
+        return self._value
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -622,7 +632,7 @@ class ValueNode(ExpressionNode):
         :return: noeud sous forme str
         :rtype: str
         """
-        return str(self.__value)
+        return str(self._value)
 
     def isLitteral(self) -> bool:
         """Le noeud contient-il un littéral ?
@@ -630,15 +640,8 @@ class ValueNode(ExpressionNode):
         :return: vrai si la valeur contenue est un littéral
         :rtype: bool
         """
-        return isinstance(self.__value, Litteral)
+        return isinstance(self._value, Litteral)
 
-    def getValue(self) -> Union[Variable,Litteral]:
-        """Accesseur
-
-        :return: valeur
-        :rtype: Union[Variable,Litteral]
-        """
-        return self.__value
 
     def calcCompile(self, CEMObject:CompileExpressionManager) -> None:
         """Procédure d'exécution de la compilation
@@ -648,7 +651,7 @@ class ValueNode(ExpressionNode):
         :return: None
         """
         super(ValueNode,self).calcCompile(CEMObject)
-        CEMObject.pushValue(self.__value)
+        CEMObject.pushValue(self._value)
 
     def clone(self) -> 'ValueNode':
         """Produit un clone de l'objet
@@ -658,7 +661,7 @@ class ValueNode(ExpressionNode):
 
         .. note::la valeur étant un objet ne pouvant être modifié, elle n'est pas clonée.
         """
-        return ValueNode(self.__value)
+        return ValueNode(self._value)
 
 if __name__=="__main__":
     from variable import Variable
