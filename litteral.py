@@ -11,7 +11,23 @@ class Litteral:
         :type value: int
         """
         assert isinstance(value,int)
-        self.__value = value
+        self._value = value
+
+    @property
+    def value(self) -> int:
+        """Retourne la valeur du littéral
+
+        :return: valeur du littéral
+        :rtype: int
+
+        :Example:
+            >>> Litteral(8).value
+            8
+            >>> Litteral(-15).value
+            -15
+        """
+
+        return self._value
 
     def negClone(self) -> 'Litteral':
         """Produit un clone du littéral avec valeur opposée
@@ -20,11 +36,11 @@ class Litteral:
         :rtype: Litteral
 
         :Example:
-            >>> Litteral(8).negClone().getValue()
+            >>> Litteral(8).negClone().value
             -8
         """
 
-        return Litteral(-self.__value)
+        return Litteral(-self._value)
 
     def isBetween(self, minValue:int, maxValue:int) -> bool:
         """Retourne True si la valeur courante est comprise entre minValue et maxValue.
@@ -44,22 +60,7 @@ class Litteral:
 
         """
 
-        return minValue <= self.__value <= maxValue
-
-    def getValue(self) -> int:
-        """Retourne la valeur du littéral
-
-        :return: valeur du littéral
-        :rtype: int
-
-        :Example:
-            >>> Litteral(8).getValue()
-            8
-            >>> Litteral(-15).getValue()
-            -15
-        """
-
-        return self.__value
+        return minValue <= self._value <= maxValue
 
     def __str__(self) -> str:
         """Transtypage -> str. Affiche le littéral préfixé par #
@@ -72,4 +73,4 @@ class Litteral:
             '#8'
 
         """
-        return "#"+str(self.__value)
+        return "#"+str(self._value)
