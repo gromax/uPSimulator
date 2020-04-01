@@ -323,7 +323,7 @@ class CompileExpressionManagerExp:
             operator = node.getOperator()
             operand1, operand2 = node.getOperands()
             cost_for_op1, pile_for_op1 = self.aux_compile(operand1)
-            op2TryValue = operand2.getValue()
+            op2TryValue = operand2.value
             if isinstance(op2TryValue,Litteral) and self.__engine.litteralOperatorAvailable(operator, op2TryValue):
                 pile_for_op1.append((operator, op2TryValue))
                 return cost_for_op1, pile_for_op1
@@ -340,7 +340,7 @@ class CompileExpressionManagerExp:
         if isinstance(node, UnaryNode):
             operator = node.getOperator()
             operand = node.getOperand()
-            opTryValue = operand.getValue()
+            opTryValue = operand.value
             if isinstance(opTryValue,Litteral) and self.__engine.litteralOperatorAvailable(operator, opTryValue):
                 pile = [(operator, opTryValue)]
                 return 1, pile
@@ -348,7 +348,7 @@ class CompileExpressionManagerExp:
             pile_for_op.append((operator, None))
             return cost_for_op, pile_for_op
         if isinstance(node, ValueNode):
-            return 1, [("value", node.getValue())]
+            return 1, [("value", node.value)]
         # par défaut
         return 0, []
 
