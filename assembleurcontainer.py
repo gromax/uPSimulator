@@ -35,7 +35,7 @@ class AssembleurContainer:
         """
         isLitteral = False
         if isinstance(item, Litteral):
-            itemValue = item.getValue()
+            itemValue = item.value
             itemName = str(itemValue)
             item = Variable(itemName, itemValue)
             isLitteral = True
@@ -342,7 +342,7 @@ class AssembleurContainer:
 
         listStr = [str(item) for item in self.__lines]
         codePart = "\n".join(listStr)
-        memStr = [str(item) + "\t" + str(item.getValue()) for item in self.__memoryData]
+        memStr = [str(item) + "\t" + str(item.value) for item in self.__memoryData]
         return codePart + "\n" + "\n".join(memStr)
 
     def getLineLabel(self, label:str) -> Union[int,None]:
