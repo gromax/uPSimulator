@@ -79,7 +79,7 @@ class CompilationManager:
         while index < len(linearList)-1:
             currentNode = linearList[index]
             nextNode = linearList[index+1]
-            if isinstance(currentNode,JumpNode) and currentNode.getCible() == nextNode:
+            if isinstance(currentNode,JumpNode) and currentNode.cible == nextNode:
                 linearList.pop(index)
                 flagActionDone = True
             else:
@@ -120,7 +120,7 @@ class CompilationManager:
         flagActionDone = False
         for index in range(len(linearList)):
             node = linearList[index]
-            if isinstance(node,JumpNode) and node.getCible() == labelToDel:
+            if isinstance(node,JumpNode) and node.cible == labelToDel:
                 flagActionDone = True
                 linearList[index] = node.assignNewCibleClone(label)
         if labelToDel in linearList:
@@ -144,7 +144,7 @@ class CompilationManager:
         # association jump -> label
         for node in linearList:
             if isinstance(node,JumpNode):
-                cible = node.getCible()
+                cible = node.cible
                 if not cible in labels:
                     raise CompilationError("Saut vers label inconnu : "+str(cible))
                 labels[cible].append(node)
@@ -210,27 +210,23 @@ class CompilationManager:
         :type node: StructureNode
         :return: pas de retour.
         """
-        lineNumber = node.getLineNumber()
+        lineNumber = node.lineNumber
         if isinstance(node, LabelNode):
             self.__asm.pushLabel(lineNumber, str(node))
             return
         if isinstance(node, AffectationNode):
-            expression = node.getExpression()
-            variableCible = node.getCible()
-            resultRegister = self.__pushExpressionAsm(lineNumber, expression)
-            self.__asm.pushStore(lineNumber, resultRegister, variableCible)
+            resultRegister = self.__pushExpressionAsm(lineNumber, node.expression)
+            self.__asm.pushStore(lineNumber, resultRegister, node.cible)
             return
         if isinstance(node, InputNode):
-            variableCible = node.getCible()
-            self.__asm.pushInput(lineNumber, variableCible)
+            self.__asm.pushInput(lineNumber, node.cible)
             return
         if isinstance(node, PrintNode):
-            expression = node.getExpression()
-            resultRegister = self.__pushExpressionAsm(lineNumber, expression)
+            resultRegister = self.__pushExpressionAsm(lineNumber, node.expression)
             self.__asm.pushPrint(lineNumber, resultRegister)
             return
         if isinstance(node, JumpNode):
-            labelCible = node.getCible()
+            labelCible = node.cible
             condition = node.getCondition()
             if not isinstance(condition,ExpressionNode):
                 self.__asm.pushJump(lineNumber, str(labelCible))
