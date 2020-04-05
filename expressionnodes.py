@@ -58,7 +58,7 @@ class ExpressionNode:
         :type CEMObject: CompileExpressionManager
         :return: None
         """
-        engine = CEMObject.getEngine()
+        engine = CEMObject.engine
         myCost = self.getRegisterCost(engine)
         needUAL =self.needUAL()
         CEMObject.getNeededRegisterSpace(myCost, needUAL)
@@ -324,7 +324,7 @@ class UnaryNode(ExpressionNode):
         if self.__operator == "not":
             raise ExpressionError("opérateur not ne peut être compilé en calcul.")
         super(UnaryNode,self).calcCompile(CEMObject)
-        engine = CEMObject.getEngine()
+        engine = CEMObject.engine
         opTryValue = self.__operand.value
         if isinstance(opTryValue, Litteral) and engine.litteralOperatorAvailable(self.__operator, opTryValue):
             CEMObject.pushUnaryOperatorWithLitteral(self.__operator, opTryValue)
@@ -457,7 +457,7 @@ class BinaryNode(ExpressionNode):
             if inverseMiroir[self.__operator] in csl:
                 inverseNode = BinaryNode(inverseMiroir[self.__operator], op2, op1)
                 return UnaryNode("not", inverseNode)
-            raise AttributeError(f"Aucun opérateur pour {self.__operator} dans le modèle de processeur.")
+            raise AttributesError(f"Aucun opérateur pour {self.__operator} dans le modèle de processeur.")
         return self
 
     def getType(self) -> str:
@@ -562,7 +562,7 @@ class BinaryNode(ExpressionNode):
             operator = self.__operator
         super(BinaryNode,self).calcCompile(CEMObject)
         op1, op2 = self.__operands
-        engine = CEMObject.getEngine()
+        engine = CEMObject.engine
         op2TryValue = op2.value
         if (not isComparaison) and isinstance(op2TryValue,Litteral) and engine.litteralOperatorAvailable(operator, op2TryValue):
             firstToCalc = op1
