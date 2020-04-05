@@ -28,7 +28,8 @@ class StructureNode:
 
         return [ self ]
 
-    def getLineNumber(self) -> int:
+    @property
+    def lineNumber(self) -> int:
         """Accesseur pour le numéro de ligne d'origine de cet élément
 
         :return: numéro de ligne d'origine
@@ -319,7 +320,8 @@ class AffectationNode(StructureNode):
         self._cible = variableCible
         self._expression = expression
 
-    def getExpression(self) -> ExpressionNode:
+    @property
+    def expression(self) -> ExpressionNode:
         """Accesseur : retourne l'expression dont le résultat doit être affecté à la variable cible.
 
         :return: expression arithmétique dont le résultat doit être affecté à la variable cible.
@@ -328,7 +330,8 @@ class AffectationNode(StructureNode):
 
         return self._expression
 
-    def getCible(self) -> Variable:
+    @property
+    def cible(self) -> Variable:
         """Accesseur : retourne la variable cible de l'affectation.
 
         :return: variable cible.
@@ -358,7 +361,8 @@ class InputNode(StructureNode):
         self._lineNumber = lineNumber
         self._cible = variableCible
 
-    def getCible(self) -> Variable:
+    @property
+    def cible(self) -> Variable:
         """Accesseur : retourne la variable cible du input.
 
         :return: variable cible.
@@ -389,7 +393,8 @@ class PrintNode(StructureNode):
         self._lineNumber = lineNumber
         self._expression = expression
 
-    def getExpression(self) -> ExpressionNode:
+    @property
+    def expression(self) -> ExpressionNode:
         """Accesseur : retourne l'expression dont le résultat doit être affiché.
 
         :return: expression arithmétique dont le résultat doit être affiché.
@@ -435,7 +440,8 @@ class JumpNode(StructureNode):
             return "Saut "+str(self._cible)
         return "Saut "+str(self._cible)+" si "+str(self._condition)
 
-    def getCible(self) -> LabelNode:
+    @property
+    def cible(self) -> LabelNode:
         """Accesseur
 
         :return: cible du saut
