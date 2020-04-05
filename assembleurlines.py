@@ -11,8 +11,8 @@ from litteral import Litteral
 from variable import Variable
 
 class AsmLine:
-    __label = ""
-    __lineNumber = -1
+    _label = ""
+    _lineNumber = -1
 
     def __init__(self, parent, lineNumber:int, label:str, opcode:str, asmCommand:str, regOperands:Tuple[int,...], specialOperand:Union[Variable, str, Litteral, None]):
         """Constructeur
@@ -32,14 +32,14 @@ class AsmLine:
         :param specialOperand: opérande spéciale. str pour label, Variable pour échange mémoire, Litteral. None si aucune.
         :type specialOperand: str / Variable / Litteral / None
         """
-        self.__parent = parent
-        self.__lineNumber = lineNumber
-        self.__label = str(label)
-        self.__opcode = opcode
-        self.__asmCommand = asmCommand
-        self.__specialOperand = specialOperand
-        self.__regOperands = regOperands
-        for op in self.__regOperands:
+        self._parent = parent
+        self._lineNumber = lineNumber
+        self._label = str(label)
+        self._opcode = opcode
+        self._asmCommand = asmCommand
+        self._specialOperand = specialOperand
+        self._regOperands = regOperands
+        for op in self._regOperands:
             assert isinstance(op,int)
         if specialOperand != None:
             assert isinstance(specialOperand,str) or isinstance(specialOperand,Variable) or isinstance(specialOperand,Litteral)
@@ -51,7 +51,7 @@ class AsmLine:
         :return: numéro de la ligne d'origine
         :rtype: int
         '''
-        return self.__lineNumber
+        return self._lineNumber
 
     def __stringifyRegOperand(self, operand:int) -> str:
         """Facile la création du texte associé à un registre.
@@ -74,14 +74,14 @@ class AsmLine:
         """
         value, size = item
         if size <= 0:
-            raise CompilationError(f"{self} -> binaire : Place allouée à un code binaire négative !")
+            raise CompilationError(f"{self} -> binaire : Place allouée à un code binaire négative !", {"lineNumber":self._lineNumber})
         if value < 0:
-            raise CompilationError(f"{self} -> binaire : valeur à coder négative !")
+            raise CompilationError(f"{self} -> binaire : valeur à coder négative !", {"lineNumber":self._lineNumber})
 
         strItem = format(value, '0'+str(size)+'b')
 
         if len(strItem) > size:
-            raise CompilationError(f"{self} -> binaire : valeur à coder trop grande !")
+            raise CompilationError(f"{self} -> binaire : valeur à coder trop grande !", {"lineNumber":self._lineNumber})
         return strItem
 
     def __zeroPadding(self, binaryCode:str, wordSize:int) -> str:
@@ -98,7 +98,7 @@ class AsmLine:
 
         unusedBits = wordSize - len(binaryCode)
         if unusedBits < 0:
-            raise CompilationError(f"{self} : code binaire trop long !")
+            raise CompilationError(f"{self} : code binaire trop long !", {"lineNumber":self._lineNumber})
         return binaryCode + "0"*unusedBits
 
     def __getLastOperandSize(self, wordSize:int, regSize:int) -> int:
@@ -111,15 +111,15 @@ class AsmLine:
         :return: nombre de bits laissés après les registres
         :rtype: int
         """
-        return wordSize - len(self.__opcode) - len(self.__regOperands) * regSize
+        return wordSize - len(self._opcode) - len(self._regOperands) * regSize
 
     def __str__(self) -> str:
-        strOperands = [ self.__stringifyRegOperand(ope) for ope in self.__regOperands]
-        if self.__specialOperand != None:
-            strOperands.append(str(self.__specialOperand))
+        strOperands = [ self.__stringifyRegOperand(ope) for ope in self._regOperands]
+        if self._specialOperand != None:
+            strOperands.append(str(self._specialOperand))
         if len(strOperands) > 0:
-            return self.__label+"\t"+self.__asmCommand+" "+", ".join(strOperands)
-        return self.__label+"\t"+self.__asmCommand
+            return self._label+"\t"+self._asmCommand+" "+", ".join(strOperands)
+        return self._label+"\t"+self._asmCommand
 
     def getBinary(self, wordSize:int, regSize:int) -> str:
         """Retourne le code binaire correspondant à cette commande assembleur
@@ -134,27 +134,27 @@ class AsmLine:
         if self.isEmpty():
             return ""
         # construction liste des items à coder
-        items = [ (reg,regSize) for reg in self.__regOperands ]
-        if self.__specialOperand != None:
+        items = [ (reg,regSize) for reg in self._regOperands ]
+        if self._specialOperand != None:
             bitsForLast = self.__getLastOperandSize(wordSize,regSize)
 
-            if isinstance(self.__specialOperand, Litteral):
-                valueToCode = self.__specialOperand.value
-            elif isinstance(self.__specialOperand,Variable):
-                valueToCode = self.__parent.getMemAbsPos(self.__specialOperand)
+            if isinstance(self._specialOperand, Litteral):
+                valueToCode = self._specialOperand.value
+            elif isinstance(self._specialOperand,Variable):
+                valueToCode = self._parent.getMemAbsPos(self._specialOperand)
                 if valueToCode == None:
-                    raise CompilationError(f"Mémoire {self.__specialOperand} introuvable !")
+                    raise CompilationError(f"Mémoire {self._specialOperand} introuvable !", {"lineNumber":self._lineNumber})
             else:
                 # label
-                valueToCode = self.__parent.getLineLabel(self.__specialOperand)
+                valueToCode = self._parent.getLineLabel(self._specialOperand)
                 if valueToCode == None:
-                    raise CompilationError(f"Label {self.__specialOperand} introuvable !")
+                    raise CompilationError(f"Label {self._specialOperand} introuvable !", {"lineNumber":self._lineNumber})
             valueToCodeAndSize = (valueToCode, bitsForLast)
             items.append(valueToCodeAndSize)
 
         listStrItems = [self.__formatBinary(item) for item in items]
         strItems = "".join(listStrItems)
-        return self.__zeroPadding(self.__opcode + strItems, wordSize)
+        return self.__zeroPadding(self._opcode + strItems, wordSize)
 
     def isEmpty(self) -> bool:
         """La ligne est-elle vide ?
@@ -162,7 +162,7 @@ class AsmLine:
         :return: vrai s'il n'y apas d'opcode ou de commande assembleur
         :rtype: bool
         """
-        return self.__asmCommand == "" or self.__opcode == ""
+        return self._asmCommand == "" or self._opcode == ""
 
     def getLabel(self) -> str:
         """Accesseur
@@ -170,7 +170,7 @@ class AsmLine:
         :return: étiquette
         :rtype: str
         """
-        return self.__label
+        return self._label
 
     def getSizeInMemory(self) -> int:
         """Détermine  le nombre de lignes mémoires nécessaires pour cette ligne assembleur.
