@@ -6,6 +6,7 @@
 from typing import List, Optional
 from lineparser import LineParser, Caracteristiques
 from structuresnodes import *
+from errors import *
 
 class CodeParser: # Définition classe
     """Classe CodeParser
@@ -100,10 +101,14 @@ class CodeParser: # Définition classe
             if self.__listingCode[indice]['type'] in ("if", "elif", "else", "while"):
                 # cas dernière ligne de code : on attend une instruction
                 if indice+1 == len(self.__listingCode):
-                    raise ParseError(f"Il manque une instruction en fin de programme après la ligne n°{self.__listingCode[indice]['lineNumber']} - bloc <{self.__listingCode[indice]['type']}>")
+                    lineNumber = self.__listingCode[indice]['lineNumber']
+                    typeBloc = self.__listingCode[indice]['type']
+                    raise ParseError(f"Il manque une instruction en fin de programme après le bloc <{typeBloc}>", {"lineNumber":lineNumber})
                 # cas ligne instruction suivante doit avoir une indentation supplémentaire
                 if self.__listingCode[indice+1]['indentation'] != self.__listingCode[indice]['indentation'] + 4:
-                    raise ParseError(f"Problème d'indentation de l'instruction après la ligne n°{self.__listingCode[indice]['lineNumber']} - bloc <{self.__listingCode[indice]['type']}>")
+                    lineNumber = self.__listingCode[indice]['lineNumber']
+                    typeBloc = self.__listingCode[indice]['type']
+                    raise ParseError(f"Indentation incorrecte [+4 requis] - bloc <{typeBloc}>", {"lineNumber":lineNumber+1})
 
         # Contrôle de if associé au else - Parcours de liste en sens inverse
         for line in reversed(self.__listingCode):
@@ -114,7 +119,8 @@ class CodeParser: # Définition classe
                 while nextIndice >= 0 and self.__listingCode[nextIndice]['indentation'] > startIndentation:
                     nextIndice -= 1
                 if nextIndice == -1 or self.__listingCode[nextIndice]['type'] != 'if':
-                    raise ParseError(f"Détection d'un <else> en ligne n°{self.__listingCode[startIndice]['lineNumber']} sans <if> associé")
+                    elseLineNumber = self.__listingCode[startIndice]['lineNumber']
+                    raise ParseError(f"Détection d'un <else> sans <if> associé.", {"lineNumber": elseLineNumber})
 
     def __buildFinalNodeList(self) -> bool:
         #Construction de la liste d'objets StructureNode
