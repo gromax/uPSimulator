@@ -56,7 +56,7 @@ class Executeur:
         :param binary: code binaire (liste d'entiers ou représentation binaire en str)
         :type binary: List[int]
         """
-        registersSize = engine.getDataBits()
+        registersSize = engine.dataBits
         self.__registerNumber = engine.registersNumber()
 
         self.instructionRegister = RegisterComponent("Registre instruction", registersSize)
@@ -86,7 +86,7 @@ class Executeur:
         :return: masque pour empêcher la saisie d'un nombre trop grand
         :rtype: int
         """
-        nbits = self.__engine.getDataBits()
+        nbits = self.__engine.dataBits
         return int("1"*nbits,2)
 
     def getValue(self, source:int, silent=False) -> Optional[int]:
