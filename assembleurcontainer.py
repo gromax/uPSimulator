@@ -4,7 +4,7 @@ Classe contenant le code assembleur et permettant des sorties sous diverse forme
 
 from typing import Union, Tuple, Optional, List
 
-from errors import CompilationError
+from errors import CompilationError, AttributesError
 from litteral import Litteral
 from variable import Variable
 from assembleurlines import AsmLine
@@ -60,7 +60,7 @@ class AssembleurContainer:
         :return: code binaire
         :rtype: List[str]
         """
-        wordSize = self.__engine.getDataBits()
+        wordSize = self.__engine.dataBits
         return [ item.getValueBinary(wordSize) for item in self.__memoryData]
 
     def pushStore(self, lineNumber:int, source:int, destination:Variable) -> None:
@@ -79,7 +79,7 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode("store")
         asmCommand = self.__engine.getAsmCommand("store")
         if asmCommand == "" or opcode == "":
-            raise AttributeError("Pas de commande pour store dans le modèle de processeur.")
+            raise AttributesError("Pas de commande pour store dans le modèle de processeur.", {"lineNumber": lineNumber})
         memoryItem = self.__pushMemory(destination)
         asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (source,), memoryItem)
         self.__lines.append(asmLine)
@@ -112,7 +112,9 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode("load")
         asmCommand = self.__engine.getAsmCommand("load")
         if asmCommand == "" or opcode == "":
-            raise AttributeError("Pas de commande pour load dans le modèle de processeur.")
+            raise AttributesError("Pas de commande pour load dans le modèle de processeur.", {"lineNumber": lineNumber})
+        if not self.__engine.valueFitsInMemory(source.value, False):
+            raise CompilationError(f"Valeur {source.value} trop grande pour le modèle de processeur.", {"lineNumber": lineNumber})
         memoryItem = self.__pushMemory(source)
         asmLine = AsmLine(self, lineNumber, "", opcode, asmCommand, (destination,), memoryItem)
         self.__lines.append(asmLine)
@@ -153,7 +155,7 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode("move")
         asmCommand = self.__engine.getAsmCommand("move")
         if asmCommand == "" or opcode == "":
-            raise AttributeError("Pas de commande pour move dans le modèle de processeur.")
+            raise AttributesError("Pas de commande pour move dans le modèle de processeur.", {"lineNumber": lineNumber})
         moveOperands = (destination, source)
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, moveOperands, None))
 
@@ -175,7 +177,7 @@ class AssembleurContainer:
         for ope in regOperands:
             assert isinstance(ope,int)
         if destination !=0 and not self.__engine.ualOutputIsFree():
-            raise CompilationError(f"Calcul {operator} stocké dans le registre {destination}.")
+            raise CompilationError(f"Calcul {operator} stocké dans le registre {destination}.", {"lineNumber": lineNumber})
         if self.__engine.ualOutputIsFree():
             regOperands = (destination,) + regOperands
         if isinstance(littOperand, Litteral):
@@ -184,14 +186,14 @@ class AssembleurContainer:
             if opcode != "" and asmCommand != "":
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator)
                 if not littOperand.isBetween(0,maxSize):
-                    raise CompilationError(f"Litteral trop grand pour {operator}")
+                    raise CompilationError(f"Litteral trop grand pour {operator}", {"lineNumber": lineNumber})
                 self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, regOperands, littOperand))
                 return
-            raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur")
+            raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur", {"lineNumber": lineNumber})
         opcode = self.__engine.getOpcode(operator)
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == "" or opcode == "":
-            raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
+            raise AttributesError(f"Pas de commande pour {operator} dans le modèle de processeur.", {"lineNumber": lineNumber})
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, regOperands, None))
 
     def pushCmp(self, lineNumber:int, operand1:int, operand2:int) -> None:
@@ -212,7 +214,7 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode("cmp")
         asmCommand = self.__engine.getAsmCommand("cmp")
         if asmCommand == "" or opcode == "":
-            raise AttributeError("Pas de commande pour cmp dans le modèle de processeur.")
+            raise AttributesError("Pas de commande pour cmp dans le modèle de processeur.", {"lineNumber": lineNumber})
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (operand1, operand2), None))
 
     def pushInput(self, lineNumber:int, destination:Variable) -> None:
@@ -228,7 +230,7 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode("input")
         asmCommand = self.__engine.getAsmCommand("input")
         if asmCommand == "" or opcode == "":
-            raise AttributeError("Pas de commande pour input dans le modèle de processeur.")
+            raise AttributesError("Pas de commande pour input dans le modèle de processeur.", {"lineNumber": lineNumber})
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (), destination))
 
     def pushPrint(self, lineNumber:int, source:int) -> None:
@@ -244,7 +246,7 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode("print")
         asmCommand = self.__engine.getAsmCommand("print")
         if asmCommand == "" or opcode == "":
-            raise AttributeError("Pas de commande pour print dans le modèle de processeur.")
+            raise AttributesError("Pas de commande pour print dans le modèle de processeur.", {"lineNumber": lineNumber})
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (source,), None))
 
     def pushJump(self, lineNumber:int, cible:str, operator:Optional[str] = None) -> None:
@@ -265,7 +267,7 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode(operator)
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == "" or opcode == "":
-            raise AttributeError(f"Pas de commande pour {operator} dans le modèle de processeur.")
+            raise AttributesError(f"Pas de commande pour {operator} dans le modèle de processeur.", {"lineNumber": lineNumber})
         self.__lines.append(AsmLine(self, lineNumber, "", opcode, asmCommand, (), cible))
 
     def pushHalt(self) -> None:
@@ -274,7 +276,7 @@ class AssembleurContainer:
         opcode = self.__engine.getOpcode("halt")
         asmCommand = self.__engine.getAsmCommand("halt")
         if asmCommand == "" or opcode == "":
-            raise AttributeError("Pas de commande pour halt dans le modèle de processeur.")
+            raise AttributesError("Pas de commande pour halt dans le modèle de processeur.")
         self.__lines.append(AsmLine(self, -1, "", opcode, asmCommand, (), None))
 
     def pushLabel(self, lineNumber:int, label:str) -> None:
@@ -293,8 +295,8 @@ class AssembleurContainer:
         :return: code binaire
         :rtype: str
         """
-        wordSize = self.__engine.getDataBits()
-        regSize = self.__engine.getRegBits()
+        wordSize = self.__engine.dataBits
+        regSize = self.__engine.regBits
         binaryList = [item.getBinary(wordSize, regSize) for item in self.__lines if not item.isEmpty()]
         memoryBinary = self.__memoryToBinary()
         return "\n".join(binaryList + memoryBinary)
