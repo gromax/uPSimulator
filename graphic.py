@@ -10,6 +10,7 @@ from compilemanager import CompilationManager
 from processorengine import ProcessorEngine
 from executeur import Executeur
 from widgets import InputCodeWidget, SimulationWidget
+from errors import *
 
 class InputCodeWindow:
     __inputCodeFrame = None
@@ -27,7 +28,20 @@ class InputCodeWindow:
             cp = CodeParser(code = textCode)
             structuredList = cp.getFinalStructuredList()
             cm = CompilationManager(engine, structuredList)
-        except Exception as e :
+            asm = cm.getAsm()
+            executeur = Executeur(engine,asm.getDecimal())
+        except (ExpressionError, CompilationError, ParseError, AttributesError) as e :
+            if "lineNumber" in e.errors:
+                errorMessage = "[{}] {}".format(e.errors["lineNumber"], e)
+            else :
+                errorMessage = str(e)
+            if codeFrame != None:
+                codeFrame.writeMessage(errorMessage)
+                if "lineNumber" in e.errors:
+                    codeFrame.highlightLine(e.errors["lineNumber"])
+            else:
+                print(errorMessage)
+        except Exception as e:
             if codeFrame != None:
                 codeFrame.writeMessage(e)
             else:
@@ -35,13 +49,8 @@ class InputCodeWindow:
         else :
             if isinstance(codeFrame, InputCodeWidget):
                 codeFrame.destroy()
-            asm = cm.getAsm()
-            self.initSimulationFrame(engine, textCode, cm.getAsm())
-
-    def initSimulationFrame(self, engine, textCode, asm):
-        executeur = Executeur(engine,asm.getDecimal())
-        simFrame = SimulationWidget(self.__root, executeur, textCode, asm)
-        simFrame.pack()
+            simFrame = SimulationWidget(self.__root, executeur, textCode, asm)
+            simFrame.pack()
 
     def show(self):
         self.__root.mainloop()
