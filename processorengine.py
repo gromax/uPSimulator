@@ -152,20 +152,20 @@ class ProcessorEngine:
 
         :return: vrai si les attributs sont corrects
         :rtype: bool
-        :raises: AttributeError, en cas d'attributs incorrects.
+        :raises: AttributesError, en cas d'attributs incorrects.
         """
         if self.__register_address_bits < 1:
-            raise AttributeError("Attribut 'register_bits' manquant ou incorrect")
+            raise AttributesError("Attribut 'register_bits' manquant ou incorrect")
         if self.__data_bits <= 0:
-            raise AttributeError("Attribut 'data_bits' manquant ou incorrect")
+            raise AttributesError("Attribut 'data_bits' manquant ou incorrect")
 
         for (name, attr) in self.__litteralsCommands.items():
             if not name in self.__opNumber:
-                raise AttributeError(f"La commande {name} n'est pas une commande littérale valide.")
+                raise AttributesError(f"La commande {name} n'est pas une commande littérale valide.")
             if not "opcode" in attr:
-                raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
+                raise AttributesError("Toutes les commandes doivent avoir un attribut opcode")
             if not "asm" in attr:
-                raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
+                raise AttributesError("Toutes les commandes doivent avoir un attribut asm")
             # vérification de l'espace laissé à un littéral
             nbits_total = self.__data_bits
             nbits_reg = self.__register_address_bits
@@ -173,14 +173,14 @@ class ProcessorEngine:
             opcode = attr["opcode"]
             litteral_bits = nbits_total - nb_reg_operands * nbits_reg - len(opcode)
             if  litteral_bits <= 0:
-                raise AttributeError(f"Pas assez de place pour un littéral dans {name}.")
+                raise AttributesError(f"Pas assez de place pour un littéral dans {name}.")
             else:
                 self.__litteralsCommands[name]["litteral_bits"] = litteral_bits
         for item in self.__commands.values():
             if not "opcode" in item:
-                raise AttributeError("Toutes les commandes doivent avoir un attribut opcode")
+                raise AttributesError("Toutes les commandes doivent avoir un attribut opcode")
             if not "asm" in item:
-                raise AttributeError("Toutes les commandes doivent avoir un attribut asm")
+                raise AttributesError("Toutes les commandes doivent avoir un attribut asm")
 
         return True
 
@@ -434,6 +434,34 @@ class ProcessorEngine:
         litteral_bits = commandAttributes["litteral_bits"]
         return 2**litteral_bits - 1
 
+    def valueFitsInMemory(self, value:int, posValue:bool) -> bool:
+        """Teste si une valeur a une valeur qui pourra être codée en mémoire
+
+        :param value: valeur à tester
+        :type value: int
+        :param posValue: la valeur doit être codée en nombre positif
+        :type posValue: bool
+        :return: la valeur peut être codée en mémoire
+        :rtype: bool
+
+        :Example:
+            >>> ProcessorEngine().valueFitsInMemory(10, False)
+            True
+
+            >>> ProcessorEngine().valueFitsInMemory(60000, True)
+            True
+
+            >>> ProcessorEngine().valueFitsInMemory(60000, False)
+            False
+        """
+        nb = self.__data_bits
+        if posValue:
+            # peut aller de 0 à 2^nb - 1
+            return 0 <= value < 2**nb
+        # peut aller de -2^(nb-1) à 2^(nb-1)-1
+        if value >=0:
+            return value < 2**(nb - 1)
+        return value >= 2**(nb - 1)
 
     def getComparaisonSymbolsAvailables(self) -> List[str]:
         """Accesseur
@@ -449,26 +477,28 @@ class ProcessorEngine:
         symbols = ["<=", "<", ">=", ">", "==", "!="]
         return [item for item in symbols if item in self.__commands]
 
-    def getRegBits(self) -> int:
+    @property
+    def regBits(self) -> int:
         """Accesseur
 
         :return: nombre de bits utilisés pour l'encodage de l'adresse d'un registre
         :rtype: int
 
         :Example:
-            >>> ProcessorEngine().getRegBits()
+            >>> ProcessorEngine().regBits
             3
         """
         return self.__register_address_bits
 
-    def getDataBits(self) -> int:
+    @property
+    def dataBits(self) -> int:
         """Accesseur
 
         :return: nombre de bits utilisés pour l'encodage d'une donnée en mémoire
         :rtype: int
 
         :Example:
-            >>> ProcessorEngine().getDataBits()
+            >>> ProcessorEngine().dataBits
             16
         """
         return self.__data_bits
