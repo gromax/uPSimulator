@@ -300,7 +300,8 @@ class CompileExpressionManager:
         """
         return self.__getTopStackRegister()
 
-    def getEngine(self) -> ProcessorEngine:
+    @property
+    def engine(self) -> ProcessorEngine:
         """Accesseur
 
         :return: modèle de processeur utilisé
