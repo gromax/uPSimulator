@@ -15,7 +15,9 @@ class TextWidget(Frame):
     lineNumberFormat = '{:03d}:   '
     lines = 25
     lineNumberOffset = 0
-    __name = "code"
+    _name = "code"
+    _writeEnabled = False
+    _clearTabs = True
     def __init__(self, parent, text, **kwargs):
         for key, value in kwargs.items():
             if key == "cols":
@@ -27,13 +29,22 @@ class TextWidget(Frame):
             elif key == 'offset':
                 self.lineNumberOffset = value
             elif key == "name":
-                self.__name = value
-        LabelFrame.__init__(self, parent, class_='TextWidget', text=self.__name)
+                self._name = value
+            elif key == "writeEnabled":
+                self._writeEnabled = (value == True)
+            elif key == "clearTabs":
+                self._clearTabs = (value == True)
+        if self._name != '':
+            LabelFrame.__init__(self, parent, class_='TextWidget', text=self._name)
+        else:
+            Frame.__init__(self, parent, class_='TextWidget')
 
-        textLines = self.formatText(text)
+        textLines = text.split("\n")
+        if self._clearTabs:
+            textLines = self.__clearTabs(textLines)
         if self.lineNumberFormat != '':
             for i in range(len(textLines)):
-                textLines[i] = (self.lineNumberFormat+textLines[i]).format(i+self.lineNumberOffset)
+                textLines[i] = self.lineNumberFormat.format(i+self.lineNumberOffset) + textLines[i]
         if self.cols == 0:
             # on ajuste la taille de la zone de texte au contenu
             self.cols = max([len(line) for line in textLines])
@@ -41,34 +52,42 @@ class TextWidget(Frame):
         formatedText = "\n".join(textLines)
         self.__textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
         self.__textZone.insert(END, formatedText)
-        self.__textZone.config(state=DISABLED)
+        if not self._writeEnabled:
+            self.__textZone.config(state=DISABLED)
         self.__textZone.pack(padx=10, pady=10)
 
         self.__textZone.tag_configure("HIGHLIGHTED", background=self.HL_BACKGROUND, foreground=self.HL_COLOR)
 
-    def formatText(self, text):
+    def __clearTabs(self, textLines):
         # découpage en lignes, recherche d'éventuelles tabulation
-        textLines = [ item.split("\t") for item in text.split("\n") ]
-        slicesNumber = max([len(item) for item in textLines])
+        textTabLines = [ item.split("\t") for item in textLines ]
+        slicesNumber = max([len(item) for item in textTabLines])
         for indexSlice in range(slicesNumber):
-            size = max([len(line[indexSlice]) for line in textLines if len(line)>indexSlice])
+            size = max([len(line[indexSlice]) for line in textTabLines if len(line)>indexSlice])
             size = max(self.MIN_TAB_SIZE, size)
-            for indexLine in range(len(textLines)):
-                line = textLines[indexLine]
+            for line in textTabLines:
                 if len(line)>indexSlice:
                     l = len(line[indexSlice])
                     line[indexSlice] += " "*(size - l)
                 else:
                     line[indexSlice] = " "*size
-        formatedTextLines = [ " ".join(line) for line in textLines]
+        formatedTextLines = [" ".join(line) for line in textTabLines]
         return formatedTextLines
 
     def highlightLine(self,lineIndex:int):
-        self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
+        self.clearHighlight()
         lineIndex -= self.lineNumberOffset
         if lineIndex != -1:
             tag = str(lineIndex+1)
             self.__textZone.tag_add("HIGHLIGHTED", tag+".0", tag+".end")
+
+    def clearHighlight(self):
+        self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
+
+    @property
+    def text(self):
+        return self.__textZone.get('1.0', 'end')
+
 
 class MemoryWidget(LabelFrame):
     BACKGROUND = 'white'
@@ -431,32 +450,41 @@ class UalWidget(LabelFrame):
 
 class InputCodeWidget(LabelFrame):
     # Cadre pour la saisie du code avec champ message erreurs
+    COLS = 50
+    LINES = 30
+    MSG_LINES = 3
     def __init__(self, parent, compileCallBack):
         LabelFrame.__init__(self, parent, class_='InputCodeWidget', text='Votre code')
-        self.__programInput = Text(self, width = 30, height = 10, bg = 'white')
-        self.__programInput.pack(padx=10, pady=10)
-        self.__programInput.bind('<Double-Button-1>', self.__clear_programInput)
+        self._programInput = TextWidget(self, "", cols = self.COLS, lines = self.LINES, writeEnabled = True, clearTabs = False, numbers = '', name='')
+        self._programInput.pack(padx=10, pady=10)
+        self._programInput.bind('<Double-Button-1>', self.__clear_programInput)
 
         compileButton = Button(self, text='Compile', command = self.__doCompile)
         compileButton.pack()
 
-        self.__errorStringVar = StringVar()
-        self.__errorStringVar.set("Aucun message...")
-        errorMessageFrame = Message(self, width = 300, textvariable=self.__errorStringVar, bg = '#faa', relief='groove')
-        errorMessageFrame.pack(padx=10, pady=10)
-        self.__compileCallBack = compileCallBack
+        self._errorMessageFrame = Text(self, width = self.COLS, height = self.MSG_LINES, bg='#fdd')
+        self._errorMessageFrame.insert(END, "Aucun message...")
+        self._errorMessageFrame.config(state=DISABLED)
+        self._errorMessageFrame.pack(padx=10, pady=10)
+        self._compileCallBack = compileCallBack
 
     def __clear_programInput(self,event):
-        self.__programInput.delete('1.0', 'end')
+        self._programInput.delete('1.0', 'end')
 
     def __doCompile(self):
-        self.__errorStringVar.set("Compilation...")
-        textCode = self.__programInput.get('1.0', 'end')
-        self.__compileCallBack(textCode, self)
+        self._programInput.clearHighlight()
+        self.writeMessage("Compilation...")
+        textCode = self._programInput.text
+        self._compileCallBack(textCode, self)
 
     def writeMessage(self, message):
-        self.__errorStringVar.set(message)
+        self._errorMessageFrame.config(state=NORMAL)
+        self._errorMessageFrame.delete('1.0', 'end')
+        self._errorMessageFrame.insert(END, message)
+        self._errorMessageFrame.config(state=DISABLED)
 
+    def highlightLine(self, lineNumber):
+        self._programInput.highlightLine(lineNumber-1)
 
 
 class SimulationWidget(Frame):
