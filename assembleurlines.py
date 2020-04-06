@@ -164,13 +164,25 @@ class AsmLine:
         """
         return self._asmCommand == "" or self._opcode == ""
 
-    def getLabel(self) -> str:
+    @property
+    def label(self) -> str:
         """Accesseur
 
         :return: étiquette
         :rtype: str
         """
         return self._label
+
+    def copyNonEmptyLabel(self, labelLine:"AsmLine") -> None:
+        """Copie le label de labelLine comme nouveau label de l'item courant,
+        si ce la bel n'est pas vide
+
+        :param labelLine: ligne dont on doit récupérer le label
+        :type labelLine: AsmLine
+        """
+        newLabel = labelLine.label
+        if newLabel != '':
+            self._label = newLabel
 
     def getSizeInMemory(self) -> int:
         """Détermine  le nombre de lignes mémoires nécessaires pour cette ligne assembleur.
