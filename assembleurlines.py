@@ -184,6 +184,27 @@ class AsmLine:
         if newLabel != '':
             self._label = newLabel
 
+    def getJumpCible(self) -> str:
+        """Si _specialOperand est str, c'est donc un jump, on retourne la cible
+
+        :return: label de la cible si c'est un saut, '' sinon
+        :rtype: str
+        """
+        if isinstance(self._specialOperand, str):
+            return self._specialOperand
+        return ''
+
+    def setJumpCible(self, newLabel:str) -> None:
+        """Si le _specialOperand est str, donc un label, il est remplacé par newLabel
+
+        :param newLabel: nouveau label cible
+        :type newLabel: str
+        """
+
+        if isinstance(self._specialOperand, str) and newLabel != '':
+            self._specialOperand = newLabel
+
+
     def getSizeInMemory(self) -> int:
         """Détermine  le nombre de lignes mémoires nécessaires pour cette ligne assembleur.
 
