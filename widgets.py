@@ -62,6 +62,8 @@ class TextWidget(Frame):
 
     def __clearTabs(self, textLines):
         # découpage en lignes, recherche d'éventuelles tabulation
+        if len(textLines) == 0:
+            return textLines
         textTabLines = [ item.split("\t") for item in textLines ]
         slicesNumber = max([len(item) for item in textTabLines])
         for indexSlice in range(slicesNumber):
@@ -72,7 +74,7 @@ class TextWidget(Frame):
                     l = len(line[indexSlice])
                     line[indexSlice] += " "*(size - l)
                 else:
-                    line[indexSlice] = " "*size
+                    line.append(" "*size)
         formatedTextLines = [" ".join(line) for line in textTabLines]
         return formatedTextLines
 
@@ -467,12 +469,8 @@ class InputCodeWidget(LabelFrame):
     COLS = 50
     LINES = 30
     MSG_LINES = 3
-    EXEMPLES = [
-        ("exemple 1", "example.code"),
-        ("exemple 2", "example2.code"),
-        ("exemple 3", "example3.code")
-    ]
-    def __init__(self, parent, compileCallBack):
+
+    def __init__(self, parent):
         LabelFrame.__init__(self, parent, class_='InputCodeWidget', text='Votre code')
         self._programInput = TextWidget(self, "", cols = self.COLS, lines = self.LINES, writeEnabled = True, clearTabs = False, numbers = '', name='')
         self._programInput.pack(padx=10, pady=10)
@@ -481,42 +479,16 @@ class InputCodeWidget(LabelFrame):
         self._errorMessageFrame.insert(END, "Aucun message...")
         self._errorMessageFrame.config(state=DISABLED)
         self._errorMessageFrame.pack(padx=10, pady=10)
-        self._compileCallBack = compileCallBack
 
-        menu = Menu(self)
-        parent['menu'] = menu
-        menu.add_command(label='Compilation', command=self.__doCompile)
-        menu.add_command(label='Effacer', command=self.__clearProgramInput)
-
-        sousMenu = Menu(menu)
-        menu.add_cascade(label='Exemples', menu=sousMenu)
-        for nomExemple, nomFichier in self.EXEMPLES:
-            self.__addExemple(sousMenu, nomExemple, nomFichier)
-
-    def __addExemple(self, sousMenu, nomExemple, nomFichier):
-        sousMenu.add_command(label=nomExemple, command=lambda:self.__loadFile(nomFichier))
-
-    def __loadFile(self, fileName):
-        try:
-            with open(fileName, 'r') as file:
-                fileText = file.read()
-        except Exception as e:
-            self.writeMessage("Impossible d'ouvrir le fichier exemple '{}'\n{}".format(fileName, e))
-        else:
-            self.__writeProgramInput(fileText)
-
-    def __clearProgramInput(self):
+    def clearProgramInput(self):
         self._programInput.clear()
 
-    def __writeProgramInput(self,text):
+    def writeProgramInput(self,text):
         self._programInput.clear()
         self._programInput.insert(text)
 
-    def __doCompile(self):
-        self._programInput.clearHighlight()
-        self.writeMessage("Compilation...")
-        textCode = self._programInput.text
-        self._compileCallBack(textCode, self)
+    def getCode(self):
+        return self._programInput.text
 
     def writeMessage(self, message):
         self._errorMessageFrame.config(state=NORMAL)
@@ -542,16 +514,9 @@ class SimulationWidget(Frame):
         '''
 
         # partie programme
+        self.textCode = textCode
         self.__program = TextWidget(self, textCode, cols=0, numbersdigits=2, lines=20, offset=1, name="Votre code")
         self.__program.grid(row=1, column=0, columnspan=3, rowspan=11)
-
-        stepButton = Button(self, width=10, height=1, text='Pas')
-        stepButton.grid(row=0, column=0)
-        stepButton.bind('<Button-1>', self.stepRun)
-        reinitButton = Button(self, width=10, height=1, text='Réinit')
-        reinitButton.grid(row=0, column=1)
-        goButton = Button(self, width=10, height=1, text='Réinit')
-        goButton.grid(row=0, column=2)
 
         self.__messages = Text(self, width=150, height=5)
         self.__messages.grid(row=12, column=0, rowspan=5, columnspan=6)
@@ -593,11 +558,14 @@ class SimulationWidget(Frame):
     def show(self):
         self.__root.mainloop()
 
-    def stepRun(self, evt):
+    def stepRun(self):
         self.executeur.step()
         self.highlightCodeLine(self.executeur.currentAsmLine)
+        self.addMessage(self.executeur.messages[-1])
+
+    def addMessage(self, message):
         self.__messages.config(state=NORMAL)
-        self.__messages.insert(END, self.executeur.messages[-1]+"\n")
+        self.__messages.insert(END, message+"\n")
         self.__messages.config(state=DISABLED)
 
 if __name__=="__main__":
