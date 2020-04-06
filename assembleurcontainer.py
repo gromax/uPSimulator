@@ -363,14 +363,43 @@ class AssembleurContainer:
         return None
 
     def removeEmptyLines(self):
+        # cas de la dernière ligne
+        # si vide, même avec label, elle est supprimée
+        while len(self.__lines) > 0 and self.__lines[-1].isEmpty():
+            self.__lines.pop()
+
+        # Suppression de toute ligne vide sans label
+        index = 0
+        while index < len(self.__lines):
+            item = self.__lines[index]
+            if item.isEmpty() and item.label == '':
+                self.__lines.pop(index)
+            else:
+                index += 1
+        # recherche de label sans instruction avec ligne suivante sans label
         index = 0
         while index < len(self.__lines) - 1:
-            if self.__lines[index].isEmpty():
+            if self.__lines[index].isEmpty() and self.__lines[index+1].label == '':
                 self.__lines[index+1].copyNonEmptyLabel(self.__lines[index])
                 self.__lines.pop(index)
             else:
                 index += 1
-
+        # reste la possibilité de suite de labels
+        index = 0
+        while index < len(self.__lines) - 1:
+            if self.__lines[index].isEmpty():
+                # puisqu'elle n'a pas été supprimée par les phases antérieures,
+                # c'est que la ligne suivante a déjà un label
+                labelNext = self.__lines[index + 1].label
+                labelCurrent = self.__lines[index].label
+                # il faut changer tous ceux qui pointent vers labelCurrent
+                # pour qu'ils pointent vers labelNext
+                for item in self.__lines:
+                    if item.getJumpCible() == labelCurrent:
+                        item.setJumpCible(labelNext)
+                self.__lines.pop(index)
+            else:
+                index += 1
 
 if __name__=="__main__":
     from assembleurcontainer import *
