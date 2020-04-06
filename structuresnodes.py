@@ -300,7 +300,7 @@ class LabelNode(StructureNode):
         :return: index du label préfixé par 'l'
         :rtype: str
         """
-        return "l"+str(self.__index)
+        return "Lab"+str(self.__index)
 
 class AffectationNode(StructureNode):
     def __init__(self, lineNumber:int, variableCible:Variable, expression:ExpressionNode):
