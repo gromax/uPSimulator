@@ -357,10 +357,20 @@ class AssembleurContainer:
         """
         lineAdresse = 0
         for item in self.__lines:
-            if item.getLabel() == label:
+            if item.label == label:
                 return lineAdresse
             lineAdresse += item.getSizeInMemory()
         return None
+
+    def removeEmptyLines(self):
+        index = 0
+        while index < len(self.__lines) - 1:
+            if self.__lines[index].isEmpty():
+                self.__lines[index+1].copyNonEmptyLabel(self.__lines[index])
+                self.__lines.pop(index)
+            else:
+                index += 1
+
 
 if __name__=="__main__":
     from assembleurcontainer import *
