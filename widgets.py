@@ -43,8 +43,7 @@ class TextWidget(Frame):
         if self._clearTabs:
             textLines = self.__clearTabs(textLines)
         if self.lineNumberFormat != '':
-            for i in range(len(textLines)):
-                textLines[i] = self.lineNumberFormat.format(i+self.lineNumberOffset) + textLines[i]
+            textLines = [self.__addLineNumber(i, line) for i, line in enumerate(textLines)]
         if self.cols == 0:
             # on ajuste la taille de la zone de texte au contenu
             self.cols = max([len(line) for line in textLines])
@@ -57,6 +56,9 @@ class TextWidget(Frame):
         self.__textZone.pack(padx=10, pady=10)
 
         self.__textZone.tag_configure("HIGHLIGHTED", background=self.HL_BACKGROUND, foreground=self.HL_COLOR)
+
+    def __addLineNumber(self, index, line):
+        return self.lineNumberFormat.format(index+self.lineNumberOffset) + line
 
     def __clearTabs(self, textLines):
         # découpage en lignes, recherche d'éventuelles tabulation
@@ -83,6 +85,18 @@ class TextWidget(Frame):
 
     def clearHighlight(self):
         self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
+
+    def clear(self):
+        self.__textZone.config(state=NORMAL)
+        self.__textZone.delete('1.0', 'end')
+        if not self._writeEnabled:
+            self.__textZone.config(state=DISABLED)
+
+    def insert(self, text):
+        self.__textZone.config(state=NORMAL)
+        self.__textZone.insert(END, text)
+        if not self._writeEnabled:
+            self.__textZone.config(state=DISABLED)
 
     @property
     def text(self):
@@ -453,14 +467,15 @@ class InputCodeWidget(LabelFrame):
     COLS = 50
     LINES = 30
     MSG_LINES = 3
+    EXEMPLES = [
+        ("exemple 1", "example.code"),
+        ("exemple 2", "example2.code"),
+        ("exemple 3", "example3.code")
+    ]
     def __init__(self, parent, compileCallBack):
         LabelFrame.__init__(self, parent, class_='InputCodeWidget', text='Votre code')
         self._programInput = TextWidget(self, "", cols = self.COLS, lines = self.LINES, writeEnabled = True, clearTabs = False, numbers = '', name='')
         self._programInput.pack(padx=10, pady=10)
-        self._programInput.bind('<Double-Button-1>', self.__clear_programInput)
-
-        compileButton = Button(self, text='Compile', command = self.__doCompile)
-        compileButton.pack()
 
         self._errorMessageFrame = Text(self, width = self.COLS, height = self.MSG_LINES, bg='#fdd')
         self._errorMessageFrame.insert(END, "Aucun message...")
@@ -468,8 +483,34 @@ class InputCodeWidget(LabelFrame):
         self._errorMessageFrame.pack(padx=10, pady=10)
         self._compileCallBack = compileCallBack
 
-    def __clear_programInput(self,event):
-        self._programInput.delete('1.0', 'end')
+        menu = Menu(self)
+        parent['menu'] = menu
+        menu.add_command(label='Compilation', command=self.__doCompile)
+        menu.add_command(label='Effacer', command=self.__clearProgramInput)
+
+        sousMenu = Menu(menu)
+        menu.add_cascade(label='Exemples', menu=sousMenu)
+        for nomExemple, nomFichier in self.EXEMPLES:
+            self.__addExemple(sousMenu, nomExemple, nomFichier)
+
+    def __addExemple(self, sousMenu, nomExemple, nomFichier):
+        sousMenu.add_command(label=nomExemple, command=lambda:self.__loadFile(nomFichier))
+
+    def __loadFile(self, fileName):
+        try:
+            with open(fileName, 'r') as file:
+                fileText = file.read()
+        except Exception as e:
+            self.writeMessage("Impossible d'ouvrir le fichier exemple '{}'\n{}".format(fileName, e))
+        else:
+            self.__writeProgramInput(fileText)
+
+    def __clearProgramInput(self):
+        self._programInput.clear()
+
+    def __writeProgramInput(self,text):
+        self._programInput.clear()
+        self._programInput.insert(text)
 
     def __doCompile(self):
         self._programInput.clearHighlight()
@@ -501,7 +542,7 @@ class SimulationWidget(Frame):
         '''
 
         # partie programme
-        self.__program = TextWidget(self, textCode, numbersdigits=2, lines=20, offset=1, name="Votre code")
+        self.__program = TextWidget(self, textCode, cols=0, numbersdigits=2, lines=20, offset=1, name="Votre code")
         self.__program.grid(row=1, column=0, columnspan=3, rowspan=11)
 
         stepButton = Button(self, width=10, height=1, text='Pas')
