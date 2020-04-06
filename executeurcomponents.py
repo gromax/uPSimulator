@@ -293,6 +293,14 @@ class UalComponent(BaseComponent):
     def operation(self):
         return self.__operation
 
+    @property
+    def op1(self):
+        return self.__op1.clone()
+
+    @property
+    def op2(self):
+        return self.__op2.clone()
+
     def setOperation(self, opName:str) -> None:
         '''Fixe l'opération
 
