@@ -23,6 +23,11 @@ class InputCodeWindow:
         ("exemple 3", "example3.code")
     ]
     _runningSpeed = 0
+    BIN_DISPLAY = 0
+    DEC_DISPLAY = 1
+    HEX_DISPLAY = 2
+    MODES = ("bin", "dec", "hex")
+
     def __init__(self):
         root = Tk()
         root.title('Simulation de processeur')
@@ -30,8 +35,11 @@ class InputCodeWindow:
 
         menu = Menu(root)
         root['menu'] = menu
-        menu.add_command(label='Compilation', command=self.__editModeCompile)
-        menu.add_command(label='Effacer', command=self.__clearProgramInput)
+
+        sousMenuEdit = Menu(menu)
+        menu.add_cascade(label="Edit", menu=sousMenuEdit)
+        sousMenuEdit.add_command(label='Effacer', command=self.__clearProgramInput)
+        sousMenuEdit.add_command(label='Modifier', command=self.__goEditMode)
 
         sousMenuExemples = Menu(menu)
         menu.add_cascade(label='Exemples', menu=sousMenuExemples)
@@ -40,15 +48,24 @@ class InputCodeWindow:
 
         sousMenuRun = Menu(menu)
         menu.add_cascade(label="Run", menu = sousMenuRun)
-        sousMenuRun.add_command(label="step", command=self.__step)
+        sousMenuRun.add_command(label="Compilation", command=self.__editModeCompile)
+        sousMenuRun.add_separator()
+        sousMenuRun.add_command(label="Step", command=self.__step)
         sousMenuRun.add_command(label="Run x1", command=self.__run_v1)
         sousMenuRun.add_command(label="Run x10", command=self.__run_v10)
         sousMenuRun.add_command(label="Run x100", command=self.__run_v100)
         sousMenuRun.add_command(label="Pause", command=self.__pause)
         sousMenuRun.add_command(label="Réinit", command=self.__reinitSim)
 
+        sousMenuDisplay = Menu(menu)
+        menu.add_cascade(label="Display", menu=sousMenuDisplay)
+        self._currentDisplay = IntVar()
+        self._currentDisplay.set(self.BIN_DISPLAY)
+        sousMenuDisplay.add_radiobutton(label="bin", variable=self._currentDisplay, command=self.__switchDisplay, value=self.BIN_DISPLAY)
+        sousMenuDisplay.add_radiobutton(label="dec", variable=self._currentDisplay, command=self.__switchDisplay, value=self.DEC_DISPLAY)
+        sousMenuDisplay.add_radiobutton(label="hex", variable=self._currentDisplay, command=self.__switchDisplay, value=self.HEX_DISPLAY)
 
-        self._currentWidget = InputCodeWidget(root)
+        self._currentWidget = InputCodeWidget(root, "")
         self._currentWidget.pack()
 
     def inEditMode(self):
@@ -69,16 +86,31 @@ class InputCodeWindow:
             else:
                 self.__doCompile(fileText)
 
+    def __switchDisplay(self):
+        d = self._currentDisplay.get()
+        if 0 <= d < len(self.MODES) and not self.inEditMode():
+            newMode = self.MODES[d]
+            self._currentWidget.selectDisplay(newMode)
+
     def __clearProgramInput(self):
         if self.inEditMode():
             self._currentWidget.clearProgramInput()
 
     def __goEditMode(self):
-        pass
+        if not self.inEditMode():
+            textCode = self._currentWidget.textCode
+            self._currentWidget.destroy()
+            self._currentWidget = InputCodeWidget(self._root, textCode)
+            self._currentWidget.pack()
 
     def __goSimMode(self, executeur, textCode, asm):
+        d = self._currentDisplay.get()
+        if 0 <= d < len(self.MODES):
+            mode = self.MODES[d]
+        else:
+            mode = self.MODES[0]
         self._currentWidget.destroy()
-        self._currentWidget = SimulationWidget(self._root, executeur, textCode, asm)
+        self._currentWidget = SimulationWidget(self._root, executeur, textCode, asm, mode)
         self._currentWidget.pack()
 
     def __editModeCompile(self):
