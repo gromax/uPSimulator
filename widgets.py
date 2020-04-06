@@ -104,7 +104,6 @@ class TextWidget(Frame):
     def text(self):
         return self.__textZone.get('1.0', 'end')
 
-
 class MemoryWidget(LabelFrame):
     BACKGROUND = 'white'
     HL_BACKGROUND = 'orange3'
@@ -127,7 +126,7 @@ class MemoryWidget(LabelFrame):
                 self.lines = value
             elif key == 'name':
                 self.__name = value
-            elif key == 'mode' and value in self.MODES.keys():
+            elif key == 'mode' and value in self.MODES:
                 self.__mode = value
 
         LabelFrame.__init__(self, parent, class_='MemoryWidget', text=self.__name)
@@ -217,7 +216,9 @@ class BufferWidget(LabelFrame):
     __mode = "bin"
     __waitingInput = True
 
-    def __init__(self, parent, bufferComp):
+    def __init__(self, parent, bufferComp,  **options):
+        if "mode" in options and options["mode"] in self.MODES:
+            self.__mode = options["mode"]
         LabelFrame.__init__(self, parent, class_='BufferWidget', text="Saisie")
         self.__buffer = bufferComp
         bufferComp.bind("onread", self.onreadwrite)
@@ -292,8 +293,8 @@ class ScreenWidget(LabelFrame):
     __mode = "bin"
 
     def __init__(self, parent, screen, **options):
-        if "mode" in options:
-            self.selectMode(options["mode"])
+        if "mode" in options and options["mode"] in self.MODES:
+            self.__mode = options["mode"]
         self.__screen = screen
         screen.bind("onclear", self.onclear)
         screen.bind("onwrite", self.onwrite)
@@ -348,7 +349,7 @@ class RegisterWidget(LabelFrame):
 
     def __init__(self, parent, register, **kwargs):
         for key, value in kwargs.items():
-            if key == 'mode' and value in self.MODES.keys():
+            if key == 'mode' and value in self.MODES:
                 self.__mode = value
             elif key == 'unsigned':
                 self.__unsigned = (value == True)
@@ -387,7 +388,7 @@ class UalWidget(LabelFrame):
 
     def __init__(self, parent, ual, **kwargs):
         for key, value in kwargs.items():
-            if key == 'mode' and value in self.MODES.keys():
+            if key == 'mode' and value in self.MODES:
                 self.__mode = value
         self.__ual = ual
         LabelFrame.__init__(self, parent, class_='RegisterWidget', text="UAL")
@@ -431,6 +432,12 @@ class UalWidget(LabelFrame):
             self.__mode = mode
             self.refresh()
 
+    def refresh(self):
+        self.onwriteop1({"writed":self.__ual.op1})
+        self.onwriteop2({"writed":self.__ual.op2})
+        self.oncalc({"result": self.__ual.read(), "iszero":self.__ual.isZero, "ispos":self.__ual.isPos})
+        self.onsetoperation({"operation":self.__ual.operation})
+
     def onwriteop1(self, params):
         if "writed" in params:
             self.__op1StringVar.set(params["writed"].toStr(self.__mode))
@@ -470,9 +477,9 @@ class InputCodeWidget(LabelFrame):
     LINES = 30
     MSG_LINES = 3
 
-    def __init__(self, parent):
+    def __init__(self, parent, textCode):
         LabelFrame.__init__(self, parent, class_='InputCodeWidget', text='Votre code')
-        self._programInput = TextWidget(self, "", cols = self.COLS, lines = self.LINES, writeEnabled = True, clearTabs = False, numbers = '', name='')
+        self._programInput = TextWidget(self, textCode, cols = self.COLS, lines = self.LINES, writeEnabled = True, clearTabs = False, numbers = '', name='')
         self._programInput.pack(padx=10, pady=10)
 
         self._errorMessageFrame = Text(self, width = self.COLS, height = self.MSG_LINES, bg='#fdd')
@@ -501,7 +508,7 @@ class InputCodeWidget(LabelFrame):
 
 
 class SimulationWidget(Frame):
-    def __init__(self, parent, executeur, textCode, asm):
+    def __init__(self, parent, executeur, textCode, asm, mode):
         Frame.__init__(self, parent, class_='SimulationWidget')
         self.asm = asm
         # grille
@@ -515,35 +522,35 @@ class SimulationWidget(Frame):
 
         # partie programme
         self.textCode = textCode
-        self.__program = TextWidget(self, textCode, cols=0, numbersdigits=2, lines=20, offset=1, name="Votre code")
-        self.__program.grid(row=1, column=0, columnspan=3, rowspan=11)
+        self._program = TextWidget(self, textCode, cols=0, numbersdigits=2, lines=20, offset=1, name="Votre code")
+        self._program.grid(row=1, column=0, columnspan=3, rowspan=11)
 
-        self.__messages = Text(self, width=150, height=5)
-        self.__messages.grid(row=12, column=0, rowspan=5, columnspan=6)
-        self.__messages.insert(END, "Initialisations\n")
-        self.__messages.config(state=DISABLED)
+        self._messages = Text(self, width=150, height=5)
+        self._messages.grid(row=12, column=0, rowspan=5, columnspan=6)
+        self._messages.insert(END, "Initialisations\n")
+        self._messages.config(state=DISABLED)
 
 
         # partie asm
-        self.__asmFrame = TextWidget(self, str(asm), cols=0, numbertab=' ', name='Assembleur')
-        self.__asmFrame.grid(row=0, column=3, rowspan=12)
+        self._asmFrame = TextWidget(self, str(asm), cols=0, numbertab=' ', name='Assembleur')
+        self._asmFrame.grid(row=0, column=3, rowspan=12)
 
         self.executeur = executeur
-        ualW = UalWidget(self, self.executeur.ual)
-        inputBufferW = BufferWidget(self, self.executeur.inputBuffer)
-        instrRegW = RegisterWidget(self, self.executeur.instructionRegister, unsigned = True)
-        linePointerW = RegisterWidget(self, self.executeur.linePointer, unsigned = True)
-        memoryW = MemoryWidget(self, self.executeur.memory)
-        registersW = MemoryWidget(self, self.executeur.registers, name="Registres", lines="8")
-        screenW = ScreenWidget(self, self.executeur.screen)
+        self._ualW = UalWidget(self, self.executeur.ual, mode=mode)
+        self._inputBufferW = BufferWidget(self, self.executeur.inputBuffer, mode=mode)
+        self._instrRegW = RegisterWidget(self, self.executeur.instructionRegister, unsigned = True, mode=mode)
+        self._linePointerW = RegisterWidget(self, self.executeur.linePointer, unsigned = True, mode=mode)
+        self._memoryW = MemoryWidget(self, self.executeur.memory, mode=mode)
+        self._registersW = MemoryWidget(self, self.executeur.registers, name="Registres", lines="8", mode=mode)
+        self._screenW = ScreenWidget(self, self.executeur.screen, mode=mode)
 
-        inputBufferW.grid(row=0, column=4, rowspan=4)
-        screenW.grid(row=4, column=4, rowspan=4)
-        instrRegW.grid(row=8, column=4, rowspan=2)
-        linePointerW.grid(row=10, column=4, rowspan=2)
-        ualW.grid(row=0, column=5, rowspan=6)
-        registersW.grid(row=6, column=5, rowspan=6)
-        memoryW.grid(row=0, column=6, rowspan=12)
+        self._inputBufferW.grid(row=0, column=4, rowspan=4)
+        self._screenW.grid(row=4, column=4, rowspan=4)
+        self._instrRegW.grid(row=8, column=4, rowspan=2)
+        self._linePointerW.grid(row=10, column=4, rowspan=2)
+        self._ualW.grid(row=0, column=5, rowspan=6)
+        self._registersW.grid(row=6, column=5, rowspan=6)
+        self._memoryW.grid(row=0, column=6, rowspan=12)
 
         self.highlightCodeLine(0)
 
@@ -552,8 +559,8 @@ class SimulationWidget(Frame):
         de la ligne correspondante dans le programme d'origine
         '''
         indexCodeLine = self.asm.getLineNumber(currentAsmLine)
-        self.__asmFrame.highlightLine(currentAsmLine)
-        self.__program.highlightLine(indexCodeLine)
+        self._asmFrame.highlightLine(currentAsmLine)
+        self._program.highlightLine(indexCodeLine)
 
     def show(self):
         self.__root.mainloop()
@@ -564,9 +571,19 @@ class SimulationWidget(Frame):
         self.addMessage(self.executeur.messages[-1])
 
     def addMessage(self, message):
-        self.__messages.config(state=NORMAL)
-        self.__messages.insert(END, message+"\n")
-        self.__messages.config(state=DISABLED)
+        self._messages.config(state=NORMAL)
+        self._messages.insert(END, message+"\n")
+        self._messages.see(END)
+        self._messages.config(state=DISABLED)
+
+    def selectDisplay(self, mode):
+        self._ualW.selectMode(mode)
+        self._inputBufferW.selectMode(mode)
+        self._instrRegW.selectMode(mode)
+        self._linePointerW.selectMode(mode)
+        self._registersW.selectMode(mode)
+        self._memoryW.selectMode(mode)
+        self._screenW.selectMode(mode)
 
 if __name__=="__main__":
     root = Tk()
