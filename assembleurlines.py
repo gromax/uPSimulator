@@ -42,11 +42,15 @@ class AsmLine:
 
     @property
     def lineNumber(self) -> int:
-        '''Accesseur
+        """Accesseur
 
         :return: numéro de la ligne d'origine
         :rtype: int
-        '''
+
+        :Example:
+          >>> AsmLine(12,"Lab1", "1111", "ADD", (0,2), None).lineNumber
+          12
+        """
         return self._lineNumber
 
     @property
@@ -55,21 +59,30 @@ class AsmLine:
 
         :return: étiquette
         :rtype: str
+
+        :Example:
+          >>> AsmLine(-1,"Lab1", "1111", "ADD", (0,2), None).label
+          'Lab1'
         """
         return self._label
 
-    def __stringifyRegOperand(self, operand:int) -> str:
+    @staticmethod
+    def _stringifyRegOperand(operand:int) -> str:
         """Facile la création du texte associé à un registre.
 
         :param operand: numéro du registre
         :type operand: int
         :return: nom du registre sous forme r + numéro
         :rtype: int
+
+        :Example:
+          >>> AsmLine._stringifyRegOperand(2)
+          'r2'
         """
         return "r"+str(operand)
 
     def __str__(self) -> str:
-        strOperands = [ self.__stringifyRegOperand(ope) for ope in self._regOperands]
+        strOperands = [ AsmLine._stringifyRegOperand(ope) for ope in self._regOperands]
         if self._specialOperand != None:
             strOperands.append(str(self._specialOperand))
         if len(strOperands) > 0:
@@ -85,6 +98,10 @@ class AsmLine:
         :type regSize: int
         :return: nombre de bits laissés après les registres
         :rtype: int
+
+        :Example:
+          >>> AsmLine(-1,"", "1111", "ADD", (0,2), None).getLastOperandSize(16,3)
+          6
         """
         return wordSize - len(self._opcode) - len(self._regOperands) * regSize
 
@@ -111,6 +128,13 @@ class AsmLine:
 
         :return: vrai s'il n'y apas d'opcode ou de commande assembleur
         :rtype: bool
+
+        :Example:
+          >>> AsmLine(-1,"", "", "", (), "").isEmpty()
+          True
+
+          >>> AsmLine(-1,"", "1111", "LOAD", (), "").isEmpty()
+          False
         """
         return self._asmCommand == "" or self._opcode == ""
 
@@ -130,6 +154,13 @@ class AsmLine:
 
         :return: label de la cible si c'est un saut, '' sinon
         :rtype: str
+
+        :Example:
+          >>> AsmLine(-1,"", "", "", (), "Lab1").getJumpCible()
+          'Lab1'
+
+          >>> AsmLine(-1,"", "", "", (), "").getJumpCible()
+          ''
         """
         if isinstance(self._specialOperand, str):
             return self._specialOperand
