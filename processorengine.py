@@ -374,6 +374,8 @@ class ProcessorEngine:
                 opeBinary = strBinary[len(opcode):]
                 if name == "halt":
                     return ("halt",(),-1, 0)
+                if name == "nop":
+                    return ("nop", (), -1, 0)
                 if name in ("goto", "!=", "==", "<", "<=", ">=", ">", "input"):
                     cible = int(opeBinary,2)
                     return (name, (), cible, len(opeBinary))
