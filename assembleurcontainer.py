@@ -8,6 +8,7 @@ from typing import Union, Tuple, Optional, List
 from errors import CompilationError, AttributesError
 from litteral import Litteral
 from variable import Variable
+from label import Label
 from assembleurlines import AsmLine
 from processorengine import ProcessorEngine
 
@@ -64,7 +65,7 @@ class AssembleurContainer:
         wordSize = self.__engine.dataBits
         return [ item.getValueBinary(wordSize) for item in self.__memoryData]
 
-    def pushStore(self, lineNumber:int, source:int, destination:Variable) -> None:
+    def pushStore(self, lineNumber:int, label:Optional[Label], source:int, destination:Variable) -> None:
         """
         Ajoute une commande STORE dans l'assembleur.
 
@@ -72,6 +73,8 @@ class AssembleurContainer:
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param source: registre source
         :type source: int
         :param destination: variable destination
@@ -82,7 +85,7 @@ class AssembleurContainer:
         if asmCommand == "" or opcode == "":
             raise AttributesError("Pas de commande pour store dans le modèle de processeur.", {"lineNumber": lineNumber})
         memoryItem = self.__pushMemory(destination)
-        asmLine = AsmLine(lineNumber, "", opcode, asmCommand, (source,), memoryItem)
+        asmLine = AsmLine(lineNumber, label, opcode, asmCommand, (source,), memoryItem)
         self.__lines.append(asmLine)
 
     def getLineNumber(self, indexAsmLine:int) -> int:
@@ -96,8 +99,7 @@ class AssembleurContainer:
             return -1
         return self.__lines[indexAsmLine].lineNumber
 
-
-    def pushLoad(self, lineNumber:int, source:Union[Variable,Litteral], destination:int) -> None:
+    def pushLoad(self, lineNumber:int, label:Optional[Label], source:Union[Variable,Litteral], destination:int) -> None:
         """
         Ajoute une commande LOAD dans l'assembleur.
 
@@ -105,6 +107,8 @@ class AssembleurContainer:
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param destination: registre destination
         :type destination: int
         :param source: variable ou littéral source
@@ -117,15 +121,17 @@ class AssembleurContainer:
         if not self.__engine.valueFitsInMemory(source.value, False):
             raise CompilationError(f"Valeur {source.value} trop grande pour le modèle de processeur.", {"lineNumber": lineNumber})
         memoryItem = self.__pushMemory(source)
-        asmLine = AsmLine(lineNumber, "", opcode, asmCommand, (destination,), memoryItem)
+        asmLine = AsmLine(lineNumber, label, opcode, asmCommand, (destination,), memoryItem)
         self.__lines.append(asmLine)
 
-    def pushMoveLitteral(self, lineNumber:int, source:Litteral, destination:int) -> None:
+    def pushMoveLitteral(self, lineNumber:int, label:Optional[Label], source:Litteral, destination:int) -> None:
         """
         Ajoute une commande MOVE avec littéral dans l'assembleur.
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param destination: registre destination
         :type destination: int
         :param source: littéral source
@@ -138,16 +144,18 @@ class AssembleurContainer:
             maxSize = self.__engine.getLitteralMaxSizeIn("move")
             if source.isBetween(0,maxSize):
                 moveOperands = (destination, source)
-                self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, (destination,), source))
+                self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, (destination,), source))
                 return
-        self.pushLoad(lineNumber, source, destination)
+        self.pushLoad(lineNumber, label, source, destination)
 
-    def pushMove(self, lineNumber:int, source:int, destination:int) -> None:
+    def pushMove(self, lineNumber:int, label:Optional[Label], source:int, destination:int) -> None:
         """
         Ajoute une commande MOVE dans l'assembleur
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param destination: registre destination
         :type destination: int
         :param source: registre source
@@ -158,14 +166,16 @@ class AssembleurContainer:
         if asmCommand == "" or opcode == "":
             raise AttributesError("Pas de commande pour move dans le modèle de processeur.", {"lineNumber": lineNumber})
         moveOperands = (destination, source)
-        self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, moveOperands, None))
+        self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, moveOperands, None))
 
-    def pushUal(self, lineNumber:int, operator:str, destination:int, regOperands:Tuple[int,...], littOperand:Optional[Litteral] = None) -> None:
+    def pushUal(self, lineNumber:int, label:Optional[Label], operator:str, destination:int, regOperands:Tuple[int,...], littOperand:Optional[Litteral] = None) -> None:
         """
         Ajoute une commande de calcul UAL dans l'assembleur.
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param destination: registre destination
         :type destination: int
         :param operator: opérateur
@@ -188,21 +198,23 @@ class AssembleurContainer:
                 maxSize = self.__engine.getLitteralMaxSizeIn(operator)
                 if not littOperand.isBetween(0,maxSize):
                     raise CompilationError(f"Litteral trop grand pour {operator}", {"lineNumber": lineNumber})
-                self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, regOperands, littOperand))
+                self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, regOperands, littOperand))
                 return
             raise CompilationError(f"Pas de commande pour {operator} avec litteral dans le modèle de processeur", {"lineNumber": lineNumber})
         opcode = self.__engine.getOpcode(operator)
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == "" or opcode == "":
             raise AttributesError(f"Pas de commande pour {operator} dans le modèle de processeur.", {"lineNumber": lineNumber})
-        self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, regOperands, None))
+        self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, regOperands, None))
 
-    def pushCmp(self, lineNumber:int, operand1:int, operand2:int) -> None:
+    def pushCmp(self, lineNumber:int, label:Optional[Label], operand1:int, operand2:int) -> None:
         """
         Ajoute une commande CMP, comparaison, dans l'assembleur.
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param operand1: registre premier opérande
         :type operand1: int
         :param operand2: registre second opérande
@@ -216,14 +228,16 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("cmp")
         if asmCommand == "" or opcode == "":
             raise AttributesError("Pas de commande pour cmp dans le modèle de processeur.", {"lineNumber": lineNumber})
-        self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, (operand1, operand2), None))
+        self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, (operand1, operand2), None))
 
-    def pushInput(self, lineNumber:int, destination:Variable) -> None:
+    def pushInput(self, lineNumber:int, label:Optional[Label], destination:Variable) -> None:
         """
         Ajoute une commande INPUT, lecture entrée, dans l'assembleur.
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param destination: variable cible
         :type destination: Variable
         """
@@ -232,7 +246,7 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("input")
         if asmCommand == "" or opcode == "":
             raise AttributesError("Pas de commande pour input dans le modèle de processeur.", {"lineNumber": lineNumber})
-        self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, (), destination))
+        self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, (), destination))
 
     def pushPrint(self, lineNumber:int, source:int) -> None:
         """
@@ -248,20 +262,21 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand("print")
         if asmCommand == "" or opcode == "":
             raise AttributesError("Pas de commande pour print dans le modèle de processeur.", {"lineNumber": lineNumber})
-        self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, (source,), None))
+        self.__lines.append(AsmLine(lineNumber, None, opcode, asmCommand, (source,), None))
 
-    def pushJump(self, lineNumber:int, cible:str, operator:Optional[str] = None) -> None:
+    def pushJump(self, lineNumber:int, label:Optional[Label], cible:Label, operator:Optional[str] = None) -> None:
         """
         Ajoute une commande JUMP, saut conditionnel ou non, dans l'assembleur.
 
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         :param cible: étiquette cible
-        :type cible: str
+        :type cible: Label
         :param operator: comparaison parmi <, <=, >=, >, ==, !=. None pour Jump inconditionnel
         :type operator: str / None
         """
-        cible = str(cible)
         if operator == None:
             operator = "goto"
         assert operator in ("<", "<=", ">", ">=", "==", "!=", "goto")
@@ -269,26 +284,19 @@ class AssembleurContainer:
         asmCommand = self.__engine.getAsmCommand(operator)
         if asmCommand == "" or opcode == "":
             raise AttributesError(f"Pas de commande pour {operator} dans le modèle de processeur.", {"lineNumber": lineNumber})
-        self.__lines.append(AsmLine(lineNumber, "", opcode, asmCommand, (), cible))
+        self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, (), cible))
 
-    def pushHalt(self) -> None:
+    def pushHalt(self, label:Optional[Label]) -> None:
         """Ajoute une commande HALT, fin de programme, à l'assembleur.
+
+        :param label: label de l'instruction
+        :type label: Optional[Label]
         """
         opcode = self.__engine.getOpcode("halt")
         asmCommand = self.__engine.getAsmCommand("halt")
         if asmCommand == "" or opcode == "":
             raise AttributesError("Pas de commande pour halt dans le modèle de processeur.")
-        self.__lines.append(AsmLine(-1, "", opcode, asmCommand, (), None))
-
-    def pushLabel(self, lineNumber:int, label:str) -> None:
-        """Ajoute une ligne vide avec étiquette.
-
-        :param lineNumber: numéro de la ligne d'origine
-        :type lineNumber: int
-        :param label: étiquette
-        :type label: str
-        """
-        self.__lines.append(AsmLine(lineNumber, label, "", "", (), None))
+        self.__lines.append(AsmLine(-1, label, opcode, asmCommand, (), None))
 
     def getBinary(self) -> str:
         """Produit le code binaire correspondant au code assembleur.
@@ -296,11 +304,11 @@ class AssembleurContainer:
         :return: code binaire
         :rtype: str
         """
-        binaryList = [self.__formatBinaryLine(item) for item in self.__lines if not item.isEmpty()]
+        binaryList = [self.__formatBinaryLine(item) for item in self.__lines]
         memoryBinary = self.__memoryToBinary()
         return "\n".join(binaryList + memoryBinary)
 
-    def __formatBinaryElement(self, value:int, size:int) -> str:
+    def __formatBinaryElement(self, value:int, size:int) -> Optional[str]:
         """Donne la représentation binaire d'un élément de la ligne.
 
         :param value: valeur à coder en binaire
@@ -308,18 +316,17 @@ class AssembleurContainer:
         :param size: nombre bits disponibles
         :type size: int
         :return: code binaire de l'item
-        :rtype: str
-        :raises:CompilationError si taille négative ou trop faible ou valeur à coder négative.
+        :rtype: Optional[str]
         """
         if size <= 0:
-            raise CompilationError(f"{self} -> binaire : Place allouée à un code binaire négative !", {"lineNumber":self._lineNumber})
+            return None
         if value < 0:
-            raise CompilationError(f"{self} -> binaire : valeur à coder négative !", {"lineNumber":self._lineNumber})
+            return None
 
         strItem = format(value, '0'+str(size)+'b')
-
         if len(strItem) > size:
-            raise CompilationError(f"{self} -> binaire : valeur à coder trop grande !", {"lineNumber":self._lineNumber})
+            return None
+
         return strItem
 
     def __formatBinaryLine(self, asmItem:AsmLine) -> str:
@@ -327,42 +334,55 @@ class AssembleurContainer:
 
         :return: code binaire
         :rtype: str
+        :raises:CompilationError si item à coder ne convient pas
         """
         elements = asmItem.getElementsToCode()
         if len(elements) == 0:
             return ""
         regSize = self.__engine.regBits
         wordSize = self.__engine.dataBits
-        specialOperands = False
         binaryCode = ""
         for elem in elements:
-            if elem == "|":
-                specialOperands = True
-                continue
             if isinstance(elem, int):
                 # codage d'un registre
-                binaryCode += self.__formatBinaryElement(elem, regSize)
+                binaryElem = self.__formatBinaryElement(elem, regSize)
+                if binaryElem is None:
+                    raise CompilationError(f"{asmItem} -> Codage de r{elem} impossible !", {"lineNumber":asmItem.lineNumber})
+                else:
+                    binaryCode += binaryElem
                 continue
             if isinstance(elem, Litteral):
                 # litteral
                 litteralSize = asmItem.getLastOperandSize(wordSize, regSize)
-                binaryCode += self.__formatBinaryElement(elem.value, litteralSize)
+                binaryElem = self.__formatBinaryElement(elem.value, litteralSize)
+                if binaryElem is None:
+                    raise CompilationError(f"{asmItem} -> Codage de {Litteral.value} impossible !", {"lineNumber":asmItem.lineNumber})
+                else:
+                    binaryCode += binaryElem
                 continue
             if isinstance(elem, Variable):
                 # variable
                 adresseVariableSize = asmItem.getLastOperandSize(wordSize, regSize)
                 adresseToCode = self.getMemAbsPos(elem)
                 if isinstance(adresseToCode, int):
-                    binaryCode += self.__formatBinaryElement(adresseToCode, adresseVariableSize)
+                    binaryElem = self.__formatBinaryElement(adresseToCode, adresseVariableSize)
+                    if binaryElem is None:
+                        raise CompilationError(f"{asmItem} -> Codage de l'adresse {elem}[{adresseToCode}] impossible !", {"lineNumber":asmItem.lineNumber})
+                    else:
+                        binaryCode += binaryElem
                 else:
                     raise CompilationError(f"{asmItem} -> Variable {elem.name} introuvable !", {"lineNumber":asmItem.lineNumber})
                 continue
-            if specialOperands:
+            if isinstance(elem, Label):
                 # label
                 adresseLabelSize = asmItem.getLastOperandSize(wordSize, regSize)
                 adresseToCode = self.getLineLabel(elem)
                 if isinstance(adresseToCode, int):
-                    binaryCode += self.__formatBinaryElement(adresseToCode, adresseLabelSize)
+                    binaryElem = self.__formatBinaryElement(adresseToCode, adresseLabelSize)
+                    if binaryElem is None:
+                        raise CompilationError(f"{asmItem} -> Codage du saut {elem}[{adresseToCode}] impossible !", {"lineNumber":asmItem.lineNumber})
+                    else:
+                        binaryCode += binaryElem
                 else:
                     raise CompilationError(f"{asmItem} -> Label {elem} introuvable !", {"lineNumber":asmItem.lineNumber})
                 continue
@@ -418,11 +438,11 @@ class AssembleurContainer:
         memStr = [str(item) + "\t" + str(item.value) for item in self.__memoryData]
         return codePart + "\n" + "\n".join(memStr)
 
-    def getLineLabel(self, label:str) -> Union[int,None]:
+    def getLineLabel(self, label:Label) -> Union[int,None]:
         """Calcul l'adresse d'une étiquette.
 
         :param label: étiquette recherchée
-        :type label: str
+        :type label: Label
         :return: adresse de l'étiquette. None si elle n'est pas trouvée.
         :rtype: Union[int,None]
         """
@@ -433,45 +453,6 @@ class AssembleurContainer:
             lineAdresse += item.getSizeInMemory()
         return None
 
-    def removeEmptyLines(self):
-        # cas de la dernière ligne
-        # si vide, même avec label, elle est supprimée
-        while len(self.__lines) > 0 and self.__lines[-1].isEmpty():
-            self.__lines.pop()
-
-        # Suppression de toute ligne vide sans label
-        index = 0
-        while index < len(self.__lines):
-            item = self.__lines[index]
-            if item.isEmpty() and item.label == '':
-                self.__lines.pop(index)
-            else:
-                index += 1
-        # recherche de label sans instruction avec ligne suivante sans label
-        index = 0
-        while index < len(self.__lines) - 1:
-            if self.__lines[index].isEmpty() and self.__lines[index+1].label == '':
-                self.__lines[index+1].copyNonEmptyLabel(self.__lines[index])
-                self.__lines.pop(index)
-            else:
-                index += 1
-        # reste la possibilité de suite de labels
-        index = 0
-        while index < len(self.__lines) - 1:
-            if self.__lines[index].isEmpty():
-                # puisqu'elle n'a pas été supprimée par les phases antérieures,
-                # c'est que la ligne suivante a déjà un label
-                labelNext = self.__lines[index + 1].label
-                labelCurrent = self.__lines[index].label
-                # il faut changer tous ceux qui pointent vers labelCurrent
-                # pour qu'ils pointent vers labelNext
-                for item in self.__lines:
-                    if item.getJumpCible() == labelCurrent:
-                        item.setJumpCible(labelNext)
-                self.__lines.pop(index)
-            else:
-                index += 1
-
 if __name__=="__main__":
     from expressionparser import ExpressionParser
     from processorengine import ProcessorEngine
@@ -479,14 +460,14 @@ if __name__=="__main__":
 
     engine = ProcessorEngine()
     AsmCont = AssembleurContainer(engine)
-    AsmCont.pushMove(0,2,1)
-    AsmCont.pushMoveLitteral(0,Litteral(2),1)
-    AsmCont.pushUal(0,"+",2,(3,), Litteral(19))
-    AsmCont.pushStore(0,1,Variable("x"))
-    AsmCont.pushLoad(0,Variable("x"),3)
-    AsmCont.pushInput(0,Variable("x"))
+    AsmCont.pushMove(0,None, 2,1)
+    AsmCont.pushMoveLitteral(0,None, Litteral(2),1)
+    AsmCont.pushUal(0,None, "+",2,(3,), Litteral(19))
+    AsmCont.pushStore(0,None, 1,Variable("x"))
+    AsmCont.pushLoad(0,None, Variable("x"),3)
+    AsmCont.pushInput(0,None, Variable("x"))
     AsmCont.pushPrint(0,1)
-    AsmCont.pushHalt()
+    AsmCont.pushHalt(None)
 
     print(str(AsmCont))
     print()
