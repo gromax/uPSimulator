@@ -5,18 +5,20 @@
    :synopsis: gestion de la compilation d'une expression
 """
 
-from typing import Union, List
+from typing import Union, List, Optional
 
 from errors import *
 from variable import Variable
 from litteral import Litteral
+from label import Label
 from processorengine import ProcessorEngine
 from assembleurcontainer import AssembleurContainer
 
 class CompileExpressionManager:
     __log:str = ""
     __registerStack:List[int]
-    def __init__(self, engine:ProcessorEngine, asmManager:AssembleurContainer, lineNumber:int):
+    _label:Optional[Label]
+    def __init__(self, engine:ProcessorEngine, asmManager:AssembleurContainer, lineNumber:int, label:Optional[Label]):
         """        Constructeur
 
         :param engine: modèle de processeur utilisé
@@ -25,11 +27,15 @@ class CompileExpressionManager:
         :type asmManager: AssembleurContainer
         :param lineNumber: numéro de la ligne d'origine
         :type lineNumber: int
+        :type lineNumber: int
+        :param label: label du premier calcul
+        :type label: Label
         """
 
         self.__engine = engine
         self.__asmManager = asmManager
         self.__lineNumber = lineNumber
+        self._label = label
         self.__registersNumber = self.__engine.registersNumber()
         assert self.__registersNumber > 1
         self.resetMemory()
@@ -121,7 +127,8 @@ class CompileExpressionManager:
         destinationRegister = self.__getAvailableRegister()
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
         self.__log += f"Mémoire {self.__memoryStackLastIndex} chargée dans r{destinationRegister}\n"
-        self.__asmManager.pushLoad(self.__lineNumber, memoryVariable, destinationRegister)
+        self.__asmManager.pushLoad(self.__lineNumber, self._label, memoryVariable, destinationRegister)
+        self._label = None
         self.__memoryStackLastIndex -= 1
         return destinationRegister
 
@@ -147,7 +154,8 @@ class CompileExpressionManager:
         self.__memoryStackLastIndex +=1
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
         self.__log += f"Registre r{sourceRegister} chargé dans la mémoire {self.__memoryStackLastIndex}\n"
-        self.__asmManager.pushStore(self.__lineNumber, sourceRegister, memoryVariable)
+        self.__asmManager.pushStore(self.__lineNumber, self._label, sourceRegister, memoryVariable)
+        self._label = None
 
     def __freeZeroRegister(self) -> None:
         """Libère spécifiquement le registre 0, même s'il n'est pas au sommet de la pile.
@@ -163,7 +171,8 @@ class CompileExpressionManager:
             destinationRegister = self.__availableRegisters.pop()
             self.__registerStack[index0] = destinationRegister
             self.__log += f"Libération registre r0 vers r{destinationRegister}\n"
-            self.__asmManager.pushMove(self.__lineNumber, 0, destinationRegister)
+            self.__asmManager.pushMove(self.__lineNumber, self._label, 0, destinationRegister)
+            self._label = None
 
     ### public
     def resetMemory(self) -> None:
@@ -200,10 +209,11 @@ class CompileExpressionManager:
         else:
             op1, op2 = rLastCalc, rFirstCalc
         if operator == "cmp":
-            self.__asmManager.pushCmp(self.__lineNumber, op1, op2)
+            self.__asmManager.pushCmp(self.__lineNumber, self._label, op1, op2)
         else:
             registreDestination = self.__getAvailableRegister()
-            self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (op1, op2), None)
+            self.__asmManager.pushUal(self.__lineNumber, self._label, operator, registreDestination, (op1, op2), None)
+        self._label = None
 
     def pushBinaryOperatorWithLitteral(self, operator:str, litteral:Litteral) -> None:
         """Ajoute une opération binaire dont le 2e opérand est un littéral
@@ -220,7 +230,8 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand,), litteral)
+        self.__asmManager.pushUal(self.__lineNumber, self._label, operator, registreDestination, (registreOperand,), litteral)
+        self._label = None
 
     def pushUnaryOperator(self, operator:str) -> None:
         """Ajoute une opération unaire
@@ -235,7 +246,8 @@ class CompileExpressionManager:
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (registreOperand,), None)
+        self.__asmManager.pushUal(self.__lineNumber, self._label, operator, registreDestination, (registreOperand,), None)
+        self._label = None
 
     def pushUnaryOperatorWithLitteral(self, operator:str, litteral:Litteral) -> None:
         """Ajoute une opération unaire dont l'opérande est un littéral
@@ -247,7 +259,8 @@ class CompileExpressionManager:
         :type litteral: Litteral
         """
         registreDestination = self.__getAvailableRegister()
-        self.__asmManager.pushUal(self.__lineNumber, operator, registreDestination, (), litteral)
+        self.__asmManager.pushUal(self.__lineNumber, self._label, operator, registreDestination, (), litteral)
+        self._label = None
 
     def pushValue(self, value:Union[Litteral,Variable]) -> None:
         """Charge une valeur dans le premier registre disponible
@@ -257,9 +270,10 @@ class CompileExpressionManager:
         """
         registreDestination = self.__getAvailableRegister()
         if isinstance(value, Litteral):
-            self.__asmManager.pushMoveLitteral(self.__lineNumber, value, registreDestination)
+            self.__asmManager.pushMoveLitteral(self.__lineNumber, self._label, value, registreDestination)
         else:
-            self.__asmManager.pushLoad(self.__lineNumber, value, registreDestination)
+            self.__asmManager.pushLoad(self.__lineNumber, self._label, value, registreDestination)
+        self._label = None
 
     def getNeededRegisterSpace(self, cost: int, needUAL:bool) -> None:
         """Déplace des registres au besoin
@@ -315,7 +329,7 @@ if __name__=="__main__":
     from processorengine import ProcessorEngine
     engine = ProcessorEngine()
     asm = AssembleurContainer(engine)
-    cem = CompileExpressionManager(engine, asm, -1)
+    cem = CompileExpressionManager(engine, asm, -1, None)
     cem.pushValue(Variable("x"))
     cem.pushValue(Litteral(5))
     cem.pushBinaryOperator("+", True)
