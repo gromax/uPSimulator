@@ -52,6 +52,7 @@ class CompilationManager:
             linearForNode = node.getLinearStructureList(comparaisonSymbolsAvailables)
             linearList.extend(linearForNode)
         self.__cleanList(linearList)
+        self.__plugLabels(linearList)
         return linearList
 
     def __str__(self) -> str:
@@ -62,11 +63,31 @@ class CompilationManager:
         """
         return "\n".join([str(item) for item in self.__linearList])
 
+    def __getLabels(self, linearList:List[StructureNode]) -> Dict[LabelNode,List[JumpNode]]:
+        """Fournit un dictionnaire donnant toutes les étiquettes jointes à tous les sauts pointant sur elles.
+
+        :param linearList: liste de noeuds de la version linéaire
+        :type linearList: list[StructureNode]
+        :return: dictionnaire de forme étiquette -> liste des sauts pointant sur cette étiquette
+        :rtype: dict[LabelNode,list[JumpNode]]
+        """
+        labels:Dict[LabelNode,List[JumpNode]] = {}
+        for node in linearList:
+            if isinstance(node,LabelNode):
+                labels[node] = []
+        # association jump -> label
+        for node in linearList:
+            if isinstance(node,JumpNode):
+                cible = node.cible
+                if not cible in labels:
+                    raise CompilationError("Saut vers label inconnu : "+str(cible), {"lineNumber":node.lineNumber})
+                labels[cible].append(node)
+        return labels
+
     def __delJumpToNextLine(self, linearList:List[StructureNode]) -> bool:
         """Efface les sauts, conditionnels ou non, consistant à sauter à la ligne suivante.
         En effet, le déroulement normal du programme est de passer à la ligne suivante, de tels
         sauts sont donc superflus.
-
         :param linearList: liste de noeuds de la version linéaire
         :type linearList: list[StructureNode]
         :return: vrai si un changement a été effectué
@@ -88,7 +109,6 @@ class CompilationManager:
 
     def __delNotUseLabel(self, linearList:List[StructureNode]) -> bool:
         """Efface les étiquettes qui ne sont jamais utilisées. ie : qui ne sont la cible d'aucun saut.
-
         :param linearList: liste de noeuds de la version linéaire
         :type linearList: list[StructureNode]
         :return: vrai si un changement a été fait
@@ -103,72 +123,9 @@ class CompilationManager:
                 linearList.pop(indexToDel)
         return flagActionDone
 
-    def __fusionNodeLabel(self, linearList:List[StructureNode], label:LabelNode, labelToDel:LabelNode) -> bool:
-        """Fusion des étiquettes successives avec consolidation des sauts liés.
-        Tout jumpNode pointant vers labelToDel est redirigé vers label.
-        labelToDel supprimé de la liste.
-
-        :param linearList: liste de noeuds de la version linéaire
-        :type linearList: list[StructureNode]
-        :param label: étiquette sur laquelle les sauts sont redirigés
-        :type label: LabelNode
-        :param labelToDel: étiquette à effacer
-        :type labelToDel: LabelNode
-        :return: vrai si un changement a été effectué
-        :rtype: bool
-        """
-        flagActionDone = False
-        for index in range(len(linearList)):
-            node = linearList[index]
-            if isinstance(node,JumpNode) and node.cible == labelToDel:
-                flagActionDone = True
-                linearList[index] = node.assignNewCibleClone(label)
-        if labelToDel in linearList:
-            indexToDel = linearList.index(labelToDel)
-            linearList.pop(indexToDel)
-            flagActionDone = True
-        return flagActionDone
-
-    def __getLabels(self, linearList:List[StructureNode]) -> Dict[LabelNode,List[JumpNode]]:
-        """Fournit un dictionnaire donnant toutes les étiquettes jointes à tous les sauts pointant sur elles.
-
-        :param linearList: liste de noeuds de la version linéaire
-        :type linearList: list[StructureNode]
-        :return: dictionnaire de forme étiquette -> liste des sauts pointant sur cette étiquette
-        :rtype: dict[LabelNode,list[JumpNode]]
-        """
-        labels:Dict[LabelNode,List[JumpNode]] = {}
-        for node in linearList:
-            if isinstance(node,LabelNode):
-                labels[node] = []
-        # association jump -> label
-        for node in linearList:
-            if isinstance(node,JumpNode):
-                cible = node.cible
-                if not cible in labels:
-                    raise CompilationError("Saut vers label inconnu : "+str(cible))
-                labels[cible].append(node)
-        return labels
-
-    def __getConsecutivesLabel(self, linearList:List[StructureNode]) -> Optional[Tuple[LabelNode,LabelNode]]:
-        """Cherche des étiquettes successives en vue de les fusionner.
-
-        :param linearList: liste de noeuds de la version linéaire
-        :type linearList: list[StructureNode]
-        :return: paire de label consécutifs s'il en existe
-        :rtype: tuple[LabelNode,LabelNode] ou None
-        """
-
-        for index in range(len(linearList)-1):
-            node = linearList[index]
-            nodeSuivant = linearList[index + 1]
-            if isinstance(node, LabelNode) and isinstance(nodeSuivant, LabelNode):
-                return (node,nodeSuivant)
-        return None
-
     def __cleanList(self, linearList:List[StructureNode]) -> None:
-        """Nettoie la liste linéaire en fusionnant les étiquettes consécutives,
-        supprimant les étiquettes non utilisées
+        """Nettoie la liste linéaire en
+        supprimant les étiquettes non utilisées,
         supprimant les sauts pointant vers la ligne suivante.
 
         :param linearList: liste de noeuds de la version linéaire
@@ -178,18 +135,30 @@ class CompilationManager:
         goOnFlag = True
         while goOnFlag:
             goOnFlag = False
-            labelsSuccessifs = self.__getConsecutivesLabel(linearList)
-            if isinstance(labelsSuccessifs,tuple):
-                label, labelToDel = labelsSuccessifs
-                goOnFlag = self.__fusionNodeLabel(linearList, label, labelToDel)
             goOnFlag = self.__delNotUseLabel(linearList) or goOnFlag
             goOnFlag = self.__delJumpToNextLine(linearList) or goOnFlag
 
-    def __pushExpressionAsm(self, lineNumber:int, expression:ExpressionNode) -> int:
+    def __plugLabels(self, linearList:List[StructureNode]) -> None:
+        """Branche les noeuds labels au noeud suivant
+        dans le but de fusionner les noeuds consécutifs
+
+        :param linearList: liste de noeuds de la version linéaire
+        :type linearList: list[StructureNode]
+        """
+        for index in range(len(linearList)-1):
+            item = linearList[index]
+            if isinstance(item, LabelNode):
+                nextItem = linearList[index+1]
+                if not item.plugTo(nextItem):
+                    raise CompilationError("Branchement noeud impossible ", {"lineNumber":item.lineNumber})
+
+    def __pushExpressionAsm(self, lineNumber:int, label:Optional[Label], expression:ExpressionNode) -> int:
         """Gère la compilation d'une expression arithmétique ou logique
 
         :param lineNumber: numéro de ligne d'origine de l'expression
         :type lineNumber: int
+        :param label: label du début de l'expression
+        :type label: Optional[Label]
         :param expression: expression à compiler
         :type expression: ExpressionNode
         :return: numéro du registre résultat ou -1 si inutile (comparaison)
@@ -197,7 +166,7 @@ class CompilationManager:
         """
         if not self.__engine.hasNEG():
             expression = expression.negToSubClone()
-        cem = CompileExpressionManager(self.__engine, self.__asm, lineNumber)
+        cem = CompileExpressionManager(self.__engine, self.__asm, lineNumber, label)
         expression.compile(cem)
         if expression.getType() == 'int':
             return cem.getResultRegister()
@@ -211,29 +180,26 @@ class CompilationManager:
         :return: pas de retour.
         """
         lineNumber = node.lineNumber
-        if isinstance(node, LabelNode):
-            self.__asm.pushLabel(lineNumber, str(node))
-            return
         if isinstance(node, AffectationNode):
-            resultRegister = self.__pushExpressionAsm(lineNumber, node.expression)
-            self.__asm.pushStore(lineNumber, resultRegister, node.cible)
+            resultRegister = self.__pushExpressionAsm(lineNumber, node.label, node.expression)
+            self.__asm.pushStore(lineNumber, None, resultRegister, node.cible)
             return
         if isinstance(node, InputNode):
-            self.__asm.pushInput(lineNumber, node.cible)
+            self.__asm.pushInput(lineNumber, node.label, node.cible)
             return
         if isinstance(node, PrintNode):
-            resultRegister = self.__pushExpressionAsm(lineNumber, node.expression)
+            resultRegister = self.__pushExpressionAsm(lineNumber, node.label, node.expression)
             self.__asm.pushPrint(lineNumber, resultRegister)
             return
         if isinstance(node, JumpNode):
-            labelCible = node.cible
+            labelCible = node.cible.label
             condition = node.getCondition()
             if not isinstance(condition,ExpressionNode):
-                self.__asm.pushJump(lineNumber, str(labelCible))
+                self.__asm.pushJump(lineNumber, node.label, labelCible)
                 return
             comparaisonSymbol = condition.getComparaisonSymbol()
-            self.__pushExpressionAsm(lineNumber, condition)
-            self.__asm.pushJump(lineNumber, str(labelCible), comparaisonSymbol)
+            self.__pushExpressionAsm(lineNumber, node.label, condition)
+            self.__asm.pushJump(lineNumber, None, labelCible, comparaisonSymbol)
 
     def __compileASM(self) -> None:
         """Produit le code assembleur et conclut par HALT.
@@ -243,7 +209,12 @@ class CompilationManager:
         """
         for node in self.__linearList:
             self.__pushNodeAsm(node)
-        self.__asm.pushHalt()
+        haltLabel = None
+        if len(self.__linearList)>0:
+            lastItem = self.__linearList[-1]
+            if isinstance(lastItem, LabelNode) and lastItem.isUnplugged():
+                haltLabel = lastItem.label
+        self.__asm.pushHalt(haltLabel)
 
     def getLinearNodeList(self) -> List[StructureNode]:
         """Accesseur
