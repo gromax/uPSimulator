@@ -2,13 +2,15 @@
 .. module:: structuresnodes
    :synopsis: définition des noeuds constituant le programme dans sa version structurée : Instructions simples, conditions, boucles. Contribue à la transformation d'une version où les conditions et boucles sont assurés par des sauts inconditionnels / conditionnels. Cette version est qualifiée de version linéaire.
 """
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from expressionnodes import ExpressionNode
 from variable import Variable
+from label import Label
 
 class StructureNode:
     _lineNumber = 0 # type : int
+    _LabelNode:Optional["LabelNode"] = None
     def __str__(self) -> str:
         """Transtypage -> str
 
@@ -27,6 +29,30 @@ class StructureNode:
         """
 
         return [ self ]
+
+    @property
+    def label(self) -> Optional[Label]:
+        """Accesseur
+
+        :return: label de l'item
+        :rtype: Optional[LabelNode]
+        """
+        if isinstance(self._LabelNode, LabelNode):
+            return self._LabelNode.label
+        return None
+
+    def assignLabel(self, label:"LabelNode") -> bool:
+        """Setter
+
+        :param label: label assigné
+        :type label: LabelNode
+        :return: Vrai si l'assignation a réussi
+        :rtype: bool
+        """
+        if not self._LabelNode is None:
+            return False
+        self._LabelNode = label
+        return True
 
     @property
     def lineNumber(self) -> int:
@@ -109,7 +135,7 @@ class IfNode(StructureNode):
         :param cibleNON: cible dans le cas d'un test Faux
         :type cibleNON: LabelNode
         :return: version linéaire de la condition, faite de branchements
-        :rtype: List[StructureNode]
+        :rtype: List['StructureNode']
         """
 
         # La condition va entraîner un branchement conditionnel. C'est le cas NON qui provoque le branchement.
@@ -129,7 +155,7 @@ class IfNode(StructureNode):
         :param cibleSautCond: cible du saut conditionnel, si la condition est vraie
         :type cibleSautCond: LabelNode
         :return: version linéaire de la condition, faite de branchements
-        :rtype: List[StructureNode]
+        :rtype: List['StructureNode']
         """
         if not conditionSaut.isComplexeCondition():
             # c'est un test élémentaire
@@ -278,21 +304,25 @@ class WhileNode(IfNode):
         return outputList
 
 class LabelNode(StructureNode):
-    __currentIndex = 0 # type: int
-    @classmethod
-    def getNextFreeIndex(cls) -> int:
-        """génère un nouvel index de numéro de label. Assure l'unicité des numéros.
+    _next:Optional['StructureNode']=None
+    _label:Optional[Label] = None
 
-        :return: index pour in nouveau label
-        :rtype: int
+    @property
+    def label(self) -> Label:
         """
-        cls.__currentIndex += 1
-        return cls.__currentIndex
+        :return: étiquette du dernier noeud Label de la chaîne
+        :rtype: Label
+        """
+        if isinstance(self._next, LabelNode):
+            return self._next.label
+        if self._label is None:
+            self._label = Label()
+        return self._label
 
     def __init__(self):
-        """Constructeur. Attribue comme index, le prochain index libre
+        """Constructeur.
         """
-        self.__index = self.getNextFreeIndex() # type:int
+        pass
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -300,7 +330,30 @@ class LabelNode(StructureNode):
         :return: index du label préfixé par 'l'
         :rtype: str
         """
-        return "Lab"+str(self.__index)
+        return str(self.label)
+
+    def isUnplugged(self) -> bool:
+        """
+        :return: vrai si le label n'est branché à aucune instruction
+        :rtype: bool
+        """
+        return self._next is None
+
+    def plugTo(self, cible:'StructureNode') -> bool:
+        """Branche sur sur un node, uniquement si ce node n'est pas déjà branché
+        ce qui empêche tout branchement cyclique
+
+        :param cible: node cible du branchement
+        :type cible: StructureNode
+        :return: Vrai si le branchement a été effectué
+        :rtype: bool
+        """
+        if not self._next is None:
+            return False
+        if not cible.assignLabel(self):
+            return False
+        self._next = cible
+        return True
 
 class AffectationNode(StructureNode):
     def __init__(self, lineNumber:int, variableCible:Variable, expression:ExpressionNode):
