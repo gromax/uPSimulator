@@ -238,6 +238,10 @@ class Executeur:
                 self.__currentState = -1
                 self.messages.append("Halt")
 
+            elif instName == "nop":
+                self.__currentState = 0
+                self.messages.append("NOP")
+
             elif instName == "goto":
                 sourceValue = self.__transfert(self.INSTRUCTION_REGISTER, self.LINE_POINTER, self.DATA_BUS)
                 if isinstance(sourceValue, DataValue):
