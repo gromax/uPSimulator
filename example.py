@@ -25,7 +25,7 @@ class CompilationTest(unittest.TestCase):
             "\tHALT",
             "@x\t0"
         ]
-        assert str(cm.getAsm()) == "\n".join(goodAsm)
+        assert str(cm.asm) == "\n".join(goodAsm)
 
         goodBinary = [
             "0100100000000011", # MOVE = 01001, r0 = 000, #3 = 00000011
@@ -33,7 +33,7 @@ class CompilationTest(unittest.TestCase):
             "0000000000000000", # HALT = 00000 + bourrage de 0
             "0000000000000000"  # var x, @x = 3
         ]
-        assert cm.getAsm().getBinary() == "\n".join(goodBinary)
+        assert cm.asm.getBinary() == "\n".join(goodBinary)
 
     def test_affectation_12bits(self):
         programme = "x=3"
@@ -48,7 +48,7 @@ class CompilationTest(unittest.TestCase):
             "@3\t3",
             "@x\t0"
         ]
-        assert str(cm.getAsm()) == "\n".join(goodAsm)
+        assert str(cm.asm) == "\n".join(goodAsm)
 
         goodBinary = [
             "100000000011",
@@ -58,7 +58,7 @@ class CompilationTest(unittest.TestCase):
             "000000000000",
         ]
 
-        assert cm.getAsm().getBinary() == "\n".join(goodBinary)
+        assert cm.asm.getBinary() == "\n".join(goodBinary)
 
     def test_example_1_16bits(self):
         filename = 'example.code'
@@ -99,7 +99,7 @@ class CompilationTest(unittest.TestCase):
             "@y\t0"
         ]
 
-        assert str(cm.getAsm()) == "\n".join(goodAsm)
+        assert str(cm.asm) == "\n".join(goodAsm)
 
         goodBinary = [
             "0100100000000000",
@@ -131,18 +131,12 @@ class CompilationTest(unittest.TestCase):
             "0000000000000000"
         ]
 
-        assert cm.getAsm().getBinary() == "\n".join(goodBinary)
+        assert cm.asm.getBinary() == "\n".join(goodBinary)
 
 
 
 if __name__ == "__main__":
     #unittest.main()
-
-
-
-
-
-
 
 
     tests = [
@@ -167,21 +161,21 @@ if __name__ == "__main__":
         cm16 = CompilationManager(engine16, structuredList)
         print("Assembleur avec la structure 16 bits :")
         print()
-        print(cm16.getAsm())
+        print(cm16.asm)
         print()
         print("Binaire avec la structure 16 bits :")
         print()
-        print(cm16.getAsm().getBinary())
+        print(cm16.asm.getBinary())
         print()
 
 
         cm12 = CompilationManager(engine12, structuredList)
         print("Assembleur avec la structure 12 bits :")
         print()
-        print(cm12.getAsm())
+        print(cm12.asm)
         print()
         print("Binaire avec la structure 12 bits :")
         print()
-        print(cm12.getAsm().getBinary())
+        print(cm12.asm.getBinary())
         print()
 
