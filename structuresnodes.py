@@ -7,10 +7,99 @@ from typing import List, Optional, Union
 from expressionnodes import ExpressionNode
 from variable import Variable
 from label import Label
+from linkedlistnode import LinkedList, LinkedListNode
 
-class StructureNode:
+class StructureNodeList(LinkedList):
+    def linearize(self, csl:List[str]) -> None:
+        """Crée la vesion linéaire de l'ensemble de la structure
+
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: List[str]
+        """
+        haltNode = SimpleNode("halt")
+        self.append(haltNode)
+        self._linearizeRecursive(csl)
+        # une fois ceci fait, on supprime les jump qui pointeraient vers le noeud suivant et les dummies
+        self._deleteJumpNextLine()
+        self._deleteDummies()
+        # enfin il faut assigner tous les labels
+        self._assignLabels()
+
+    def _linearizeRecursive(self, csl:List[str]) -> None:
+        """Propage le calcul de la version linéaire aux enfants
+
+        :param csl: liste des comparaisons permises par le processeur utilisé
+        :type csl: List[str]
+        """
+        for node in self.toList():
+            if isinstance(node, IfNode):
+                nodeLinear = node._getLinearStructureList(csl)
+                self.replace(node, nodeLinear)
+
+    def _deleteJumpNextLine(self):
+        """Recherche un jump pointant vers la ligne suivante et le supprime
+        """
+        jumpsToScan:List['JumpNode'] = [node for node in self.toList() if isinstance(node, JumpNode)]
+        jumpsLeft:List['JumpNode'] = []
+        jumpsDeleted = 1
+        while jumpsDeleted > 0:
+            # certains jump ont été retirés
+            jumpsDeleted = 0
+            for node in jumpsToScan:
+                if node.cible == node._next:
+                    self.delete(node)
+                    jumpsDeleted += 1
+                else:
+                    jumpsLeft.append(node)
+            jumpsToScan = jumpsLeft
+            jumpsLeft:List['JumpNode'] = []
+
+    def _deleteDummies(self):
+        """Recherche les dummy
+        """
+        dummiesList:List['StructureNode'] = [node for node in self.toList() if isinstance(node, SimpleNode) and node.snType == "dummy"]
+        for node in dummiesList:
+            self.delete(node)
+
+    def _assignLabels(self):
+        """Recherche les jump et assigne un label à leur cible
+        """
+        jumpsList:List['JumpNode'] = [node for node in self.toList() if isinstance(node, JumpNode)]
+        for j in jumpsList:
+            j.cible.assignLabel()
+
+
+    def __str__(self):
+        """Transtypage -> str
+        :return: version texte
+        :rtype: str
+        """
+        childrenList = self.toList()
+        childrenStrList = [ str(node) for node in childrenList ]
+        return "\n".join(childrenStrList)
+
+    def delete(self, nodeToDel:"LinkedListNode") -> bool:
+        """supprime l'élément node
+
+        :param nodeToDel: élément à supprimer
+        :type nodeToDel: LinkedListNode
+        :return: suppression effectuée
+        :rtype: bool
+        """
+        jumpsToMod = [node for node in self.toList() if node != nodeToDel and isinstance(node, JumpNode) and node.cible == nodeToDel]
+        if nodeToDel._next == self._head and len(jumpsToMod) > 0:
+            # nodeToDel en dernier et jumps à brancher sur lui
+            # -> insertion d'un node dummy
+            dummy = SimpleNode("dummy")
+            self.append(dummy)
+        newCibleJumps = nodeToDel._next # qui existe toujours
+        for j in jumpsToMod:
+            j.setCible(newCibleJumps)
+        return super().delete(nodeToDel)
+
+class StructureNode(LinkedListNode):
     _lineNumber = 0 # type : int
-    _LabelNode:Optional["LabelNode"] = None
+    _label:Optional["Label"] = None
     def __str__(self) -> str:
         """Transtypage -> str
 
@@ -19,40 +108,32 @@ class StructureNode:
         """
         return "noeud de structure"
 
-    def getLinearStructureList(self, csl:List['str']) -> List['StructureNode']:
-        """Fonction récursive produisant la version linéaire
-
-        :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: List[str]
-        :return: liste des noeuds de la version linéaire
-        :rtype: List[StructureNode]
-        """
-
-        return [ self ]
-
     @property
     def label(self) -> Optional[Label]:
         """Accesseur
 
         :return: label de l'item
-        :rtype: Optional[LabelNode]
+        :rtype: Optional[Label]
         """
-        if isinstance(self._LabelNode, LabelNode):
-            return self._LabelNode.label
-        return None
+        return self._label
 
-    def assignLabel(self, label:"LabelNode") -> bool:
-        """Setter
-
-        :param label: label assigné
-        :type label: LabelNode
-        :return: Vrai si l'assignation a réussi
-        :rtype: bool
+    def assignLabel(self) -> Label:
+        """Assigne un label au noeud s'il n'en a pas déjà un
+        :return: label de l'item
+        :rtype: Label
         """
-        if not self._LabelNode is None:
-            return False
-        self._LabelNode = label
-        return True
+        if self._label is None:
+            self._label = Label()
+        return self._label
+
+    def labelToStr(self) -> str:
+        """
+        :return: label en str, "" si pas de label
+        :rtype: str
+        """
+        if self._label is None:
+            return ""
+        return str(self._label)
 
     @property
     def lineNumber(self) -> int:
@@ -63,38 +144,32 @@ class StructureNode:
         """
         return self._lineNumber
 
-class IfNode(StructureNode):
-    @classmethod
-    def _recursiveLinearStructureListOnChildren(cls, csl:List[str], childrenList:List['StructureNode']) -> List['StructureNode']:
-        """Propage le calcul de la version linéaire aux enfants
+class SimpleNode(StructureNode):
+    _snType:str = "nop"
+    def __init__(self, snType:str=""):
+        super().__init__()
+        if snType in ("halt", "dummy"):
+            self._snType = snType
 
-        :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: List[str]
-        :param childrenList: liste des noeuds enfants à considérer
-        :type childrenList: List[StructureNode]
-        :return: liste enfant en version linéaire
-        :rtype: List[StructureNode]
-        """
+    @property
+    def snType(self) -> str:
+      """Accesseur
 
-        outList = []
-        for node in childrenList:
-            nodeLinear = node.getLinearStructureList(csl)
-            outList.extend(nodeLinear)
-        return outList
+      :return: snType
+      :rtype: str
+      """
+      return self._snType
 
-    @classmethod
-    def _childrenStr(cls, childrenList:List['StructureNode']) -> str:
-        """Propage le transtypage -> str aux enfants
+    def __str__(self):
+        """Transtypage -> str
 
-        :param childrenList: liste des noeuds enfants à considérer
-        :type childrenList: List[StructureNode]
-        :return: liste enfant transtypée en chaîne de caractères
+        :return: chaîne par défaut, 'noeud de structure'
         :rtype: str
         """
+        return "{}\t{}".format(self.labelToStr(), self._snType)
 
-        childrenStrList = [ str(node) for node in childrenList ]
-        return "\n".join(childrenStrList)
-
+class IfNode(StructureNode):
+    _children:"StructureNodeList"
     def __init__(self, lineNumber:int, condition:ExpressionNode, children:List[StructureNode]):
         """Constructeur d'un noeud If
 
@@ -105,13 +180,10 @@ class IfNode(StructureNode):
         :param children: liste des objets enfants
         :type children: List[StructureNode]
         """
-
-        assert isinstance(condition, ExpressionNode)
+        super().__init__()
         self._condition = condition
         assert condition.getType() == 'bool'
-        for node in children:
-            assert isinstance(node,StructureNode)
-        self._children = children
+        self._children = StructureNodeList(children)
         self._lineNumber = lineNumber
 
     def __str__(self) -> str:
@@ -120,10 +192,9 @@ class IfNode(StructureNode):
         :return: version chaîne de caractères de ce noeud et de ses enfants
         :rtype: str
         """
-        childrenStr = self._childrenStr(self._children)
-        return "if "+str(self._condition)+" {\n"+childrenStr+"\n}"
+        return "{}\tif {} {{\n{}\n}}".format(self.labelToStr(), self._condition, self._children)
 
-    def _decomposeCondition(self, csl:List[str], cibleOUI:'LabelNode', cibleNON:'LabelNode') -> List['StructureNode']:
+    def _decomposeCondition(self, csl:List[str], cibleOUI:'StructureNode', cibleNON:'StructureNode') -> 'StructureNodeList':
         """Décompose un condition complexe, contenant des and, not, or,
         en un ensemble de branchement conditionnels, les opérations logiques
         étant assurées par l'organisation des branchements
@@ -131,11 +202,11 @@ class IfNode(StructureNode):
         :param csl: liste des comparaisons permises par le processeur utilisé
         :type csl: List[str]
         :param cibleOUI: cible dans le cas d'un test Vrai
-        :type cibleOUI: LabelNode
+        :type cibleOUI: StructureNode
         :param cibleNON: cible dans le cas d'un test Faux
-        :type cibleNON: LabelNode
+        :type cibleNON: StructureNode
         :return: version linéaire de la condition, faite de branchements
-        :rtype: List['StructureNode']
+        :rtype: StructureNodeList
         """
 
         # La condition va entraîner un branchement conditionnel. C'est le cas NON qui provoque le branchement.
@@ -144,24 +215,24 @@ class IfNode(StructureNode):
         conditionInverse = conditionInverse.adjustConditionClone(csl)
         return self._recursiveDecomposeComplexeCondition(conditionInverse, cibleOUI, cibleNON)
 
-    def _recursiveDecomposeComplexeCondition(self, conditionSaut:ExpressionNode, cibleDirecte:'LabelNode', cibleSautCond:'LabelNode') -> List['StructureNode']:
+    def _recursiveDecomposeComplexeCondition(self, conditionSaut:ExpressionNode, cibleDirecte:'StructureNode', cibleSautCond:'StructureNode') -> 'StructureNodeList':
         """Fonction auxiliaire et récursive pour la décoposition d'une condition complexe
         en un ensemble de branchement et de condition élémentaire
 
         :param conditionSaut: condition du saut conditionnel
         :type conditionSaut: ExpressionNode
         :param cibleDirecte: cible en déroulement normal, càd condition fausse => pas de saut
-        :type cibleDirecte: LabelNode
+        :type cibleDirecte: StructureNode
         :param cibleSautCond: cible du saut conditionnel, si la condition est vraie
-        :type cibleSautCond: LabelNode
+        :type cibleSautCond: StructureNode
         :return: version linéaire de la condition, faite de branchements
-        :rtype: List['StructureNode']
+        :rtype: StructureNodeList
         """
         if not conditionSaut.isComplexeCondition():
             # c'est un test élémentaire
             sautConditionnel = JumpNode(self._lineNumber, cibleSautCond, conditionSaut)
             sautOui = JumpNode(self._lineNumber, cibleDirecte)
-            return [sautConditionnel, sautOui]
+            return StructureNodeList([sautConditionnel, sautOui])
         # sinon il faut décomposer la condition en conditions élémentaires
         operator, conditionsEnfants = conditionSaut.boolDecompose()
         if operator == "not":
@@ -169,17 +240,18 @@ class IfNode(StructureNode):
             conditionEnfant = conditionsEnfants[0]
             return self._recursiveDecomposeComplexeCondition(conditionEnfant, cibleSautCond, cibleDirecte)
         # c'est un OR ou AND
-        cibleInter = LabelNode()
         conditionEnfant1, conditionEnfant2 = conditionsEnfants
         if operator == "and":
-            enfant1 = self._recursiveDecomposeComplexeCondition(conditionEnfant1, cibleDirecte, cibleInter)
             enfant2 = self._recursiveDecomposeComplexeCondition(conditionEnfant2, cibleDirecte, cibleSautCond)
+            enfant1 = self._recursiveDecomposeComplexeCondition(conditionEnfant1, cibleDirecte, enfant2.head)
         else:
-            enfant1 = self._recursiveDecomposeComplexeCondition(conditionEnfant1, cibleInter, cibleSautCond)
             enfant2 = self._recursiveDecomposeComplexeCondition(conditionEnfant2, cibleDirecte, cibleSautCond)
-        return enfant1 + [cibleInter] + enfant2
+            enfant1 = self._recursiveDecomposeComplexeCondition(conditionEnfant1, enfant2.head, cibleSautCond)
 
-    def getLinearStructureList(self, csl:List[str]) -> List['StructureNode']:
+        enfant1.append(enfant2)
+        return enfant1
+
+    def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud If.
         Cela comprend :
         * les labels identifiant les différents blocs pour les sauts,
@@ -189,20 +261,18 @@ class IfNode(StructureNode):
         :param csl: liste des comparaisons permises par le processeur utilisé
         :type csl: List[str]
         :return: version linéaire du noeud if
-        :rtype: List[StructureNode]
+        :rtype: StructureNodeList
         """
-
-        labelIf = LabelNode()
-        labelFin = LabelNode()
-        listForCondition = self._decomposeCondition(csl, labelIf, labelFin)
-        listForChildren = self._recursiveLinearStructureListOnChildren(csl, self._children)
-        outputList = listForCondition
-        outputList.append(labelIf)
-        outputList.extend(listForChildren)
-        outputList.append(labelFin)
-        return outputList
+        self._children._linearizeRecursive(csl)
+        cibleIf = self._children.head
+        if cibleIf is None:
+            cibleIf = self._next
+        listForCondition = self._decomposeCondition(csl, cibleIf, self._next)
+        listForCondition.append(self._children)
+        return listForCondition
 
 class IfElseNode(IfNode):
+    _elseChildren:'StructureNodeList'
     def __init__(self, ifLineNumber:int, condition:ExpressionNode, ifChildren:List[StructureNode], elseLineNumber:int, elseChildren:List[StructureNode]):
         """Constructeur d'un noeud IfElse
 
@@ -219,10 +289,7 @@ class IfElseNode(IfNode):
         """
 
         super().__init__(ifLineNumber, condition, ifChildren)
-        #super(IfNode, self).__init__(ifLineNumber, condition, ifChildren)
-        for node in elseChildren:
-            assert isinstance(node,StructureNode)
-        self._elseChildren = elseChildren
+        self._elseChildren = StructureNodeList(elseChildren)
         self._elseLineNumber = elseLineNumber
 
     def __str__(self) -> str:
@@ -231,11 +298,9 @@ class IfElseNode(IfNode):
         :return: version chaîne de caractères de ce noeud et de ses enfants
         :rtype: str
         """
-        ifChildrenStr = self._childrenStr(self._children)
-        elseChildrenStr = self._childrenStr(self._elseChildren)
-        return "if "+str(self._condition)+" {\n"+ifChildrenStr+"\n}\nelse {\n"+elseChildrenStr+"\n}"
+        return "{}\tif {} {{\n{}\n}}\nelse {{\n{}\n}}".format(self.labelToStr(), self._condition, self._children, self._elseChildren)
 
-    def getLinearStructureList(self, csl:List[str]) -> List['StructureNode']:
+    def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud If Else.
         Cela comprend :
         * les labels identifiant les différents blocs pour les sauts,
@@ -245,24 +310,27 @@ class IfElseNode(IfNode):
         :param csl: liste des comparaisons permises par le processeur utilisé
         :type csl: List[str]
         :return: version linéaire du noeud
-        :rtype: List[StructureNode]
+        :rtype: StructureNodeList
         """
 
-        labelIf = LabelNode()
-        labelElse = LabelNode()
-        labelFin = LabelNode()
-        sautFin = JumpNode(self._lineNumber, labelFin)
-        listForCondition = self._decomposeCondition(csl, labelIf, labelElse)
-        listForIfChildren = self._recursiveLinearStructureListOnChildren(csl, self._children)
-        listForElseChildren = self._recursiveLinearStructureListOnChildren(csl, self._elseChildren)
-        outputList = listForCondition
-        outputList.append(labelIf)
-        outputList.extend(listForIfChildren)
-        outputList.append(sautFin)
-        outputList.append(labelElse)
-        outputList.extend(listForElseChildren)
-        outputList.append(labelFin)
-        return outputList
+        self._children._linearizeRecursive(csl)
+        self._elseChildren._linearizeRecursive(csl)
+        cibleIf = self._children.head
+        cibleElse = self._elseChildren.head
+        if cibleElse is None:
+            cibleElse = self._next
+        if cibleIf is None:
+            cibleIf = cibleElse
+
+        sautFin = JumpNode(self._lineNumber, self._next)
+        listForCondition = self._decomposeCondition(csl, cibleIf, cibleElse)
+
+        output = listForCondition
+        output.append(self._children)
+        output.append(sautFin)
+        output.append(self._elseChildren)
+
+        return output
 
 class WhileNode(IfNode):
     def __str__(self) -> str:
@@ -272,10 +340,9 @@ class WhileNode(IfNode):
         :rtype: str
         """
 
-        childrenStr = self._childrenStr(self._children)
-        return "while "+str(self._condition)+" {\n"+childrenStr+"\n}"
+        return "{}\twhile {} {{\n{}\n}}".format(self.labelToStr(), self._condition, self._children)
 
-    def getLinearStructureList(self,csl):
+    def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud While.
         Cela comprend :
         * les labels identifiant les différents blocs pour les sauts,
@@ -286,74 +353,33 @@ class WhileNode(IfNode):
         :param csl: liste des comparaisons permises par le processeur utilisé
         :type csl: List[str]
         :return: version linéaire du noeud
-        :rtype: List[StructureNode]
+        :rtype: StructureNodeList
         """
+        self._children._linearizeRecursive(csl)
 
-        labelWhile = LabelNode()
-        labelDebut = LabelNode()
-        labelFin = LabelNode()
-        sautRetour = JumpNode(self._lineNumber, labelWhile)
-        listForCondition = self._decomposeCondition(csl, labelDebut, labelFin)
-        listForChildren = self._recursiveLinearStructureListOnChildren(csl, self._children)
-        outputList = [ labelWhile ]
-        outputList.extend(listForCondition)
-        outputList.append(labelDebut)
-        outputList.extend(listForChildren)
-        outputList.append(sautRetour)
-        outputList.append(labelFin)
-        return outputList
+        cibleWhile = self._children.head
+        dummy:Optional[SimpleNode] = None
+        # il est indispensable que la liste children soit non vide
+        if cibleWhile is None:
+            dummy = SimpleNode("dummy")
+            self._children.append(dummy)
+            cibleWhile = dummy
 
-class LabelNode(StructureNode):
-    _next:Optional['StructureNode']=None
-    _label:Optional[Label] = None
+        listForCondition = self._decomposeCondition(csl, cibleWhile, self._next)
+        cibleCondition = listForCondition.head
+        if cibleCondition is None:
+            # la boucle ne peut pas être exécutée
+            return StructureNodeList([])
 
-    @property
-    def label(self) -> Label:
-        """
-        :return: étiquette du dernier noeud Label de la chaîne
-        :rtype: Label
-        """
-        if isinstance(self._next, LabelNode):
-            return self._next.label
-        if self._label is None:
-            self._label = Label()
-        return self._label
+        sautRetour = JumpNode(self._lineNumber, cibleCondition)
 
-    def __init__(self):
-        """Constructeur.
-        """
-        pass
+        output = listForCondition
+        output.append(self._children)
+        output.append(sautRetour)
+        if isinstance(dummy, SimpleNode):
+            output.delete(dummy)
 
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: index du label préfixé par 'l'
-        :rtype: str
-        """
-        return str(self.label)
-
-    def isUnplugged(self) -> bool:
-        """
-        :return: vrai si le label n'est branché à aucune instruction
-        :rtype: bool
-        """
-        return self._next is None
-
-    def plugTo(self, cible:'StructureNode') -> bool:
-        """Branche sur sur un node, uniquement si ce node n'est pas déjà branché
-        ce qui empêche tout branchement cyclique
-
-        :param cible: node cible du branchement
-        :type cible: StructureNode
-        :return: Vrai si le branchement a été effectué
-        :rtype: bool
-        """
-        if not self._next is None:
-            return False
-        if not cible.assignLabel(self):
-            return False
-        self._next = cible
-        return True
+        return output
 
 class AffectationNode(StructureNode):
     def __init__(self, lineNumber:int, variableCible:Variable, expression:ExpressionNode):
@@ -366,9 +392,8 @@ class AffectationNode(StructureNode):
         :param expression: expression arithmétique dont le résultat est affecté à la variable
         :type expression: ExpressionNode
         """
-        assert isinstance(expression, ExpressionNode)
+        super().__init__()
         assert expression.getType() == 'int'
-        assert isinstance(variableCible, Variable)
         self._lineNumber = lineNumber
         self._cible = variableCible
         self._expression = expression
@@ -398,7 +423,7 @@ class AffectationNode(StructureNode):
         :return: noeud en chaîne de caractères
         :rtype: str
         """
-        return str(self._cible)+" "+chr(0x2190)+" "+str(self._expression)
+        return "{}\t{} {} {}".format(self.labelToStr(), self._cible, chr(0x2190), self._expression)
 
 class InputNode(StructureNode):
     def __init__(self, lineNumber:int, variableCible:Variable):
@@ -409,8 +434,7 @@ class InputNode(StructureNode):
         :param variableCible: variable qui sera affectée
         :type variableCible: Variable
         """
-
-        assert isinstance(variableCible, Variable)
+        super().__init__()
         self._lineNumber = lineNumber
         self._cible = variableCible
 
@@ -429,7 +453,7 @@ class InputNode(StructureNode):
         :return: noeud en chaîne de caractères
         :rtype: str
         """
-        return str(self._cible)+" "+chr(0x2190)+" Input"
+        return "{}\t{} {} Input".format(self.labelToStr(), self._cible, chr(0x2190))
 
 class PrintNode(StructureNode):
     def __init__(self, lineNumber:int, expression:ExpressionNode):
@@ -440,8 +464,7 @@ class PrintNode(StructureNode):
         :param expression: expression arithmétique dont le résultat est affecté à la variable
         :type expression: ExpressionNode
         """
-
-        assert isinstance(expression, ExpressionNode)
+        super().__init__()
         assert expression.getType() == 'int'
         self._lineNumber = lineNumber
         self._expression = expression
@@ -461,22 +484,21 @@ class PrintNode(StructureNode):
         :return: noeud en chaîne de caractères
         :rtype: str
         """
-
-        return str(self._expression)+" "+chr(0x2192)+" Affichage"
+        return "{}\t{} {} Affichage".format(self.labelToStr(), self._expression, chr(0x2192))
 
 class JumpNode(StructureNode):
-    def __init__(self, lineNumber:int, cible:LabelNode, condition:Optional[ExpressionNode] = None):
+    _cible: 'StructureNode'
+    def __init__(self, lineNumber:int, cible:'StructureNode', condition:Optional[ExpressionNode] = None):
         """Noeud représentant un saut conditionnel ou inconditionnel.
 
         :param lineNumber: numéro de ligne dans le programme d'origine,
         :type lineNumber: int
         :param cible: cible du saut,
-        :type cible: LabelNode
+        :type cible: StructureNode
         :param condition: expression booléenne exprimant à quelle condition le saut est effectué. None si le saut est inconditionnel.
         :type expression: Optional[ExpressionNode]
         """
-
-        assert isinstance(cible, LabelNode)
+        super().__init__()
         assert condition == None or isinstance(condition,ExpressionNode) and condition.isSimpleCondition()
         self._condition = condition
         self._lineNumber = lineNumber
@@ -490,18 +512,26 @@ class JumpNode(StructureNode):
         """
 
         if self._condition == None:
-            return "Saut "+str(self._cible)
-        return "Saut "+str(self._cible)+" si "+str(self._condition)
+            return "{}\tSaut {}".format(self.labelToStr(), self._cible.assignLabel())
+        return "{}\tSaut {} si {}".format(self.labelToStr(), self._cible.assignLabel(), self._condition)
 
     @property
-    def cible(self) -> LabelNode:
+    def cible(self) -> 'StructureNode':
         """Accesseur
 
         :return: cible du saut
-        :rtype: LabelNode
+        :rtype: StructureNode
         """
 
         return self._cible
+
+    def setCible(self, cible:'StructureNode') -> None:
+        """Assigne une nouvelle cible
+
+        :param cible: nouvelle cible
+        :type cible: StructureNode
+        """
+        self._cible = cible
 
     def getCondition(self) -> Optional[ExpressionNode]:
         """Accesseur
@@ -512,25 +542,10 @@ class JumpNode(StructureNode):
 
         return self._condition
 
-    def assignNewCibleClone(self, newCible:LabelNode) -> 'JumpNode':
-        """Crée un clone avec une nouvelle cible.
-
-        :return: clone du noeud avec une nouvelle cible
-        :rtype: JumpNode
-        """
-
-        return JumpNode(self._lineNumber, newCible, self._condition)
-
-
-
 if __name__=="__main__":
     from expressionparser import *
-    # VM = VariableManager()
-    # EP = ExpressionParser(VM)
     EP = ExpressionParser()
 
-    # varX = VM.addVariableByName('x')
-    # varY = VM.addVariableByName('y')
     varX = Variable('x')
     varY = Variable('y')
     expr = EP.buildExpression('3*x+2')
@@ -545,9 +560,8 @@ if __name__=="__main__":
     print(initialisationY)
     print(whileItem)
     print(affichageFinal)
-    print("Décomposition du while :")
-    decomposition = whileItem.getLinearStructureList(["<","=="])
-    for node in decomposition:
-        print(node)
-
-
+    print()
+    print("linéarisation")
+    structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
+    structureList.linearize(["<","=="])
+    print(structureList)
