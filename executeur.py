@@ -550,7 +550,7 @@ if __name__ == '__main__':
         cm16 = CompilationManager(engine16, structuredList)
 
         print("Execution 16 bits")
-        binary16 = cm16.getAsm().getDecimal()
+        binary16 = cm16.asm.getDecimal()
         myExec16 = Executeur(engine16,binary16)
         myExec16.bufferize(88)
         myExec16.nonStopRun()
@@ -560,7 +560,7 @@ if __name__ == '__main__':
 
         cm12 = CompilationManager(engine12, structuredList)
         print("Execution 12 bits")
-        binary12=cm12.getAsm().getDecimal()
+        binary12=cm12.asm.getDecimal()
         myExec12 = Executeur(engine12,binary12)
         myExec12.bufferize(88)
         myExec12.nonStopRun()
