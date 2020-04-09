@@ -125,7 +125,7 @@ class InputCodeWindow:
             cp = CodeParser(code = textCode)
             structuredList = cp.getFinalStructuredList()
             cm = CompilationManager(engine, structuredList)
-            asm = cm.getAsm()
+            asm = cm.asm
             executeur = Executeur(engine,asm.getDecimal())
         except (ExpressionError, CompilationError, ParseError, AttributesError) as e :
             if "lineNumber" in e.errors:
