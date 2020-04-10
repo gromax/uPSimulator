@@ -209,12 +209,13 @@ class MemoryWidget(LabelFrame):
             self.writeAddress(params["address"])
 
 class BufferWidget(LabelFrame):
-    SAISIE_COLS = 10
+    SAISIE_COLS = 18
+    BUFFER_LINES = 5
     BACKGROUND = 'white'
     MAX_BUFFER_LENGTH = 30
     MODES = ("bin", "hex", "dec")
     __mode = "bin"
-    __waitingInput = True
+    __waitingInput = False
 
     def __init__(self, parent, bufferComp,  **options):
         if "mode" in options and options["mode"] in self.MODES:
@@ -225,20 +226,21 @@ class BufferWidget(LabelFrame):
         bufferComp.bind("onwrite", self.onreadwrite)
         # message en entête
         self.__messageStringVar = StringVar()
-        self.__messageStringVar.set("Saisie")
+        self.__messageStringVar.set("")
         label = Label(self,textvariable=self.__messageStringVar)
         label.grid(row=0, column=0, columnspan=2)
         # champ de saisie
         self.__saisie = Text(self, width=self.SAISIE_COLS, height=1, bg=self.BACKGROUND)
         self.__saisie.grid(row=1, column=0)
+        self.__saisie.bind('<Return>', self.bufferize)
         # bouton de validation
-        validationButton = Button(self, text='Entrer')
+        validationButton = Button(self, text=chr(8627))
         validationButton.grid(row=1, column=1)
         validationButton.bind("<Button-1>", self.bufferize)
         # contenu du buffer
-        self.__bufferedStringVar = StringVar()
-        bufferedLabel = Label(self, textvariable=self.__bufferedStringVar, relief='groove')
-        bufferedLabel.grid(row=2, column=0, columnspan=2)
+        self.__bufferedText = Text(self, width=self.SAISIE_COLS+4, height=self.BUFFER_LINES, bg=self.BACKGROUND)
+        self.__bufferedText.config(state=DISABLED)
+        self.__bufferedText.grid(row=2, column=0, columnspan=2)
         self.refreshStrBuffer()
 
     def selectMode(self, mode):
@@ -260,16 +262,17 @@ class BufferWidget(LabelFrame):
             self.after(1000, self.resetMessage)
         else:
             self.__buffer.write(value)
+            self.__saisie.delete('1.0', 'end')
 
     def resetMessage(self):
         if self.__waitingInput:
             self.__messageStringVar.set("Saisie en attente")
         else:
-            self.__messageStringVar.set('Saisie')
+            self.__messageStringVar.set("")
 
     def onreadwrite(self, params):
         self.__waitingInput = False
-        self.__messageStringVar.set("Saisie")
+        self.__messageStringVar.set("")
         self.refreshStrBuffer()
 
     def onreadempty(self, params):
@@ -277,13 +280,12 @@ class BufferWidget(LabelFrame):
         self.__messageStringVar.set("Saisie en attente")
 
     def refreshStrBuffer(self):
-        buffStr = " ; ".join([item.toStr(self.__mode) for item in self.__buffer.list])
-        print(buffStr)
-        if len(buffStr) == 0:
-            buffStr = "Buffer vide"
-        elif len(buffStr) > self.MAX_BUFFER_LENGTH:
-            buffStr = buffStr[:self.MAX_BUFFER_LENGTH]+"..."
-        self.__bufferedStringVar.set(buffStr)
+        listItems = [item.toStr(self.__mode) for item in self.__buffer.list]
+        buffStr = "\n".join(listItems)
+        self.__bufferedText.config(state=NORMAL)
+        self.__bufferedText.delete('1.0', 'end')
+        self.__bufferedText.insert(END, buffStr)
+        self.__bufferedText.config(state=DISABLED)
 
 class ScreenWidget(LabelFrame):
     SCREEN_COLS = 10
