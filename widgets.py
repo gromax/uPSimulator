@@ -494,7 +494,8 @@ class InputCodeWidget(LabelFrame):
         self._programInput.clear()
         self._programInput.insert(text)
 
-    def getCode(self):
+    @property
+    def textCode(self):
         return self._programInput.text
 
     def writeMessage(self, message):
@@ -521,7 +522,7 @@ class SimulationWidget(Frame):
         '''
 
         # partie programme
-        self.textCode = textCode
+        self._textCode = textCode
         self._program = TextWidget(self, textCode, cols=0, numbersdigits=2, lines=20, offset=1, name="Votre code")
         self._program.grid(row=1, column=0, columnspan=3, rowspan=11)
 
@@ -553,6 +554,10 @@ class SimulationWidget(Frame):
         self._memoryW.grid(row=0, column=6, rowspan=12)
 
         self.highlightCodeLine(0)
+
+    @property
+    def textCode(self):
+        return self._textCode
 
     def highlightCodeLine(self, currentAsmLine:int) -> int:
         '''pour un numéro de ligne en mémoire, retourne le numéro
