@@ -18,6 +18,7 @@ class TextWidget(Frame):
     _name = "code"
     _writeEnabled = False
     _clearTabs = True
+    _fill = False
     def __init__(self, parent, text, **kwargs):
         for key, value in kwargs.items():
             if key == "cols":
@@ -34,6 +35,8 @@ class TextWidget(Frame):
                 self._writeEnabled = (value == True)
             elif key == "clearTabs":
                 self._clearTabs = (value == True)
+            elif key == "fill":
+                self._fill = (value == True)
         if self._name != '':
             LabelFrame.__init__(self, parent, class_='TextWidget', text=self._name)
         else:
@@ -53,7 +56,10 @@ class TextWidget(Frame):
         self.__textZone.insert(END, formatedText)
         if not self._writeEnabled:
             self.__textZone.config(state=DISABLED)
-        self.__textZone.pack(padx=10, pady=10)
+        if self._fill:
+            self.__textZone.pack(fill=BOTH, expand=1)
+        else:
+            self.__textZone.pack(padx=10, pady=10)
 
         self.__textZone.tag_configure("HIGHLIGHTED", background=self.HL_BACKGROUND, foreground=self.HL_COLOR)
 
@@ -234,7 +240,7 @@ class BufferWidget(LabelFrame):
         self.__saisie.grid(row=1, column=0)
         self.__saisie.bind('<Return>', self.bufferize)
         # bouton de validation
-        validationButton = Button(self, text=chr(8627))
+        validationButton = Button(self, text=chr(8629)) # caractère ↵
         validationButton.grid(row=1, column=1)
         validationButton.bind("<Button-1>", self.bufferize)
         # contenu du buffer
@@ -288,7 +294,7 @@ class BufferWidget(LabelFrame):
         self.__bufferedText.config(state=DISABLED)
 
 class ScreenWidget(LabelFrame):
-    SCREEN_COLS = 10
+    SCREEN_COLS = 18
     SCREEN_LINES = 5
     BACKGROUND = 'white'
     MODES = ("bin", "hex", "dec")
@@ -480,14 +486,10 @@ class InputCodeWidget(LabelFrame):
     MSG_LINES = 3
 
     def __init__(self, parent, textCode):
+        self._parent = parent
         LabelFrame.__init__(self, parent, class_='InputCodeWidget', text='Votre code')
-        self._programInput = TextWidget(self, textCode, cols = self.COLS, lines = self.LINES, writeEnabled = True, clearTabs = False, numbers = '', name='')
-        self._programInput.pack(padx=10, pady=10)
-
-        self._errorMessageFrame = Text(self, width = self.COLS, height = self.MSG_LINES, bg='#fdd')
-        self._errorMessageFrame.insert(END, "Aucun message...")
-        self._errorMessageFrame.config(state=DISABLED)
-        self._errorMessageFrame.pack(padx=10, pady=10)
+        self._programInput = TextWidget(self, textCode, cols = self.COLS, lines = self.LINES, writeEnabled = True, clearTabs = False, numbers = '', name='', fill=True)
+        self._programInput.pack(padx=5, pady=5, fill=BOTH, expand=1)
 
     def clearProgramInput(self):
         self._programInput.clear()
@@ -500,12 +502,6 @@ class InputCodeWidget(LabelFrame):
     def textCode(self):
         return self._programInput.text
 
-    def writeMessage(self, message):
-        self._errorMessageFrame.config(state=NORMAL)
-        self._errorMessageFrame.delete('1.0', 'end')
-        self._errorMessageFrame.insert(END, message)
-        self._errorMessageFrame.config(state=DISABLED)
-
     def highlightLine(self, lineNumber):
         self._programInput.highlightLine(lineNumber-1)
 
@@ -514,29 +510,21 @@ class SimulationWidget(Frame):
     def __init__(self, parent, executeur, textCode, asm, mode):
         Frame.__init__(self, parent, class_='SimulationWidget')
         self.asm = asm
+        self._parent = parent
         # grille
-        '''
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
-        self.columnconfigure(2, weight=3)
-        '''
+        for r in range(12):
+            self.rowconfigure(r, weight=1)
+        for c in range(5):
+            self.columnconfigure(c, weight=1)
 
         # partie programme
         self._textCode = textCode
         self._program = TextWidget(self, textCode, cols=0, numbersdigits=2, lines=20, offset=1, name="Votre code")
-        self._program.grid(row=1, column=0, columnspan=3, rowspan=11)
-
-        self._messages = Text(self, width=150, height=5)
-        self._messages.grid(row=12, column=0, rowspan=5, columnspan=6)
-        self._messages.insert(END, "Initialisations\n")
-        self._messages.config(state=DISABLED)
-
+        self._program.grid(row=0, column=0, rowspan=12, sticky="nsew")
 
         # partie asm
         self._asmFrame = TextWidget(self, str(asm), cols=0, numbertab=' ', name='Assembleur')
-        self._asmFrame.grid(row=0, column=3, rowspan=12)
+        self._asmFrame.grid(row=0, column=1, rowspan=12, sticky="nsew")
 
         self.executeur = executeur
         self._ualW = UalWidget(self, self.executeur.ual, mode=mode)
@@ -547,13 +535,13 @@ class SimulationWidget(Frame):
         self._registersW = MemoryWidget(self, self.executeur.registers, name="Registres", lines="8", mode=mode)
         self._screenW = ScreenWidget(self, self.executeur.screen, mode=mode)
 
-        self._inputBufferW.grid(row=0, column=4, rowspan=4)
-        self._screenW.grid(row=4, column=4, rowspan=4)
-        self._instrRegW.grid(row=8, column=4, rowspan=2)
-        self._linePointerW.grid(row=10, column=4, rowspan=2)
-        self._ualW.grid(row=0, column=5, rowspan=6)
-        self._registersW.grid(row=6, column=5, rowspan=6)
-        self._memoryW.grid(row=0, column=6, rowspan=12)
+        self._inputBufferW.grid(row=0, column=2, rowspan=4, stick="nsew")
+        self._screenW.grid(row=4, column=2, rowspan=4, stick="nsew")
+        self._instrRegW.grid(row=8, column=2, rowspan=2, stick="nsew")
+        self._linePointerW.grid(row=10, column=2, rowspan=2, stick="nsew")
+        self._ualW.grid(row=0, column=3, rowspan=6, stick="nsew")
+        self._registersW.grid(row=6, column=3, rowspan=6, stick="nsew")
+        self._memoryW.grid(row=0, column=4, rowspan=12, stick="nsew")
 
         self.highlightCodeLine(0)
 
@@ -578,10 +566,7 @@ class SimulationWidget(Frame):
         self.addMessage(self.executeur.messages[-1])
 
     def addMessage(self, message):
-        self._messages.config(state=NORMAL)
-        self._messages.insert(END, message+"\n")
-        self._messages.see(END)
-        self._messages.config(state=DISABLED)
+        self._parent.addMessage(message)
 
     def selectDisplay(self, mode):
         self._ualW.selectMode(mode)
