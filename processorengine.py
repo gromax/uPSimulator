@@ -13,6 +13,7 @@ Commands = TypedDict('Commands', {
 }, total = False)
 
 EngineAttributes = TypedDict('EngineAttributes', {
+    'name': str,
     'register_bits': int,
     'data_bits': int,
     'free_ual_output':bool,
@@ -27,6 +28,7 @@ from litteral import Litteral
 
 ENGINE_COLLECTION: Dict[str,EngineAttributes] = {
     "default": {
+        "name": "Processeur 16 bits",
         "register_bits":3,
         "free_ual_output": True,
         "data_bits": 16,
@@ -69,6 +71,7 @@ ENGINE_COLLECTION: Dict[str,EngineAttributes] = {
         }
     },
     "12bits": {
+        "name": "Processeur 12 bits",
         "register_bits":2,
         "free_ual_output": False,
         "data_bits": 12,
@@ -97,13 +100,15 @@ ENGINE_COLLECTION: Dict[str,EngineAttributes] = {
     }
 }
 
+engine_names = [(value['name'], key) for key, value in ENGINE_COLLECTION.items()]
+
 class ProcessorEngine:
     __register_address_bits = 1
     __data_bits = 0
     __freeUalOutput = False
     __litteralsCommands:Dict[str,Commands] = {}
     __commands:Dict[str,Commands] = {}
-
+    AVAILABLE_ENGINES:List[Tuple[str,str]] = engine_names
     def __init__(self, name:str = "default"):
         """Constructeur
 
