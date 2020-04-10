@@ -74,8 +74,22 @@ class InputCodeWindow:
         for engineName, engineId in availableEngines:
             sousMenuOptions.add_radiobutton(label=engineName, variable=self._currentEngineId, command=self.__switchEngine, value=engineId)
 
-        self._currentWidget = InputCodeWidget(root, "")
-        self._currentWidget.pack()
+        self._panedWindow = PanedWindow(root, orient='vertical')
+        self._panedWindow.pack(fill=BOTH, expand=1)
+        self._currentWidget = InputCodeWidget(self._panedWindow, "")
+        self._panedWindow.add(self._currentWidget, stick="nsew")
+        #self._currentWidget.pack(fill=BOTH, expand=1)
+
+        self._messages = Text(self._panedWindow, height=5)
+        self._messages.insert(END, "Messages...\n")
+        self._messages.config(state=DISABLED)
+        self._panedWindow.add(self._messages, stick="nsew")
+
+    def addMessage(self, message):
+        self._messages.config(state=NORMAL)
+        self._messages.insert(END, message+"\n")
+        self._messages.see(END)
+        self._messages.config(state=DISABLED)
 
     def inEditMode(self):
         return isinstance(self._currentWidget, InputCodeWidget)
@@ -88,7 +102,7 @@ class InputCodeWindow:
             with open(fileName, 'r') as file:
                 fileText = file.read()
         except Exception as e:
-            self.writeMessage("Impossible d'ouvrir le fichier exemple '{}'\n{}".format(fileName, e))
+            self.addMessage("Impossible d'ouvrir le fichier exemple '{}'\n{}".format(fileName, e))
         else:
             if self.inEditMode():
                 self._currentWidget.writeProgramInput(fileText)
@@ -113,8 +127,8 @@ class InputCodeWindow:
         if not self.inEditMode():
             textCode = self._currentWidget.textCode
             self._currentWidget.destroy()
-            self._currentWidget = InputCodeWidget(self._root, textCode)
-            self._currentWidget.pack()
+            self._currentWidget = InputCodeWidget(self._panedWindow, textCode)
+            self._panedWindow.add(self._currentWidget, before=self._messages, stick="nsew", height=400)
 
     def __goSimMode(self, executeur, textCode, asm):
         d = self._currentDisplay.get()
@@ -122,13 +136,14 @@ class InputCodeWindow:
             mode = self.MODES[d]
         else:
             mode = self.MODES[0]
+        self._panedWindow.forget(self._currentWidget)
         self._currentWidget.destroy()
-        self._currentWidget = SimulationWidget(self._root, executeur, textCode, asm, mode)
-        self._currentWidget.pack()
+        self._currentWidget = SimulationWidget(self._panedWindow, executeur, textCode, asm, mode)
+        self._panedWindow.add(self._currentWidget, before=self._messages, stick="nsew", height=400, width=1200)
 
     def __editModeCompile(self):
         if self.inEditMode():
-            self._currentWidget.writeMessage("Compilation...")
+            self.addMessage("Compilation...")
             textCode = self._currentWidget.textCode
             self.__doCompile(textCode)
 
@@ -142,21 +157,21 @@ class InputCodeWindow:
             asm = cm.asm
             executeur = Executeur(engine,asm.getDecimal())
         except (ExpressionError, CompilationError, ParseError, AttributesError) as e :
-            if "lineNumber" in e.errors:
+            if not e.errors is None and "lineNumber" in e.errors:
                 errorMessage = "[{}] {}".format(e.errors["lineNumber"], e)
             else :
                 errorMessage = str(e)
             if not self.inEditMode():
                 self.__goEditMode()
-            self._currentWidget.writeMessage(errorMessage)
-            if "lineNumber" in e.errors:
+            self.addMessage(errorMessage)
+            if not e.errors is None and "lineNumber" in e.errors:
                 self._currentWidget.highlightLine(e.errors["lineNumber"])
             else:
                 print(errorMessage)
         except Exception as e:
             if not self.inEditMode():
                 self.__goEditMode()
-            self._currentWidget.writeMessage(e)
+            self.addMessage(e)
         else :
             self.__goSimMode(executeur, textCode, asm)
 
