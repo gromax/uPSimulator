@@ -57,13 +57,22 @@ class InputCodeWindow:
         sousMenuRun.add_command(label="Pause", command=self.__pause)
         sousMenuRun.add_command(label="Réinit", command=self.__reinitSim)
 
-        sousMenuDisplay = Menu(menu)
-        menu.add_cascade(label="Display", menu=sousMenuDisplay)
+        sousMenuOptions = Menu(menu)
+        menu.add_cascade(label="Options", menu=sousMenuOptions)
         self._currentDisplay = IntVar()
         self._currentDisplay.set(self.BIN_DISPLAY)
-        sousMenuDisplay.add_radiobutton(label="bin", variable=self._currentDisplay, command=self.__switchDisplay, value=self.BIN_DISPLAY)
-        sousMenuDisplay.add_radiobutton(label="dec", variable=self._currentDisplay, command=self.__switchDisplay, value=self.DEC_DISPLAY)
-        sousMenuDisplay.add_radiobutton(label="hex", variable=self._currentDisplay, command=self.__switchDisplay, value=self.HEX_DISPLAY)
+        sousMenuOptions.add_radiobutton(label="bin", variable=self._currentDisplay, command=self.__switchDisplay, value=self.BIN_DISPLAY)
+        sousMenuOptions.add_radiobutton(label="dec", variable=self._currentDisplay, command=self.__switchDisplay, value=self.DEC_DISPLAY)
+        sousMenuOptions.add_radiobutton(label="hex", variable=self._currentDisplay, command=self.__switchDisplay, value=self.HEX_DISPLAY)
+
+        availableEngines = ProcessorEngine.AVAILABLE_ENGINES
+        assert len(availableEngines) > 0
+        sousMenuOptions.add_separator()
+        self._currentEngineId = StringVar()
+        defaultEngineName, defaultEngineId = availableEngines[0]
+        self._currentEngineId.set(defaultEngineId)
+        for engineName, engineId in availableEngines:
+            sousMenuOptions.add_radiobutton(label=engineName, variable=self._currentEngineId, command=self.__switchEngine, value=engineId)
 
         self._currentWidget = InputCodeWidget(root, "")
         self._currentWidget.pack()
@@ -92,6 +101,10 @@ class InputCodeWindow:
             newMode = self.MODES[d]
             self._currentWidget.selectDisplay(newMode)
 
+    def __switchEngine(self):
+        if not self.inEditMode():
+            self.__doCompile(self._currentWidget.textCode)
+
     def __clearProgramInput(self):
         if self.inEditMode():
             self._currentWidget.clearProgramInput()
@@ -116,11 +129,12 @@ class InputCodeWindow:
     def __editModeCompile(self):
         if self.inEditMode():
             self._currentWidget.writeMessage("Compilation...")
-            textCode = self._currentWidget.getCode()
+            textCode = self._currentWidget.textCode
             self.__doCompile(textCode)
 
     def __doCompile(self, textCode):
-        engine = ProcessorEngine()
+        e = self._currentEngineId.get()
+        engine = ProcessorEngine(e)
         try :
             cp = CodeParser(code = textCode)
             structuredList = cp.getFinalStructuredList()
@@ -132,17 +146,17 @@ class InputCodeWindow:
                 errorMessage = "[{}] {}".format(e.errors["lineNumber"], e)
             else :
                 errorMessage = str(e)
-            if self.inEditMode():
-                self._currentWidget.writeMessage(errorMessage)
-                if "lineNumber" in e.errors:
-                    self._currentWidget.highlightLine(e.errors["lineNumber"])
+            if not self.inEditMode():
+                self.__goEditMode()
+            self._currentWidget.writeMessage(errorMessage)
+            if "lineNumber" in e.errors:
+                self._currentWidget.highlightLine(e.errors["lineNumber"])
             else:
                 print(errorMessage)
         except Exception as e:
-            if self.inEditMode() != None:
-                self._currentWidget.writeMessage(e)
-            else:
-                print(e)
+            if not self.inEditMode():
+                self.__goEditMode()
+            self._currentWidget.writeMessage(e)
         else :
             self.__goSimMode(executeur, textCode, asm)
 
@@ -163,10 +177,11 @@ class InputCodeWindow:
 
     def __reinitSim(self):
         if not self.inEditMode():
-            engine = ProcessorEngine()
+            e = self._currentEngineId.get()
+            engine = ProcessorEngine(e)
             try :
                 asm = self._currentWidget.asm
-                executeur = Executeur(engine,asm.getDecimal())
+                executeur = Executeur(engine, asm.getDecimal())
             except Exception as e:
                 self._currentWidget.addMessage(str(e))
             else :
