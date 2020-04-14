@@ -9,16 +9,17 @@ from typing import List, Union
 from errors import *
 from litteral import Litteral
 from variable import Variable
-from expressionnodes import ExpressionNode, ValueNode, UnaryNode, BinaryNode
+from arithmeticexpressionnodes import *
+from comparaisonexpressionnodes import *
+from logicexpressionnodes import *
 import re
+from abc import ABC, ABCMeta, abstractmethod
 
-class Token:
+
+class Token(metaclass=ABCMeta):
     """Classe abstraite qui ne devrait pas être instanciée
     """
     regex:str
-
-    def __init__(self):
-        raise NotImplementedError("La classe abstraite Token ne doit pas être instanciée.")
 
     @classmethod
     def test(cls, expression:str) -> bool:
@@ -80,7 +81,8 @@ class Token:
 
 class TokenBinaryOperator(Token):
     regex:str = "<=|==|>=|!=|[\^<>+\-*\/%&|]|and|or"
-
+    _LOGIC = ("and", "or")
+    _COMPARAISON = ("<=", "==", ">=", "!=", "<", ">")
     def __init__(self,operator:str):
         """Constructeur
 
@@ -137,20 +139,37 @@ class TokenBinaryOperator(Token):
             # cas du or
             return 1
 
-    def toNode(self, operandsList:List[ExpressionNode]) -> BinaryNode:
-        """Conversion en objet ExpressionNode
+    def toNode(self, operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
+        """Conversion en objet noeud
 
         :param operandsList: opérandes enfants
-        :type operandsList: list(ExpressionNode)
+        :type operandsList: List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]]
         :return: noeud binaire expression correspondant
-        :rtype: BinaryNode
-        :raises: ExpressionError si pas assez d'opérandes pour l'opérateur demandé
+        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]
         """
         if len(operandsList) <2:
-            raise ExpressionError(f"Pas assez d'opérandes pour : {self._operator}")
+            return None
         operand2 = operandsList.pop()
         operand1 = operandsList.pop()
-        return BinaryNode(self._operator, operand1, operand2)
+
+        if self._operator in self._LOGIC:
+            if not isinstance(operand2, (LogicExpressionNode, ComparaisonExpressionNode)):
+                return None
+            if not isinstance(operand1, (LogicExpressionNode, ComparaisonExpressionNode)):
+                return None
+            if self._operator == "and":
+                return AndNode(operand1, operand2)
+            if self._operator == "or":
+                return OrNode(operand1, operand2)
+            return None
+        if not isinstance(operand2, ArithmeticExpressionNode):
+            return None
+        if not isinstance(operand1, ArithmeticExpressionNode):
+            return None
+
+        if self._operator in self._COMPARAISON:
+            return ComparaisonExpressionNode(self._operator, operand1, operand2)
+        return BinaryArithmeticNode(self._operator, operand1, operand2)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -208,28 +227,41 @@ class TokenUnaryOperator(Token):
         return 6
 
 
-    def toNode(self, operandsList:List[ExpressionNode]) -> Union[ValueNode,UnaryNode]:
-        """Conversion en objet ExpressionNode
+    def toNode(self, operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
+        """Conversion en objet noeud
 
         :param operandsList: opérandes enfants
-        :type operandsList: list(ExpressionNode,ExpressionNode)
+        :type operandsList: list[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]
         :return: noeud unaire ou valeur correspondant
-        :rtype: UnaryNode / ValueNode
-        :raises: ExpressionError s'il n'y a plus d'opérande à dépiler dans la pile des opérandes
+        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]
 
         .. note:
 
         un - unaire sur un littéral est aussitôt convertit en l'opposé de ce littéral
         """
         if len(operandsList) == 0:
-            raise ExpressionError(f"Plus d'opérande pour : {self._operator}")
+            return None
         operand = operandsList.pop()
-        # Le cas NEG sur litteral devrait se contenter de preondre l'opposé du littéral
-        opTryValue = operand.value
-        if self._operator == "neg" and isinstance(opTryValue,Litteral):
-            negLitt = opTryValue.negClone()
+        # Le cas NEG sur litteral devrait se contenter de prendre l'opposé du littéral
+        if self._operator == "neg" and isinstance(operand, ValueNode) and isinstance(operand.value, Litteral):
+            negLitt = operand.value.negClone()
             return ValueNode(negLitt)
-        return UnaryNode(self._operator, operand)
+
+        if self._operator == "not":
+            if not isinstance(operand, (LogicExpressionNode, ComparaisonExpressionNode)):
+                return None
+            return NotNode(operand)
+
+        if not isinstance(operand, ArithmeticExpressionNode):
+            return None
+
+        if self._operator == "neg":
+            return NegNode(operand)
+
+        if self._operator == "~":
+            return InverseNode(operand)
+
+        return None
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -297,7 +329,7 @@ class TokenVariable(Token):
         return self._name
 
     def toNode(self):
-        """Conversion en objet ExpressionNode
+        """Conversion en objet noeud
 
         .. note:: Crée un objet Variable correspondant
 
@@ -346,7 +378,7 @@ class TokenNumber(Token):
         return self._value
 
     def toNode(self):
-        """Conversion en objet ExpressionNode
+        """Conversion en objet noeud
 
         .. note:: Crée un objet Litteral correspondant
 
