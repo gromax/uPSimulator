@@ -3,21 +3,23 @@
    :synopsis: gestion du parse d'une ligne du programme d'origine
 """
 
-from typing import List
+from typing import List, Union
 from typing_extensions import TypedDict
 
 import re
 from errors import ParseError
 from expressionparser import ExpressionParser
 from variable import Variable
-from expressionnodes import ExpressionNode
+from arithmeticexpressionnodes import ArithmeticExpressionNode
+from comparaisonexpressionnodes import ComparaisonExpressionNode
+from logicexpressionnodes import LogicExpressionNode
 
 Caracteristiques = TypedDict('Caracteristiques', {
     'lineNumber': int,
     'indentation': int,
     'type': str,
-    'condition': ExpressionNode,
-    'expression': ExpressionNode,
+    'condition': Union[LogicExpressionNode, ComparaisonExpressionNode],
+    'expression': ArithmeticExpressionNode,
     'emptyLine': bool,
     'variable': Variable,
     'children':List
@@ -33,8 +35,8 @@ class LineParser: # Définition classe
         indentation : contient le nombre d'espace pour l'indentation
         emptyLine   : True si ligne est vide, False sinon
         type        : correspond au motif identifié (if, elif, while, else, print, input, affectation)
-        condition   : contient un objet ExpressionNode de type bool pout les motifs attendant une condition
-        expression  : contient un objet ExpressionNode s'il s'agit d'une affectation ou d'un print
+        condition   : contient un objet LogicExpressionNode ou ComparaisonExpressionNode pour les motifs attendant une condition
+        expression  : contient un objet ArithmeticExpressionNode s'il s'agit d'une affectation ou d'un print
         variable    : contient un objet Variable s'il s'agit d'une affectation ou d'un input
     Une méthode getCaracs() pour retourne le dictionnaire __caracteristiques
     """
@@ -119,7 +121,7 @@ class LineParser: # Définition classe
             return False
         firstGroup = allGroup[1] # tout ce qui match après testStructureKeyword et avant les :
         expr = self.__expressionParser.buildExpression(firstGroup)
-        if expr.getType() != 'bool' :
+        if not isinstance(expr, (LogicExpressionNode, ComparaisonExpressionNode)) :
             raise ParseError(f"L'expression <{expr}> n'est pas une condition.", {"lineNumber":self.__lineNumber})
             return False
         self.__caracteristiques["type"] = testStructureKeyword
@@ -156,8 +158,8 @@ class LineParser: # Définition classe
             return False
         firstGroup = allGroup[1] # tout ce qui match dans les ( )
         expr = self.__expressionParser.buildExpression(firstGroup)
-        if expr.getType() != 'int' :
-            raise ParseError(f"L'expression <{expr}> est incorrecte.", {"lineNumber":self.__lineNumber})
+        if not isinstance(expr, ArithmeticExpressionNode):
+            raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber": self.__lineNumber})
             return False
         self.__caracteristiques["type"] = "print"
         self.__caracteristiques["expression"] = expr
@@ -201,7 +203,7 @@ class LineParser: # Définition classe
         if not ExpressionParser.strIsVariableName(variableName):
             raise ParseError(f"La variable <{variableName}> est incorrecte.", {"lineNumber":self.__lineNumber})
         expr = self.__expressionParser.buildExpression(expressionStr)
-        if expr.getType() != 'int' :
+        if not isinstance(expr, ArithmeticExpressionNode):
             raise ParseError(f"L'expression <{expr}> est incorrecte.", {"lineNumber":self.__lineNumber})
             return False
         self.__caracteristiques["type"] = "affectation"
@@ -250,4 +252,9 @@ if __name__=="__main__":
       'if x < 10 or y < 100:'
     ]
     for i,exemple in enumerate(listExemples):
-      print(LineParser(exemple,i))
+        try:
+            lp = LineParser(exemple, i)
+        except Exception as e:
+            print(e)
+        else:
+            print(lp)
