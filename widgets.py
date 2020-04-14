@@ -507,10 +507,10 @@ class InputCodeWidget(LabelFrame):
 
 
 class SimulationWidget(Frame):
-    def __init__(self, parent, executeur, textCode, asm, mode):
+    def __init__(self, parent, parentWidget, executeur, textCode, asm, mode):
         Frame.__init__(self, parent, class_='SimulationWidget')
         self.asm = asm
-        self._parent = parent
+        self._parent = parentWidget
         # grille
         for r in range(12):
             self.rowconfigure(r, weight=1)
@@ -561,9 +561,10 @@ class SimulationWidget(Frame):
         self.__root.mainloop()
 
     def stepRun(self):
-        self.executeur.step()
+        currentState = self.executeur.step()
         self.highlightCodeLine(self.executeur.currentAsmLine)
         self.addMessage(self.executeur.messages[-1])
+        return currentState
 
     def addMessage(self, message):
         self._parent.addMessage(message)
