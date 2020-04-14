@@ -138,7 +138,7 @@ class InputCodeWindow:
             mode = self.MODES[0]
         self._panedWindow.forget(self._currentWidget)
         self._currentWidget.destroy()
-        self._currentWidget = SimulationWidget(self._panedWindow, executeur, textCode, asm, mode)
+        self._currentWidget = SimulationWidget(self._panedWindow,self, executeur, textCode, asm, mode)
         self._panedWindow.add(self._currentWidget, before=self._messages, stick="nsew", height=400, width=1200)
 
     def __editModeCompile(self):
@@ -207,7 +207,9 @@ class InputCodeWindow:
         if self.inEditMode():
             self.__editModeCompile()
         if not self.inEditMode():
-            self._currentWidget.stepRun()
+            currentState = self._currentWidget.stepRun()
+            if currentState < 0:
+                self._runningSpeed = 0
             if self._runningSpeed > 0:
                 self._root.after(self._runningSpeed, self.__step)
 
