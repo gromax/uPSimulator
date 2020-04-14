@@ -52,7 +52,7 @@ class CompileExpressionManager:
         """
         if len(self.__registerStack) == 0:
             self.__log += "Erreur : plus de registre à libérer.\n"
-            raise CompilationError("Aucun registre à libérer.")
+            raise CompilationError("Aucun registre à libérer.", {"lineNumber": self.__lineNumber})
         register = self.__registerStack.pop()
         assert register >= 0
         self.__availableRegisters.append(register)
@@ -67,7 +67,7 @@ class CompileExpressionManager:
         .. note:: si le numéro est ``< 0``, provoque le dépilage d'un item de mémoire et retour du numéro de registre ayant accueilli le retour.
         """
         if len(self.__registerStack) == 0:
-            raise CompilationError("Pas assez d'opérande dans la pile.")
+            raise CompilationError("Pas assez d'opérande dans la pile.", {"lineNumber": self.__lineNumber})
         register = self.__registerStack[-1]
         if register < 0:
             self.__registerStack.pop()
@@ -80,7 +80,7 @@ class CompileExpressionManager:
         :raises: CompilationError s'il n'y a pas assez d'opérandes pour le swap
         """
         if len(self.__registerStack) < 2:
-            raise CompilationError("Pas assez d'opérande dans la pile pour swap.")
+            raise CompilationError("Pas assez d'opérande dans la pile pour swap.", {"lineNumber": self.__lineNumber})
         op1 = self.__registerStack[-1]
         op2 = self.__registerStack[-2]
         self.__registerStack[-1] = op2
@@ -102,7 +102,7 @@ class CompileExpressionManager:
         :raises: CompilationError si aucune registre n'est disponible
         """
         if len(self.__availableRegisters) == 0:
-            raise CompilationError("Pas de registre disponible")
+            raise CompilationError("Pas de registre disponible", {"lineNumber": self.__lineNumber})
         register = self.__availableRegisters.pop()
         self.__registerStack.append(register)
         self.__log += f"Registre r{register} occupé.\n"
@@ -123,7 +123,7 @@ class CompileExpressionManager:
         :raises: CompilationError si aucune mémoire à libérer
         """
         if self.__memoryStackLastIndex < 0:
-            raise CompilationError("Pas de données en mémoire disponible")
+            raise CompilationError("Pas de données en mémoire disponible", {"lineNumber": self.__lineNumber})
         destinationRegister = self.__getAvailableRegister()
         memoryVariable = Variable("_m"+str(self.__memoryStackLastIndex))
         self.__log += f"Mémoire {self.__memoryStackLastIndex} chargée dans r{destinationRegister}\n"
@@ -196,7 +196,7 @@ class CompileExpressionManager:
         # Attention ici : ne pas libérer le premier registre tant que les 2e n'a pas été traité
         # -> il faut les libérer en même temps
         if len(self.__registerStack) < 2:
-            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
+            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.", {"lineNumber": self.__lineNumber})
         rLastCalc = self.__getTopStackRegister()
         self.__swapStackRegister()
         rFirstCalc = self.__getTopStackRegister()
@@ -226,7 +226,7 @@ class CompileExpressionManager:
         :type litteral: Litteral
         """
         if len(self.__registerStack) < 1:
-            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
+            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.", {"lineNumber": self.__lineNumber})
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
@@ -242,7 +242,7 @@ class CompileExpressionManager:
         :type operator: str
         """
         if len(self.__registerStack) < 1:
-            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.")
+            raise CompilationError(f"Pas assez d'opérande pour {operator} dans la pile.", {"lineNumber": self.__lineNumber})
         registreOperand = self.__getTopStackRegister()
         self.__freeRegister()
         registreDestination = self.__getAvailableRegister()
