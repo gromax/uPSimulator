@@ -4,10 +4,12 @@
 
 """
 
-from typing import List
+from typing import List, Union
 
 from errors import *
-from expressionnodes import ExpressionNode, ValueNode, UnaryNode, BinaryNode
+from arithmeticexpressionnodes import ArithmeticExpressionNode
+from comparaisonexpressionnodes import ComparaisonExpressionNode
+from logicexpressionnodes import LogicExpressionNode
 from parsertokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
 import re
 
@@ -169,28 +171,30 @@ class ExpressionParser:
         return polishStack
 
     @staticmethod
-    def __buildTree(polishTokensList:List[Token]) -> ExpressionNode:
+    def __buildTree(polishTokensList:List[Token]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
         """Construit l'arbre représentant l'expression
 
         :param polishTokensList: liste des tokens dans la version polonaise inversée
         :type polishTokensList: list(Token)
-        :return: noeud racine de l'arbre représentant l'expression
-        :rtype: ExpressionNode
-        :raises: ExpressionError s'il reste plus d'un opérande en fin de traitement.
-        Arrive si pas assez d'opérateurs pour combiner les opérandes.
+        :return: noeud racine de l'arbre représentant l'expression. None en cas d'erreur
+        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]
         """
 
-        operandsList:List[ExpressionNode] = []
+        operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]] = []
         for token in polishTokensList:
             if isinstance(token,TokenVariable) or isinstance(token,TokenNumber):
                 node = token.toNode()
+                if node is None:
+                    return None
                 operandsList.append(node)
             elif isinstance(token,TokenUnaryOperator) or isinstance(token,TokenBinaryOperator):
                 node = token.toNode(operandsList)
+                if node is None:
+                    return None
                 operandsList.append(node)
         # à la fin, normalement, il n'y a qu'un opérande
         if len(operandsList) != 1:
-            raise ExpressionError(f"Pas assez d'opérateurs !'")
+            return None
         return operandsList.pop()
 
     @classmethod
@@ -368,13 +372,13 @@ class ExpressionParser:
         """Constructeur"""
         pass
 
-    def buildExpression(self, originalExpression:str) -> ExpressionNode:
+    def buildExpression(self, originalExpression:str) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]:
         """À partir d'une expression sous forme d'une chaîne de texte, produit l'arbre représentant cette expression et retourne la racine de cet arbre.
 
         :param originalExpression: expression à analyser
         :type originalExpression: str
         :return: racine de l'arbre
-        :rtype: ExpressionNode
+        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]
         :raises: ExpressionError si l'expression ne match pas l'expression régulière ou si les parenthèses ne sont pas convenablement équilibrées, ou si l'expression contient un enchaînement non valable, comme +).
         """
 
@@ -388,7 +392,8 @@ class ExpressionParser:
             raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
         reversePolishTokensList = self.__buildReversePolishNotation(tokensList)
         rootNodeTree = ExpressionParser.__buildTree(reversePolishTokensList)
-
+        if rootNodeTree is None:
+            raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
         return rootNodeTree
 
 if __name__=="__main__":
@@ -405,6 +410,9 @@ if __name__=="__main__":
       "x"
     ]:
         print("Test de :",strExpression)
-        oExpression = EP.buildExpression(strExpression)
-        print(oExpression) # Utilise la conversion to string de ExpressionNode
-        print(oExpression.getType()) # affichage du type, 'bool' 'int' ou None
+        try:
+            oExpression = EP.buildExpression(strExpression)
+        except Exception as e:
+            print(e)
+        else:
+            print(oExpression)
