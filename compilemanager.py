@@ -9,6 +9,9 @@ from structuresnodes import *
 from assembleurcontainer import AssembleurContainer
 from compileexpressionmanager import CompileExpressionManager
 from processorengine import ProcessorEngine
+from arithmeticexpressionnodes import ArithmeticExpressionNode
+from comparaisonexpressionnodes import ComparaisonExpressionNode
+
 
 class CompilationManager:
     _engine:ProcessorEngine
@@ -42,25 +45,35 @@ class CompilationManager:
         """
         return "\n".join([str(item) for item in self._linearList])
 
-    def __pushExpressionAsm(self, lineNumber:int, label:Optional[Label], expression:ExpressionNode) -> int:
-        """Gère la compilation d'une expression arithmétique ou logique
+    def __pushArithmeticAsm(self, lineNumber:int, label:Optional[Label], expression:ArithmeticExpressionNode) -> int:
+        """Gère la compilation d'une expression arithmétique
 
         :param lineNumber: numéro de ligne d'origine de l'expression
         :type lineNumber: int
         :param label: label du début de l'expression
         :type label: Optional[Label]
         :param expression: expression à compiler
-        :type expression: ExpressionNode
+        :type expression: ArithmeticExpressionNode
         :return: numéro du registre résultat ou -1 si inutile (comparaison)
         :rtype: int
         """
-        if not self._engine.hasNEG():
-            expression = expression.negToSubClone()
         cem = CompileExpressionManager(self._engine, self._asm, lineNumber, label)
         expression.compile(cem)
-        if expression.getType() == 'int':
-            return cem.getResultRegister()
-        return -1
+        return cem.getResultRegister()
+
+    def __pushComparaisonAsm(self, lineNumber:int, label:Optional[Label], condition:ComparaisonExpressionNode) -> None:
+        """Gère la compilation d'une expression de comparaison
+
+        :param lineNumber: numéro de ligne d'origine de l'expression
+        :type lineNumber: int
+        :param label: label du début de l'expression
+        :type label: Optional[Label]
+        :param condition: comparaison à compiler
+        :type condition: ComparaisonExpressionNode
+        """
+        cem = CompileExpressionManager(self._engine, self._asm, lineNumber, label)
+        condition.compile(cem)
+
 
     def __pushNodeAsm(self, node:StructureNode) -> None:
         """Exécute la compilation pour un noeud. Le résultat est ajouté à l'objet assembleur.
@@ -71,24 +84,24 @@ class CompilationManager:
         """
         lineNumber = node.lineNumber
         if isinstance(node, AffectationNode):
-            resultRegister = self.__pushExpressionAsm(lineNumber, node.label, node.expression)
+            resultRegister = self.__pushArithmeticAsm(lineNumber, node.label, node.expression)
             self._asm.pushStore(lineNumber, None, resultRegister, node.cible)
             return
         if isinstance(node, InputNode):
             self._asm.pushInput(lineNumber, node.label, node.cible)
             return
         if isinstance(node, PrintNode):
-            resultRegister = self.__pushExpressionAsm(lineNumber, node.label, node.expression)
+            resultRegister = self.__pushArithmeticAsm(lineNumber, node.label, node.expression)
             self._asm.pushPrint(lineNumber, resultRegister)
             return
         if isinstance(node, JumpNode):
-            labelCible = node.cible.label
+            labelCible = node.cible.assignLabel()
             condition = node.getCondition()
-            if not isinstance(condition,ExpressionNode):
+            if not isinstance(condition, ComparaisonExpressionNode):
                 self._asm.pushJump(lineNumber, node.label, labelCible)
                 return
-            comparaisonSymbol = condition.getComparaisonSymbol()
-            self.__pushExpressionAsm(lineNumber, node.label, condition)
+            comparaisonSymbol = condition.comparaisonSymbol
+            self.__pushComparaisonAsm(lineNumber, node.label, condition)
             self._asm.pushJump(lineNumber, None, labelCible, comparaisonSymbol)
         if isinstance(node, SimpleNode) and node.snType == 'halt':
             self._asm.pushHalt(node.label)
@@ -120,8 +133,8 @@ if __name__=="__main__":
     varX = Variable('x')
     varY = Variable('y')
 
-    affectationX = AffectationNode(4, varX, EP.buildExpression('-3*x+1'))
-    affectationY = AffectationNode(5, varY, EP.buildExpression('y+x'))
+    affectationX = AffectationNode(4, varX, EP.buildExpression('-3*x+1')) # mypy: ignore
+    affectationY = AffectationNode(5, varY, EP.buildExpression('y+x')) # mypy: ignore
     structuredList = [
         AffectationNode(1, varX, EP.buildExpression('0')),
         AffectationNode(2, varY, EP.buildExpression('0')),
