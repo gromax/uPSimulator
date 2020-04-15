@@ -454,9 +454,7 @@ class AssembleurContainer:
         return None
 
 if __name__=="__main__":
-    from expressionparser import ExpressionParser
     from processorengine import ProcessorEngine
-    EP = ExpressionParser()
 
     engine = ProcessorEngine()
     AsmCont = AssembleurContainer(engine)
