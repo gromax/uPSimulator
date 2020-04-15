@@ -43,7 +43,6 @@ class LineParser: # Définition classe
     __lineNumber: int
     __originalLine: str
     __cleanLine: str
-    __expressionParser: ExpressionParser
     __caracteristiques: Caracteristiques
     def __init__(self, originalLine:str, lineNumber:int): # Constructeur
         """Constructeur
@@ -53,7 +52,6 @@ class LineParser: # Définition classe
         :param lineNumber: numéro de la ligne d'origine
         :type line Number: int
         """
-        self.__expressionParser = ExpressionParser()
         self.__lineNumber = lineNumber
         self.__originalLine = originalLine
         self.__cleanLine = self.__suppCommentsAndEndSpaces(self.__originalLine)
@@ -120,7 +118,7 @@ class LineParser: # Définition classe
         if allGroup is None:
             return False
         firstGroup = allGroup[1] # tout ce qui match après testStructureKeyword et avant les :
-        expr = self.__expressionParser.buildExpression(firstGroup)
+        expr = ExpressionParser.buildExpression(firstGroup)
         if not isinstance(expr, (LogicExpressionNode, ComparaisonExpressionNode)) :
             raise ParseError(f"L'expression <{expr}> n'est pas une condition.", {"lineNumber":self.__lineNumber})
             return False
@@ -157,7 +155,7 @@ class LineParser: # Définition classe
         if allGroup is None:
             return False
         firstGroup = allGroup[1] # tout ce qui match dans les ( )
-        expr = self.__expressionParser.buildExpression(firstGroup)
+        expr = ExpressionParser.buildExpression(firstGroup)
         if not isinstance(expr, ArithmeticExpressionNode):
             raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber": self.__lineNumber})
             return False
@@ -202,7 +200,7 @@ class LineParser: # Définition classe
         expressionStr = allGroup[2] # tout ce qu'il y a dans les ( ) de l'input
         if not ExpressionParser.strIsVariableName(variableName):
             raise ParseError(f"La variable <{variableName}> est incorrecte.", {"lineNumber":self.__lineNumber})
-        expr = self.__expressionParser.buildExpression(expressionStr)
+        expr = ExpressionParser.buildExpression(expressionStr)
         if not isinstance(expr, ArithmeticExpressionNode):
             raise ParseError(f"L'expression <{expr}> est incorrecte.", {"lineNumber":self.__lineNumber})
             return False
