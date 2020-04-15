@@ -368,11 +368,8 @@ class ExpressionParser:
                 indice += 1
         return tokensList
 
-    def __init__(self):
-        """Constructeur"""
-        pass
-
-    def buildExpression(self, originalExpression:str) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]:
+    @classmethod
+    def buildExpression(cls, originalExpression:str) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]:
         """À partir d'une expression sous forme d'une chaîne de texte, produit l'arbre représentant cette expression et retourne la racine de cet arbre.
 
         :param originalExpression: expression à analyser
@@ -383,21 +380,20 @@ class ExpressionParser:
         """
 
         expression = originalExpression.strip()
-        if not self.strIsExpression(expression):
+        if not cls.strIsExpression(expression):
             raise ExpressionError(f"{originalExpression} : Expression incorrecte.")
-        if not self.testBrackets(expression):
+        if not cls.testBrackets(expression):
             raise ExpressionError(f"{originalExpression} : Les parenthèses ne sont pas équilibrées.")
-        tokensList = ExpressionParser.__buildTokensList(expression)
-        if not self.__tokensListIsLegal(tokensList):
+        tokensList = cls.__buildTokensList(expression)
+        if not cls.__tokensListIsLegal(tokensList):
             raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
-        reversePolishTokensList = self.__buildReversePolishNotation(tokensList)
-        rootNodeTree = ExpressionParser.__buildTree(reversePolishTokensList)
+        reversePolishTokensList = cls.__buildReversePolishNotation(tokensList)
+        rootNodeTree = cls.__buildTree(reversePolishTokensList)
         if rootNodeTree is None:
             raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
         return rootNodeTree
 
 if __name__=="__main__":
-    EP = ExpressionParser()
     for strExpression in [
       "-2 + x",
       "(x < 10 or y < 100)",
@@ -411,7 +407,7 @@ if __name__=="__main__":
     ]:
         print("Test de :",strExpression)
         try:
-            oExpression = EP.buildExpression(strExpression)
+            oExpression = ExpressionParser.buildExpression(strExpression)
         except Exception as e:
             print(e)
         else:
