@@ -2,7 +2,7 @@
 .. module:: structuresnodes
    :synopsis: définition des noeuds constituant le programme dans sa version structurée : Instructions simples, conditions, boucles. Contribue à la transformation d'une version où les conditions et boucles sont assurés par des sauts inconditionnels / conditionnels. Cette version est qualifiée de version linéaire.
 """
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 
 from arithmeticexpressionnodes import ArithmeticExpressionNode
 from comparaisonexpressionnodes import ComparaisonExpressionNode
@@ -80,6 +80,14 @@ class StructureNodeList(LinkedList):
         childrenStrList = [ str(node) for node in childrenList ]
         return "\n".join(childrenStrList)
 
+    def tabulatedStr(self):
+        """Transtypage
+        :return: chaîne de caractères avec une tabulation à chaque ligne
+        :rtype: str
+        """
+        strList = str(self).split('\n')
+        return '\t' + '\n\t'.join([line for line in strList])
+
     def delete(self, nodeToDel:"LinkedListNode") -> bool:
         """supprime l'élément node
 
@@ -94,7 +102,7 @@ class StructureNodeList(LinkedList):
             # -> insertion d'un node dummy
             dummy = SimpleNode("dummy")
             self.append(dummy)
-        newCibleJumps = nodeToDel._next # qui existe toujours
+        newCibleJumps = cast(StructureNode, nodeToDel._next) # qui existe toujours
         for j in jumpsToMod:
             j.setCible(newCibleJumps)
         return super().delete(nodeToDel)
@@ -185,7 +193,7 @@ class IfNode(StructureNode):
         """
         super().__init__()
         self._condition = condition
-        self._children = StructureNodeList(children)
+        self._children = StructureNodeList(cast(List[LinkedListNode],children))
         self._lineNumber = lineNumber
 
     def __str__(self) -> str:
@@ -194,7 +202,8 @@ class IfNode(StructureNode):
         :return: version chaîne de caractères de ce noeud et de ses enfants
         :rtype: str
         """
-        return "{}\tif {} {{\n{}\n}}".format(self.labelToStr(), self._condition, self._children)
+        childrenStr = self._children.tabulatedStr()
+        return "{}\tif {} {{\n{}\n\t}}".format(self.labelToStr(), self._condition, childrenStr)
 
     def _decomposeCondition(self, csl:List[str], cibleOUI:'StructureNode', cibleNON:'StructureNode') -> 'StructureNodeList':
         """Décompose un condition complexe, contenant des and, not, or,
@@ -245,18 +254,22 @@ class IfNode(StructureNode):
         # sinon il faut décomposer la condition en conditions élémentaires
         if isinstance(conditionSaut, NotNode):
             conditionEnfant = conditionSaut.operand
-            return self._recursiveDecomposeComplexeCondition(csl, enfant, cibleSautCond, cibleDirecte)
+            return self._recursiveDecomposeComplexeCondition(csl, conditionEnfant, cibleSautCond, cibleDirecte)
 
         if isinstance(conditionSaut, AndNode):
             conditionEnfant1, conditionEnfant2 = conditionSaut.operands
             enfant2 = self._recursiveDecomposeComplexeCondition(csl, conditionEnfant2, cibleDirecte, cibleSautCond)
-            enfant1 = self._recursiveDecomposeComplexeCondition(csl, conditionEnfant1, cibleDirecte, enfant2.head)
+            if enfant2.head is None :
+                return self._recursiveDecomposeComplexeCondition(csl, conditionEnfant1, cibleDirecte, cibleSautCond)
+            enfant1 = self._recursiveDecomposeComplexeCondition(csl, conditionEnfant1, cibleDirecte, cast(StructureNode,enfant2.head))
             enfant1.append(enfant2)
             return enfant1
         if isinstance(conditionSaut, OrNode):
             conditionEnfant1, conditionEnfant2 = conditionSaut.operands
             enfant2 = self._recursiveDecomposeComplexeCondition(csl, conditionEnfant2, cibleDirecte, cibleSautCond)
-            enfant1 = self._recursiveDecomposeComplexeCondition(csl, conditionEnfant1, enfant2.head, cibleSautCond)
+            if enfant2.head is None:
+                return self._recursiveDecomposeComplexeCondition(csl, conditionEnfant1, cibleDirecte, cibleSautCond)
+            enfant1 = self._recursiveDecomposeComplexeCondition(csl, conditionEnfant1, cast(StructureNode, enfant2.head), cibleSautCond)
             enfant1.append(enfant2)
             return enfant1
         raise AttributeError("Noeud de condition {} pas pris en charge.".format(conditionSaut), {"lineNumber": self._lineNumber})
@@ -277,7 +290,11 @@ class IfNode(StructureNode):
         cibleIf = self._children.head
         if cibleIf is None:
             cibleIf = self._next
-        listForCondition = self._decomposeCondition(csl, cibleIf, self._next)
+        listForCondition = self._decomposeCondition(
+            csl,
+            cast(StructureNode, cibleIf),
+            cast(StructureNode,self._next)
+        )
         listForCondition.append(self._children)
         return listForCondition
 
@@ -300,7 +317,7 @@ class IfElseNode(IfNode):
         """
 
         super().__init__(ifLineNumber, condition, ifChildren)
-        self._elseChildren = StructureNodeList(elseChildren)
+        self._elseChildren = StructureNodeList(cast(List[LinkedListNode],elseChildren))
         self._elseLineNumber = elseLineNumber
 
     def __str__(self) -> str:
@@ -309,7 +326,9 @@ class IfElseNode(IfNode):
         :return: version chaîne de caractères de ce noeud et de ses enfants
         :rtype: str
         """
-        return "{}\tif {} {{\n{}\n}}\nelse {{\n{}\n}}".format(self.labelToStr(), self._condition, self._children, self._elseChildren)
+        childrenStr = self._children.tabulatedStr()
+        elseChildrenStr = self._elseChildren.tabulatedStr()
+        return "{}\tif {} {{\n{}\n\t}}\nelse {{\n{}\n\t}}".format(self.labelToStr(), self._condition, childrenStr, elseChildrenStr)
 
     def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud If Else.
@@ -333,8 +352,15 @@ class IfElseNode(IfNode):
         if cibleIf is None:
             cibleIf = cibleElse
 
-        sautFin = JumpNode(self._lineNumber, self._next)
-        listForCondition = self._decomposeCondition(csl, cibleIf, cibleElse)
+        sautFin = JumpNode(
+            self._lineNumber,
+            cast(StructureNode, self._next)
+        )
+        listForCondition = self._decomposeCondition(
+            csl,
+            cast(StructureNode, cibleIf),
+            cast(StructureNode, cibleElse)
+        )
 
         output = listForCondition
         output.append(self._children)
@@ -350,8 +376,8 @@ class WhileNode(IfNode):
         :return: version chaîne de caractères de ce noeud et de ses enfants
         :rtype: str
         """
-
-        return "{}\twhile {} {{\n{}\n}}".format(self.labelToStr(), self._condition, self._children)
+        childrenStr = self._children.tabulatedStr()
+        return "{}\twhile {} {{\n{}\n\t}}".format(self.labelToStr(), self._condition, childrenStr)
 
     def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud While.
@@ -376,13 +402,20 @@ class WhileNode(IfNode):
             self._children.append(dummy)
             cibleWhile = dummy
 
-        listForCondition = self._decomposeCondition(csl, cibleWhile, self._next)
+        listForCondition = self._decomposeCondition(
+            csl,
+            cast(StructureNode, cibleWhile),
+            cast(StructureNode, self._next)
+        )
         cibleCondition = listForCondition.head
         if cibleCondition is None:
             # la boucle ne peut pas être exécutée
             return StructureNodeList([])
 
-        sautRetour = JumpNode(self._lineNumber, cibleCondition)
+        sautRetour = JumpNode(
+            self._lineNumber,
+            cast(StructureNode, cibleCondition)
+        )
 
         output = listForCondition
         output.append(self._children)
@@ -434,7 +467,7 @@ class AffectationNode(StructureNode):
         :return: noeud en chaîne de caractères
         :rtype: str
         """
-        return "{}\t{} {} {}".format(self.labelToStr(), self._cible, chr(0x2190), self._expression)
+        return '{}\t{} {} {}'.format(self.labelToStr(), self._cible, chr(0x2190), self._expression)
 
 class InputNode(StructureNode):
     _cible: Variable
@@ -555,25 +588,52 @@ class JumpNode(StructureNode):
         return self._condition
 
 if __name__=="__main__":
-    from expressionparser import *
-    EP = ExpressionParser()
+    from expressionparser import ExpressionParser as EP
 
     varX = Variable('x')
     varY = Variable('y')
-    expr = EP.buildExpression('3*x+2')
 
-    initialisationX = AffectationNode(1, varX, EP.buildExpression('0'))
-    initialisationY = AffectationNode(2, varY, EP.buildExpression('0'))
-    AffectationX = AffectationNode(4, varX, EP.buildExpression('x+1'))
-    AffectationY = AffectationNode(5, varY, EP.buildExpression('y+x'))
-    whileItem = WhileNode(3, EP.buildExpression('x < 10 or y < 100'), [AffectationX, AffectationY])
-    affichageFinal = PrintNode(6, EP.buildExpression('y'))
-    print(initialisationX)
-    print(initialisationY)
-    print(whileItem)
-    print(affichageFinal)
+    initialisationX = AffectationNode(
+        1,
+        varX,
+        cast(ArithmeticExpressionNode, EP.buildExpression('0'))
+    )
+
+    initialisationY = AffectationNode(
+        2,
+        varY,
+        cast(ArithmeticExpressionNode, EP.buildExpression('0'))
+    )
+
+    affectationX = AffectationNode(
+        4,
+        varX,
+        cast(ArithmeticExpressionNode, EP.buildExpression('x+1'))
+    )
+
+    affectationY = AffectationNode(
+        5,
+        varY,
+        cast(ArithmeticExpressionNode, EP.buildExpression('y+x'))
+    )
+
+    whileItem = WhileNode(
+        3,
+        cast(LogicExpressionNode, EP.buildExpression('x < 10 or y < 100')),
+        [affectationX, affectationY]
+    )
+
+    affichageFinal = PrintNode(
+        6,
+        cast(ArithmeticExpressionNode, EP.buildExpression('y'))
+    )
+
+    print("Avant linéarisation...")
     print()
-    print("linéarisation")
     structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
+    print(structureList)
+    print()
+    print("Après linéarisation avec (< et == étant les tests pris en charge)...")
+    print()
     structureList.linearize(["<","=="])
     print(structureList)
