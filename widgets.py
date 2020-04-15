@@ -2,23 +2,25 @@
 .. module:: widgets
    :synopsis: objets constitant l'interface graphique
 """
+from typing import List
 
 from tkinter import *
 from executeurcomponents import BufferComponent, ScreenComponent, RegisterGroup, MemoryComponent, RegisterComponent, UalComponent
 
 class TextWidget(Frame):
-    BACKGROUND = 'white'
-    HL_BACKGROUND = 'orange3'
-    HL_COLOR = 'white'
-    MIN_TAB_SIZE = 3
-    cols = 30
-    lineNumberFormat = '{:03d}:   '
-    lines = 25
-    lineNumberOffset = 0
-    _name = "code"
-    _writeEnabled = False
-    _clearTabs = True
-    _fill = False
+    BACKGROUND:str = 'white'
+    HL_BACKGROUND:str = 'orange3'
+    HL_COLOR:str = 'white'
+    MIN_TAB_SIZE:int = 3
+    cols:int = 30
+    lineNumberFormat:str = '{:03d}:   '
+    lines:int = 25
+    lineNumberOffset:int = 0
+    _name:str = "code"
+    _writeEnabled:bool = False
+    _clearTabs:bool = True
+    _fill:bool = False
+
     def __init__(self, parent, text, **kwargs):
         for key, value in kwargs.items():
             if key == "cols":
@@ -44,30 +46,57 @@ class TextWidget(Frame):
 
         textLines = text.split("\n")
         if self._clearTabs:
-            textLines = self.__clearTabs(textLines)
+            textLines = self._execClearTabs(textLines)
         if self.lineNumberFormat != '':
-            textLines = [self.__addLineNumber(i, line) for i, line in enumerate(textLines)]
+            textLines = [self._addLineNumber(i, line) for i, line in enumerate(textLines)]
         if self.cols == 0:
             # on ajuste la taille de la zone de texte au contenu
             self.cols = max([len(line) for line in textLines])
 
         formatedText = "\n".join(textLines)
-        self.__textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
-        self.__textZone.insert(END, formatedText)
+        self._textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
+        self._textZone.insert(END, formatedText)
         if not self._writeEnabled:
-            self.__textZone.config(state=DISABLED)
+            self._textZone.config(state=DISABLED)
         if self._fill:
-            self.__textZone.pack(fill=BOTH, expand=1)
+            self._textZone.pack(fill=BOTH, expand=1)
         else:
-            self.__textZone.pack(padx=10, pady=10)
+            self._textZone.pack(padx=10, pady=10)
 
-        self.__textZone.tag_configure("HIGHLIGHTED", background=self.HL_BACKGROUND, foreground=self.HL_COLOR)
+        self._textZone.tag_configure("HIGHLIGHTED", background=self.HL_BACKGROUND, foreground=self.HL_COLOR)
 
-    def __addLineNumber(self, index, line):
+    def _addLineNumber(self, index:int, line:str) -> str:
+        """Ajoute un numéro en entête de ligne
+
+        :param index: numéro de ligne
+        :type index: int
+        :param line: ligne originale
+        :type line: str
+        :return: ligne avec entête
+        :rtype: str
+
+        :Example:
+            >>> root = Tk()
+            >>> tw = TextWidget(root, "")
+            >>> tw._addLineNumber(47, "Ligne d'essai")
+            "047:   Ligne d'essai"
+        """
+
         return self.lineNumberFormat.format(index+self.lineNumberOffset) + line
 
-    def __clearTabs(self, textLines):
-        # découpage en lignes, recherche d'éventuelles tabulation
+    def _execClearTabs(self, textLines:List[str]) -> List[str]:
+        """Un texte tabulé est interprété comme un texte à colonne
+        chaque tabulation fait passer dans une autre colonne
+        la largeur d'une colonne est égale la largeur de l'élément le plus grand
+        dans cette colonne sur l'ensemble des lignes
+        et au minimum à MIN_TAB_SIZE. Les tabulations sont remplacés par des espaces.
+
+        :param textLines: texte à modifier
+        :type textLines: str
+        :return: texte modifié
+        :rtype: str
+        """
+
         if len(textLines) == 0:
             return textLines
         textTabLines = [ item.split("\t") for item in textLines ]
@@ -84,72 +113,93 @@ class TextWidget(Frame):
         formatedTextLines = [" ".join(line) for line in textTabLines]
         return formatedTextLines
 
-    def highlightLine(self,lineIndex:int):
+    def highlightLine(self, lineIndex:int) -> None:
+        """
+        :param lineIndex: ligne à mettre en surbrillance
+        :type lineIndex: int
+
+        .. note:: la première ligne a l'index 0
+        """
         self.clearHighlight()
         lineIndex -= self.lineNumberOffset
-        if lineIndex != -1:
+        if lineIndex >= 0:
             tag = str(lineIndex+1)
-            self.__textZone.tag_add("HIGHLIGHTED", tag+".0", tag+".end")
+            self._textZone.tag_add("HIGHLIGHTED", tag+".0", tag+".end")
 
-    def clearHighlight(self):
-        self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
+    def clearHighlight(self) -> None:
+        """Annule toute surbrillance
+        """
 
-    def clear(self):
-        self.__textZone.config(state=NORMAL)
-        self.__textZone.delete('1.0', 'end')
+        self._textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
+
+    def clear(self) -> None:
+        """Efface le contenu du texte
+        """
+
+        self._textZone.config(state=NORMAL)
+        self._textZone.delete('1.0', 'end')
         if not self._writeEnabled:
-            self.__textZone.config(state=DISABLED)
+            self._textZone.config(state=DISABLED)
 
-    def insert(self, text):
-        self.__textZone.config(state=NORMAL)
-        self.__textZone.insert(END, text)
+    def insert(self, text:str) -> None:
+        """Ajoute un texte à la suite
+
+        :param text: texte à ajouter
+        :type text: str
+        """
+        self._textZone.config(state=NORMAL)
+        self._textZone.insert(END, text)
         if not self._writeEnabled:
-            self.__textZone.config(state=DISABLED)
+            self._textZone.config(state=DISABLED)
 
     @property
-    def text(self):
-        return self.__textZone.get('1.0', 'end')
+    def text(self) -> str:
+        """Accesseur
+        :return: texte en cours d'affichage
+        :rtype: str
+        """
+        return self._textZone.get('1.0', 'end')
 
 class MemoryWidget(LabelFrame):
-    BACKGROUND = 'white'
-    HL_BACKGROUND = 'orange3'
-    HL_COLOR = 'white'
+    BACKGROUND:str = 'white'
+    HL_BACKGROUND:str = 'orange3'
+    HL_COLOR:str = 'white'
     MODES = ("bin", "hex", "dec")
-    cols = 30
-    lineNumberFormat = '{:03d}:   '
-    lines = 25
-    __name = "mémoire"
-    __mode = "bin"
-    __isMemory = False
+    cols:int = 30
+    lineNumberFormat:str = '{:03d}:   '
+    lines:int = 25
+    _name:str = "mémoire"
+    _mode:str = "bin"
+    _isMemory:bool = False
     def __init__(self, parent, memory, **kwargs):
 
         for key, value in kwargs.items():
-            if key == "cols":
+            if key == "cols" and isinstance(value, int):
                 self.cols = value
-            elif key == 'numbers':
+            elif key == 'numbers' and isinstance(value, str):
                 self.lineNumberFormat = value
-            elif key == 'lines':
+            elif key == 'lines' and isinstance(value, int):
                 self.lines = value
-            elif key == 'name':
-                self.__name = value
+            elif key == 'name' and isinstance(value, str):
+                self._name = value
             elif key == 'mode' and value in self.MODES:
-                self.__mode = value
+                self._mode = value
 
-        LabelFrame.__init__(self, parent, class_='MemoryWidget', text=self.__name)
-        self.__textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
+        LabelFrame.__init__(self, parent, class_='MemoryWidget', text=self._name)
+        self._textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
         self.__memory = memory
         self.__memory.bind("onwrite", self.onwrite)
         self.__memory.bind("onread", self.onread)
         self.__memory.bind("onfill", self.onfill)
 
-        self.__textZone.grid(row = 0, column = 0)
-        self.__textZone.tag_configure("HIGHLIGHTED", background=self.HL_BACKGROUND, foreground=self.HL_COLOR)
+        self._textZone.grid(row = 0, column = 0)
+        self._textZone.tag_configure("HIGHLIGHTED", background=self.HL_BACKGROUND, foreground=self.HL_COLOR)
 
         if isinstance(memory, MemoryComponent):
             # il faut prévoir une adresse
             labelAddressTag = Label(self, text="Adresse")
             labelAddressTag.grid(row=1, column=0)
-            self.__isMemory = True
+            self._isMemory = True
             self.__addressStringVar = StringVar()
             labelAddress = Label(self, textvariable = self.__addressStringVar)
             labelAddress.grid(row=2, column=0)
@@ -159,41 +209,41 @@ class MemoryWidget(LabelFrame):
 
     def selectMode(self, mode):
         if mode in self.MODES:
-            self.__mode = mode
+            self._mode = mode
             self.refresh()
 
     def highlightLine(self, index:int):
-        self.__textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
+        self._textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
         lineTag = index + 1
-        self.__textZone.tag_add("HIGHLIGHTED", "{}.0".format(lineTag), "{}.end".format(lineTag))
+        self._textZone.tag_add("HIGHLIGHTED", "{}.0".format(lineTag), "{}.end".format(lineTag))
 
     def writeValueInLine(self, value, index):
-        line = (self.lineNumberFormat + value.toStr(self.__mode)).format(index)
+        line = (self.lineNumberFormat + value.toStr(self._mode)).format(index)
         lineTag = index + 1
-        self.__textZone.config(state=NORMAL)
-        self.__textZone.delete('{}.0'.format(lineTag), '{}.end'.format(lineTag))
-        self.__textZone.insert('{}.0'.format(lineTag), line)
-        self.__textZone.config(state=DISABLED)
+        self._textZone.config(state=NORMAL)
+        self._textZone.delete('{}.0'.format(lineTag), '{}.end'.format(lineTag))
+        self._textZone.insert('{}.0'.format(lineTag), line)
+        self._textZone.config(state=DISABLED)
         self.highlightLine(index)
 
     def writeAddress(self, address):
         intAddress = address.intValue
-        if self.__mode == "dec":
+        if self._mode == "dec":
             strAddress = self.lineNumberFormat.format(intAddress) + address.toStr("udec")
         else:
-            strAddress = self.lineNumberFormat.format(intAddress) + address.toStr(self.__mode)
+            strAddress = self.lineNumberFormat.format(intAddress) + address.toStr(self._mode)
         self.__addressStringVar.set(strAddress)
         self.highlightLine(intAddress)
 
     def refresh(self):
         values = self.__memory.content
-        lines = [(self.lineNumberFormat+item.toStr(self.__mode)).format(index) for index, item in enumerate(values)]
+        lines = [(self.lineNumberFormat+item.toStr(self._mode)).format(index) for index, item in enumerate(values)]
         text = "\n".join(lines)
-        self.__textZone.config(state=NORMAL)
-        self.__textZone.delete('1.0', 'end')
-        self.__textZone.insert(END, text)
-        self.__textZone.config(state=DISABLED)
-        if self.__isMemory:
+        self._textZone.config(state=NORMAL)
+        self._textZone.delete('1.0', 'end')
+        self._textZone.insert(END, text)
+        self._textZone.config(state=DISABLED)
+        if self._isMemory:
             self.writeAddress(self.__memory.address)
 
     def onfill(self, params):
@@ -211,7 +261,7 @@ class MemoryWidget(LabelFrame):
             self.writeValueInLine(value, index)
 
     def onwriteaddress(self, params):
-        if ("address" in params) and self.__isMemory:
+        if ("address" in params) and self._isMemory:
             self.writeAddress(params["address"])
 
 class BufferWidget(LabelFrame):
@@ -220,12 +270,12 @@ class BufferWidget(LabelFrame):
     BACKGROUND = 'white'
     MAX_BUFFER_LENGTH = 30
     MODES = ("bin", "hex", "dec")
-    __mode = "bin"
+    _mode = "bin"
     __waitingInput = False
 
     def __init__(self, parent, bufferComp,  **options):
         if "mode" in options and options["mode"] in self.MODES:
-            self.__mode = options["mode"]
+            self._mode = options["mode"]
         LabelFrame.__init__(self, parent, class_='BufferWidget', text="Saisie")
         self.__buffer = bufferComp
         bufferComp.bind("onread", self.onreadwrite)
@@ -251,7 +301,7 @@ class BufferWidget(LabelFrame):
 
     def selectMode(self, mode):
         if mode in self.MODES:
-            self.__mode = mode
+            self._mode = mode
             self.refreshStrBuffer()
 
     def bufferize(self, evt):
@@ -286,7 +336,7 @@ class BufferWidget(LabelFrame):
         self.__messageStringVar.set("Saisie en attente")
 
     def refreshStrBuffer(self):
-        listItems = [item.toStr(self.__mode) for item in self.__buffer.list]
+        listItems = [item.toStr(self._mode) for item in self.__buffer.list]
         buffStr = "\n".join(listItems)
         self.__bufferedText.config(state=NORMAL)
         self.__bufferedText.delete('1.0', 'end')
@@ -298,11 +348,11 @@ class ScreenWidget(LabelFrame):
     SCREEN_LINES = 5
     BACKGROUND = 'white'
     MODES = ("bin", "hex", "dec")
-    __mode = "bin"
+    _mode = "bin"
 
     def __init__(self, parent, screen, **options):
         if "mode" in options and options["mode"] in self.MODES:
-            self.__mode = options["mode"]
+            self._mode = options["mode"]
         self.__screen = screen
         screen.bind("onclear", self.onclear)
         screen.bind("onwrite", self.onwrite)
@@ -313,52 +363,52 @@ class ScreenWidget(LabelFrame):
         button.grid(row=0, column=0)
         button.bind("<Button-1>", self.clearScreen)
         # affichage
-        self.__textZone = Text(self, width=self.SCREEN_COLS, height=self.SCREEN_LINES, bg=self.BACKGROUND)
-        self.__textZone.grid(row=1, column=0)
-        self.__textZone.config(state=DISABLED)
+        self._textZone = Text(self, width=self.SCREEN_COLS, height=self.SCREEN_LINES, bg=self.BACKGROUND)
+        self._textZone.grid(row=1, column=0)
+        self._textZone.config(state=DISABLED)
         self.refresh()
 
     def selectMode(self, mode):
         if mode in self.MODES:
-            self.__mode = mode
+            self._mode = mode
             self.refresh()
 
     def clearScreen(self, evt):
         self.__screen.clear()
 
     def onclear(self, params):
-        self.__textZone.config(state=NORMAL)
-        self.__textZone.delete('1.0', 'end')
-        self.__textZone.config(state=DISABLED)
+        self._textZone.config(state=NORMAL)
+        self._textZone.delete('1.0', 'end')
+        self._textZone.config(state=DISABLED)
 
     def onwrite(self, params):
         if "writed" in params:
-            strValue = params["writed"].toStr(self.__mode)
+            strValue = params["writed"].toStr(self._mode)
             self.addLine(strValue)
 
     def addLine(self, line):
-        self.__textZone.config(state=NORMAL)
-        self.__textZone.insert('end', line+"\n")
-        self.__textZone.config(state=DISABLED)
+        self._textZone.config(state=NORMAL)
+        self._textZone.insert('end', line+"\n")
+        self._textZone.config(state=DISABLED)
 
     def refresh(self):
-        self.__textZone.config(state=NORMAL)
-        self.__textZone.delete('1.0', 'end')
-        for strItem in self.__screen.getStringList(self.__mode):
+        self._textZone.config(state=NORMAL)
+        self._textZone.delete('1.0', 'end')
+        for strItem in self.__screen.getStringList(self._mode):
             self.addLine(strItem)
-        self.__textZone.config(state=DISABLED)
+        self._textZone.config(state=DISABLED)
 
 class RegisterWidget(LabelFrame):
     BACKGROUND = 'white'
     HL_BACKGROUND = 'orange3'
     MODES = ("bin", "hex", "dec")
     __unsigned = False
-    __mode = 'bin'
+    _mode = 'bin'
 
     def __init__(self, parent, register, **kwargs):
         for key, value in kwargs.items():
             if key == 'mode' and value in self.MODES:
-                self.__mode = value
+                self._mode = value
             elif key == 'unsigned':
                 self.__unsigned = (value == True)
         self.__register = register
@@ -372,14 +422,14 @@ class RegisterWidget(LabelFrame):
 
     def selectMode(self, mode):
         if mode in self.MODES:
-            self.__mode = mode
+            self._mode = mode
             self.refresh()
 
     def writeValue(self, value):
-        if self.__unsigned and self.__mode == 'dec':
+        if self.__unsigned and self._mode == 'dec':
             strValue = value.toStr('udec')
         else:
-            strValue = value.toStr(self.__mode)
+            strValue = value.toStr(self._mode)
         self.__valueStringVar.set(strValue)
 
     def refresh(self):
@@ -392,12 +442,12 @@ class RegisterWidget(LabelFrame):
 class UalWidget(LabelFrame):
     BACKGROUND = 'white'
     MODES = ("bin", "hex", "dec")
-    __mode = 'bin'
+    _mode = 'bin'
 
     def __init__(self, parent, ual, **kwargs):
         for key, value in kwargs.items():
             if key == 'mode' and value in self.MODES:
-                self.__mode = value
+                self._mode = value
         self.__ual = ual
         LabelFrame.__init__(self, parent, class_='RegisterWidget', text="UAL")
 
@@ -437,7 +487,7 @@ class UalWidget(LabelFrame):
 
     def selectMode(self, mode):
         if mode in self.MODES:
-            self.__mode = mode
+            self._mode = mode
             self.refresh()
 
     def refresh(self):
@@ -448,15 +498,15 @@ class UalWidget(LabelFrame):
 
     def onwriteop1(self, params):
         if "writed" in params:
-            self.__op1StringVar.set(params["writed"].toStr(self.__mode))
+            self.__op1StringVar.set(params["writed"].toStr(self._mode))
 
     def onwriteop2(self, params):
         if "writed" in params:
-            self.__op2StringVar.set(params["writed"].toStr(self.__mode))
+            self.__op2StringVar.set(params["writed"].toStr(self._mode))
 
     def oncalc(self, params):
         if "result" in params:
-            self.__resultStringVar.set(params["result"].toStr(self.__mode))
+            self.__resultStringVar.set(params["result"].toStr(self._mode))
         if ("iszero" in params) and params["iszero"] and self.__zeroLabel == -1:
             # création d'un label zéro
             self.__zeroLabel = self.__canvas.create_text(70, 40, text="Zéro", anchor='w', fill='#0A0', font=('Times', 12, 'bold'))
@@ -549,10 +599,11 @@ class SimulationWidget(Frame):
     def textCode(self):
         return self._textCode
 
-    def highlightCodeLine(self, currentAsmLine:int) -> int:
-        '''pour un numéro de ligne en mémoire, retourne le numéro
-        de la ligne correspondante dans le programme d'origine
-        '''
+    def highlightCodeLine(self, currentAsmLine:int) -> None:
+        """pour un numéro de ligne en mémoire, trouve  le numéro
+        de la ligne correspondante dans le programme d'origine et
+        le met en surbrillance
+        """
         indexCodeLine = self.asm.getLineNumber(currentAsmLine)
         self._asmFrame.highlightLine(currentAsmLine)
         self._program.highlightLine(indexCodeLine)
@@ -579,16 +630,5 @@ class SimulationWidget(Frame):
         self._screenW.selectMode(mode)
 
 if __name__=="__main__":
-    root = Tk()
-    saisie = BufferWidget(root, BufferComponent(8))
-    saisie.pack()
-
-
-
-    root.mainloop()
-
-
-
-
-
-
+    import doctest
+    doctest.testmod()
