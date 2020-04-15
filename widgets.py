@@ -2,12 +2,16 @@
 .. module:: widgets
    :synopsis: objets constitant l'interface graphique
 """
-from typing import List
+from typing import List, Dict, Any, cast
 
 from tkinter import *
-from executeurcomponents import BufferComponent, ScreenComponent, RegisterGroup, MemoryComponent, RegisterComponent, UalComponent
+from executeurcomponents import BufferComponent, ScreenComponent, RegisterGroup, MemoryComponent, RegisterComponent, UalComponent, DataValue
 
 class TextWidget(Frame):
+    """Panneau affichant un texte avec possibilité de mettre
+    une ligne en surbrillance, de numéroter les lignes
+    """
+
     BACKGROUND:str = 'white'
     HL_BACKGROUND:str = 'orange3'
     HL_COLOR:str = 'white'
@@ -161,6 +165,8 @@ class TextWidget(Frame):
         return self._textZone.get('1.0', 'end')
 
 class MemoryWidget(LabelFrame):
+    """Panneau affichant le contenu d'une mémoire
+    """
     BACKGROUND:str = 'white'
     HL_BACKGROUND:str = 'orange3'
     HL_COLOR:str = 'white'
@@ -208,16 +214,32 @@ class MemoryWidget(LabelFrame):
         self.refresh()
 
     def selectMode(self, mode):
+        """Sélection du mode d'affichage
+        :param mode: mode choisi, parmi 'dec', 'bin', 'hex'
+        :type mode: str
+        """
         if mode in self.MODES:
             self._mode = mode
             self.refresh()
 
-    def highlightLine(self, index:int):
+    def highlightLine(self, index:int) -> None:
+        """Mise en surbrillance d'une ligne
+
+        :param index: numéro de ligne, à partir de 0
+        :type index: int
+        """
         self._textZone.tag_remove("HIGHLIGHTED",  "1.0", 'end')
         lineTag = index + 1
         self._textZone.tag_add("HIGHLIGHTED", "{}.0".format(lineTag), "{}.end".format(lineTag))
 
-    def writeValueInLine(self, value, index):
+    def writeValueInLine(self, value:DataValue, index:int) -> None:
+        """Écrire une valeur à une certaine ligne
+
+        :param value: valeur à écrire
+        :type value: DataValue
+        :param index: numéro de ligne
+        :type index: int
+        """
         line = (self.lineNumberFormat + value.toStr(self._mode)).format(index)
         lineTag = index + 1
         self._textZone.config(state=NORMAL)
@@ -226,7 +248,14 @@ class MemoryWidget(LabelFrame):
         self._textZone.config(state=DISABLED)
         self.highlightLine(index)
 
-    def writeAddress(self, address):
+    def writeAddress(self, address:DataValue) -> None:
+        """Modifie l'adresse dans le registre adresse,
+        met en surbrillance la ligne à l'adresse sélectionnée
+
+        :param address: adresse choisie
+        :type address: DataValue
+        """
+
         intAddress = address.intValue
         if self._mode == "dec":
             strAddress = self.lineNumberFormat.format(intAddress) + address.toStr("udec")
@@ -235,7 +264,10 @@ class MemoryWidget(LabelFrame):
         self.__addressStringVar.set(strAddress)
         self.highlightLine(intAddress)
 
-    def refresh(self):
+    def refresh(self) -> None:
+        """Rafraichissement de l'affichage, après lecture du contenu
+        du composant d'exécution associé
+        """
         values = self.__memory.content
         lines = [(self.lineNumberFormat+item.toStr(self._mode)).format(index) for index, item in enumerate(values)]
         text = "\n".join(lines)
@@ -246,23 +278,59 @@ class MemoryWidget(LabelFrame):
         if self._isMemory:
             self.writeAddress(self.__memory.address)
 
-    def onfill(self, params):
+    def onfill(self, params: Any) -> None:
+        """Rafraichissement de l'affichage quand le composant mémoire
+        associé écrit à une adresse qui n'était pas encore utilisée
+
+        :param params: paramètres liés à l'événement. Inutiles ici.
+        :type params: Any
+        """
         self.refresh()
 
-    def onread(self, params):
-        if "index" in params:
+    def onread(self, params:Dict[str, Any]) -> None:
+        """Callback pour la réaction une lecture mémoire
+
+        :param params: paramètres liés à l'événement. On utilise l'entier 'index'
+        :type params: Dict[str, Any]
+        """
+        if "index" in params and isinstance(params["index"], int):
             index = params["index"]
             self.highlightLine(index)
 
-    def onwrite(self, params):
-        if ("writed" in params) and ("index" in params):
-            value = params["writed"]
-            index = params["index"]
-            self.writeValueInLine(value, index)
+    def onwrite(self, params:Dict[str, Any]) -> None:
+        """Callback pour la réaction une écriture mémoire
 
-    def onwriteaddress(self, params):
-        if ("address" in params) and self._isMemory:
-            self.writeAddress(params["address"])
+        :param params: paramètres liés à l'événement. On utilise l'entier 'index' et le DataValue 'writed'
+        :type params: Dict[str, Any]
+        """
+        if not ("writed" in params):
+            return
+        value = params["writed"]
+        if not isinstance(value, DataValue):
+            return
+        if not ("index" in params):
+            return
+        index = params["index"]
+        if not isinstance(index, int):
+            return
+        self.writeValueInLine(value, index)
+
+    def onwriteaddress(self, params:Dict[str, Any]) -> None:
+        """Callback pour la réaction à l'écriture de l'adresse
+
+        :param params: paramètres liés à l'événement. On utilise le DataValue 'address'
+        :type params: Dict[str, Any]
+
+        .. note:: n'a aucun effet si l'executeur n'est pas de type Memory
+        """
+        if not self._isMemory:
+            return
+        if not ("address" in params):
+            return
+        address = params["address"]
+        if not isinstance(address, DataValue):
+            return
+        self.writeAddress(params["address"])
 
 class BufferWidget(LabelFrame):
     SAISIE_COLS = 18
