@@ -439,3 +439,7 @@ class TokenParenthesis(Token):
         if self._isOpening:
             return "("
         return ")"
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()
