@@ -99,7 +99,7 @@ class Executeur:
         """
 
         if source == self.MEMORY:
-            return self.memory.read()
+            return self.memory.readAddressedRegister()
         if source == self.INSTRUCTION_REGISTER:
             return self.instructionRegister.read().mask(self.__instructionRegisterMask)
         if source == self.LINE_POINTER:
@@ -123,7 +123,7 @@ class Executeur:
         """
         if bus == self.DATA_BUS:
             if cible == self.MEMORY:
-                self.memory.write(value)
+                self.memory.writeAddressedRegister(value)
             elif cible == self.MEMORY_ADDRESS:
                 self.memory.setAddress(value)
             elif cible == self.INSTRUCTION_REGISTER:
