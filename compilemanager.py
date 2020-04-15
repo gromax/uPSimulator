@@ -125,9 +125,8 @@ class CompilationManager:
         return self._asm
 
 if __name__=="__main__":
-    from expressionparser import ExpressionParser
+    from expressionparser import ExpressionParser as EP
     from processorengine import ProcessorEngine
-    EP = ExpressionParser()
     engine = ProcessorEngine()
 
     varX = Variable('x')
