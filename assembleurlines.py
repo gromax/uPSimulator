@@ -1,6 +1,6 @@
 """
 .. module:: assembleurlines
-   :synopsis: définition d'un objet contenant une ligne du code assembleur
+:synopsis: définition d'un objet contenant une ligne du code assembleur
 """
 
 from typing import Tuple, Union, List, Optional
@@ -11,6 +11,15 @@ from variable import Variable
 from label import Label
 
 class AsmLine:
+    """Ligne de code assembleur.
+    Stocke les informations relatives à une ligne :
+
+    * opérandes
+    * opcode
+    * label
+
+    et calcule le code binaire correspondant
+    """
     _label:Optional[Label] = None
     _specialOperand:Union[Variable, Label, Litteral, None] = None
     _lineNumber = -1

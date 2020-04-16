@@ -1,6 +1,6 @@
 """
 .. module:: arithmeticexpressionnodes
-    :synopsis: définition des noeuds de calcul intervenant dans les expressions arithmétiques.
+:synopsis: définition des noeuds de calcul intervenant dans les expressions arithmétiques.
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
@@ -15,6 +15,8 @@ from processorengine import ProcessorEngine
 from compileexpressionmanager import CompileExpressionManager
 
 class ArithmeticExpressionNode(metaclass=ABCMeta):
+    """Classe abstraite définissant les propriétés des noeuds arithmétiques
+    """
     @staticmethod
     def _operandAsLitteral(operand:'ArithmeticExpressionNode') -> Optional[Litteral]:
         """
@@ -108,6 +110,8 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
 
 
 class NegNode(ArithmeticExpressionNode):
+    """Noeud pour soustraction unaire
+    """
     _operand: ArithmeticExpressionNode
     _replacement_binary_sub: ArithmeticExpressionNode
     def __init__(self, operand:ArithmeticExpressionNode):
@@ -189,6 +193,8 @@ class NegNode(ArithmeticExpressionNode):
         return NegNode(cloneOperand)
 
 class InverseNode(ArithmeticExpressionNode):
+    """Noeud pour inversion logique
+    """
     _operand: ArithmeticExpressionNode
     def __init__(self, operand:ArithmeticExpressionNode):
         """Constructeur
@@ -243,6 +249,8 @@ class InverseNode(ArithmeticExpressionNode):
         return InverseNode(cloneOperand)
 
 class BinaryArithmeticNode(ArithmeticExpressionNode):
+    """Noeud pour opération arithmétique binaire parmi +, -, *, /, &, |, ^
+    """
     _KNOWN_OPERATORS:Sequence[str] = ('+', '-', '*', '/', '%', '&', '|', '^')
     _SYMETRIC_OPERATORS:Sequence[str] = ('+', '*', '&', '|', '^')
     _operand1: ArithmeticExpressionNode

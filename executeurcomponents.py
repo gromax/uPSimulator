@@ -1,13 +1,19 @@
 """
 .. module:: executeurcomponents
-   :synopsis: classes composants les organes de l'exécuteur
+:synopsis: Classes définissant le fonctionnement des organes de l'exécuteur.
+    Mémoire, registres, UAL, écran...
 """
 
 from typing import List, Union, Callable, Tuple, Dict, Optional, Any, cast
 
 class DataValue:
-    '''mot de donnée
-    '''
+    """Gestion d'un mot de donnée, en particulier
+
+    * taille du mot
+    * gestion de dépassemnt
+    * affichage dans différentes bases
+    * calculs
+    """
     def __init__(self, size:int, value:int=0):
         '''
         :param size: taille du mot
@@ -145,6 +151,10 @@ class DataValue:
         return self.toStr()
 
 class BaseComponent:
+    """Composant de base définissant les propriétés élémentaires,
+    en particulier les propriétées liées aux événements
+    """
+
     __onEvent:List[Tuple[str,Callable[[Dict[str, Any]],None]]]
     def __init__(self, size:int):
         '''
@@ -156,6 +166,11 @@ class BaseComponent:
 
     @property
     def size(self) -> int:
+        '''Accesseur
+
+        :return: taille d'un mot de données
+        :rtype: int
+        '''
         return self._size
 
     def bind(self, eventName:str, callback:Callable[[Dict[str,Union[str,int]]],None]):
@@ -202,6 +217,9 @@ class BufferComponent(BaseComponent):
         '''
         :return: premier item du buffer s'il existe, sinon False
         :rtype: Union(DataValue, bool)
+
+        .. note:: déclenche l'événement "readempty"
+        ou "read" renvoyant la valeur "readed"
         '''
         if len(self._list) > 0:
             out = self._list.pop(0)
@@ -214,6 +232,8 @@ class BufferComponent(BaseComponent):
         '''
         :param value: valeur à ajouter dans le buffer
         :type value: int
+
+        .. note:: déclenche l'événement "write" renvoyant "writed"
         '''
         newValue = DataValue(self._size, value)
         self._list.append(newValue)
@@ -255,6 +275,8 @@ class ScreenComponent(BaseComponent):
 
     def clear(self):
         '''Efface le contenu
+
+        .. note:: déclenche l'événement "clear"
         '''
         self._list = []
         self.trigger("clear", {})
@@ -263,6 +285,8 @@ class ScreenComponent(BaseComponent):
         '''
         :param value: ajoute valeur à l'écran
         :type value: Union[DataValue,int]
+
+        .. note:: déclenche l'événement "write" renvoyant "writed"
         '''
         if isinstance(value,int):
             value = DataValue(self._size, value)
@@ -270,9 +294,9 @@ class ScreenComponent(BaseComponent):
         self.trigger("write", { "writed":value.clone() })
 
 class UalComponent(BaseComponent):
-    """
+    '''
     Gestion de l'Unité Arithmétique et Logique
-    """
+    '''
     __result:DataValue
     __op1:DataValue
     __op2:DataValue
@@ -286,15 +310,31 @@ class UalComponent(BaseComponent):
         self.__result = DataValue(size, 0)
 
     @property
-    def operation(self):
+    def operation(self) -> str:
+        '''Accesseur
+
+        :return: opération en cours
+        :rtype: str
+        '''
         return self.__operation
 
     @property
-    def op1(self):
+    def op1(self) -> DataValue:
+        '''Accesseur
+
+        :return: opérande 1
+        :rtype: DataValue
+        '''
         return self.__op1.clone()
 
     @property
-    def op2(self):
+    def op2(self) -> DataValue:
+        '''Accesseur
+
+        :return: opérande 2
+        :rtype: DataValue
+        '''
+
         return self.__op2.clone()
 
     def setOperation(self, opName:str) -> None:
@@ -302,6 +342,8 @@ class UalComponent(BaseComponent):
 
         :param opName: opération parmi neg, ~, +, -, *, /, %, &, |, ^
         :type opName: str
+
+        .. note:: déclenche l'événement "setoperation" renvoyant "operation"
         '''
         if opName in ("neg", "~", "+", "-", "*", "/", "%", "&", "|", "^", "cmp"):
             self.__operation = opName
@@ -312,6 +354,8 @@ class UalComponent(BaseComponent):
 
         :param value: valeur de l'opérande
         :type value: Union[DataValue,int]
+
+        .. note:: déclenche l'événement "writeop1" renvoyant "writed"
         '''
         if isinstance(value,int):
             value = DataValue(self._size, value)
@@ -323,6 +367,8 @@ class UalComponent(BaseComponent):
 
         :param value: valeur de l'opérande
         :type value: Union[DataValue,int]
+
+        .. note:: déclenche l'événement "writeop2" renvoyant "writed"
         '''
         if isinstance(value,int):
             value = DataValue(self._size, value)
@@ -359,18 +405,28 @@ class UalComponent(BaseComponent):
         return result
 
     @property
-    def isZero(self):
+    def isZero(self) -> bool:
+        '''Prédicat
+
+        :return: le résultat de la dernière opération est nul
+        :rtype: bool
+        '''
         return self.__isZero
 
     @property
-    def isPos(self):
+    def isPos(self) -> bool:
+        '''Prédicat
+
+        :return: le résultat de la dernière opération est positif ou nul
+        :rtype: bool
+        '''
         return self.__isPos
 
 
 
 class RegisterComponent(BaseComponent):
     """
-    Gestion d'un registre
+    Gestion d'un registre isolé
     """
     _value:DataValue
     _name:str
@@ -390,11 +446,19 @@ class RegisterComponent(BaseComponent):
         return self._name
 
     @property
-    def intValue(self):
+    def intValue(self) -> int:
+        '''Accesseur
+
+        :return: valeur entière du registre
+        :rtype: int
+        '''
         return self._value.intValue
 
     def inc(self) -> None:
-        """incrémente la valeur du registre"""
+        '''incrémente la valeur du registre.
+
+        .. note:: déclenche l'événement "inc" renvoyant "writed"
+        '''
         self._value.inc()
         self.trigger("inc", { "writed":self._value.clone() })
 
@@ -411,6 +475,8 @@ class RegisterComponent(BaseComponent):
 
         :param value: ajoute valeur à l'écran
         :type value: Union[DataValue,int]
+
+        .. note:: déclenche l'événement "write" renvoyant "writed"
         '''
         if isinstance(value,int):
             value = DataValue(self._size, value)
@@ -419,7 +485,8 @@ class RegisterComponent(BaseComponent):
 
 class RegisterGroup(BaseComponent):
     """
-    Gestion d'un groupe de registres
+    Gestion d'un banc de registres. Le nombre de registre peut être limité à la création
+    ou illimité (écrire à une adresse hors limite augmente la taille)
     """
     _list: List[DataValue]
     _unlimited: bool
@@ -442,13 +509,21 @@ class RegisterGroup(BaseComponent):
 
     @property
     def content(self) -> List[DataValue]:
+        '''Accesseur
+
+        :return: liste des valeurs contenues dans les registres
+        :rtype: List[DataValue]
+        '''
         return [item.clone() for item in self._list]
 
     def __fill(self, index) -> None:
         '''Complète la mémoire pour que l'indice index soit défini
+        si le nombre de registres est illimité
 
         :param index: indice à atteindre
         :type index: int
+
+        .. note:: déclenche l'événement "fill"
         '''
         filled = False
         while len(self._list) <= index:
@@ -462,6 +537,8 @@ class RegisterGroup(BaseComponent):
 
         :param index: indice du registre incrémenté
         :type index: int
+
+        .. note:: déclenche l'événement "inc" qui renvoie "index" et "value"
         '''
         if self._unlimited and index > len(self._list):
             self.__fill(index)
@@ -476,6 +553,8 @@ class RegisterGroup(BaseComponent):
         :type index: int
         :return: valeur courante du registre. -1 par défaut
         :rtype: int
+
+        .. note:: déclenche l'événement "read" qui renvoie "index" et "value"
         '''
         if self._unlimited and index > len(self._list):
             self.__fill(index)
@@ -492,6 +571,8 @@ class RegisterGroup(BaseComponent):
         :type index: int
         :param value: écrit la valeur dans le registre
         :type value: Union[DataValue,int]
+
+        .. note:: déclenche l'événement "write" qui renvoie "index" et "writed"
         '''
         if isinstance(value, int):
             value = DataValue(self.size, value)
@@ -505,7 +586,8 @@ class RegisterGroup(BaseComponent):
 class MemoryComponent(RegisterGroup):
     """
     Gestion de la mémoire
-    équivalent à RegisterGroup avec adresseRegister en plus
+    extension de RegisterGroup avec adresseRegister en plus
+    et nombre de registres illimités (limité par la taille de l'adresse)
     """
     __addressRegister: RegisterComponent
     def __init__(self, size:int, initialValues:List[Union[int,str]]=[]):
@@ -519,21 +601,43 @@ class MemoryComponent(RegisterGroup):
         super().__init__(0, size, memory)
 
     def incAddressedRegister(self) -> None:
+        '''Incrémente le registre à l'adresse sélectionnée
+        par le registre d'adresse
+        '''
         address = self.__addressRegister.intValue
         super().inc(address)
 
     def readAddressedRegister(self) -> DataValue:
+        '''Lit le registre à l'adresse sélectionnée
+        par le registre d'adresse
+
+        :return: valeur contenue dans le registre
+        :rtype: DataValue
+        '''
         address = self.__addressRegister.intValue
         readed = super().read(address)
         return cast(DataValue, readed)
 
     def writeAddressedRegister(self, value:Union[DataValue,int]) -> None:
+        '''Écrit dans le registre à l'adresse sélectionnée
+        par le registre d'adresse
+
+        :param value: valeur à écrire
+        :rtype: Union[DataValue,int]
+        '''
         if isinstance(value, int):
             value = DataValue(self.size, value)
         address = self.__addressRegister.intValue
         super().write(address, value)
 
     def setAddress(self, value:Union[DataValue,int]) -> None:
+        '''Écrit dans le registre d'adresse
+
+        :param value: nouvelle adresse
+        :rtype: Union[DataValue,int]
+
+        .. note:: déclenche l'événement "writeaddress" qui renvoie "address"
+        '''
         if isinstance(value, int):
             value = DataValue(self.size, value)
         self.__addressRegister.write(value)
@@ -541,5 +645,10 @@ class MemoryComponent(RegisterGroup):
 
     @property
     def address(self):
+        '''Accesseur
+
+        :return: valeur de l'adresse courante
+        :rtype: DataValue
+        '''
         return self.__addressRegister.read()
 

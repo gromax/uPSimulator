@@ -1,6 +1,6 @@
 """
 .. module:: codeparser
-   :synopsis: gestion du parse de l'ensemble du programme d'origine
+:synopsis: gestion du parse de l'ensemble du programme d'origine
 """
 
 from typing import List, Optional

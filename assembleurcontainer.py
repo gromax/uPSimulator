@@ -1,6 +1,6 @@
 """
 .. module:: assembleurconainer
-   :synopsis: définition d'un objet gérant l'ensemble du code assembleur
+:synopsis: définition d'un objet gérant l'ensemble du code assembleur
 """
 
 from typing import Union, Tuple, Optional, List
@@ -13,6 +13,9 @@ from assembleurlines import AsmLine
 from processorengine import ProcessorEngine
 
 class AssembleurContainer:
+    """Objet contenant les lignes de code assembleur
+    et produisant le code binaire correspondant
+    """
     __lines:List[AsmLine]
     __memoryData:List[Variable]
     def __init__(self, engine:ProcessorEngine):
