@@ -1,8 +1,12 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 .. module:: compileexpressionmanager
-   :synopsis: gestion de la compilation d'une expression
+:synopsis: gestion de la compilation d'une expression. La classe CompileExpressionManager reçoit une
+    expression arithmétique ou une comparaison et produit la succession d'instructions permettant
+    l'exécution de cette expression.
+
+    * CompileExpressionManager reçoit un modèle de processeur lui permettant de connaître les
+        instructions disponibles et les ressources, notamment les registres et les options de l'UAL
+    * CompilationManager qui délègue à CompileExpressionManager la compilation d'expression, fournit l'objet AssembleurContainer chargé de contenir le code assembleur final
 """
 
 from typing import Union, List, Optional

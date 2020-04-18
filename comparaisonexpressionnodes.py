@@ -1,6 +1,6 @@
 """
 .. module:: comparaisonexpressionodes
-    :synopsis: définition des noeuds de comparaison intervenant dans les expressions logiques : not, and, or.
+:synopsis: définition des noeuds de comparaison intervenant dans les expressions logiques : not, and, or.
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """

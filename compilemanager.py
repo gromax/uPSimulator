@@ -1,6 +1,18 @@
 """
 .. module:: compilemanager
-    :synopsis: gestion de la compilation
+:synopsis: gestion de la compilation. La classe CompilationManager reçoit une liste
+    d'instructions sous une forme structurée StructureNode, comprenant des noeuds d'affectation,
+    affichage, saisie clavier, et des noeuds de structure if, else et while.
+
+    * Le compilateur transforme les if, else, while en des suites de sauts
+    * les expression arithmétiques sont transformées en suite d'instruction exécutable par
+        le processeur
+    * les conditions logiques composées sont découpées en comparaisons élémentaires et
+        assurées par des jeux de sauts conditionnels adéquats
+    * CompilationManager produit un objet AssembleurContainer contenant le code assembleur
+
+.. note:: CompilationManager délègue à ExpressionCompilationManager la compilation des
+    expressions arithmétiques.
 """
 from typing import List, Dict, Optional, Tuple
 
