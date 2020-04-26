@@ -55,10 +55,15 @@ class TextWidget(Frame):
             textLines = [self._addLineNumber(i, line) for i, line in enumerate(textLines)]
         if self.cols == 0:
             # on ajuste la taille de la zone de texte au contenu
-            self.cols = max([len(line) for line in textLines])
+            self.cols = max([len(line) for line in textLines]) + 2
 
         formatedText = "\n".join(textLines)
         self._textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
+        # attach scrollbar
+        #self._scrollbar = Scrollbar(self,width=12)
+        #self._scrollbar.pack(side=RIGHT, fill=Y)
+        #self._textZone.config(yscrollcommand=self._scrollbar.set)
+        #self._scrollbar.config(command=self._textZone.yview)
         self._textZone.insert(END, formatedText)
         if not self._writeEnabled:
             self._textZone.config(state=DISABLED)
@@ -193,6 +198,11 @@ class MemoryWidget(LabelFrame):
 
         LabelFrame.__init__(self, parent, class_='MemoryWidget', text=self._name)
         self._textZone = Text(self, width=self.cols, height=self.lines, bg=self.BACKGROUND)
+        # attach scrollbar
+        #self._scrollbar = Scrollbar(self,width=12)
+        #self._scrollbar.grid(row = 0, column = 0, sticky="ns")
+        #self._textZone.config(yscrollcommand=self._scrollbar.set)
+        #self._scrollbar.config(command=self._textZone.yview)
         self.__memory = memory
         self.__memory.bind("onwrite", self.onwrite)
         self.__memory.bind("onread", self.onread)
@@ -630,36 +640,36 @@ class SimulationWidget(Frame):
         self.asm = asm
         self._parent = parentWidget
         # grille
-        for r in range(12):
+        for r in range(24):
             self.rowconfigure(r, weight=1)
         for c in range(5):
             self.columnconfigure(c, weight=1)
 
         # partie programme
         self._textCode = textCode
-        self._program = TextWidget(self, textCode, cols=0, numbersdigits=2, lines=20, offset=1, name="Votre code")
-        self._program.grid(row=0, column=0, rowspan=12, sticky="nsew")
+        self._program = TextWidget(self, textCode, cols=0, lines=24, fill=True, offset=1, name="Votre code")
+        self._program.grid(row=0, column=0, rowspan=24, sticky="nsew")
 
         # partie asm
-        self._asmFrame = TextWidget(self, str(asm), cols=0, numbertab=' ', name='Assembleur')
-        self._asmFrame.grid(row=0, column=1, rowspan=12, sticky="nsew")
+        self._asmFrame = TextWidget(self, str(asm), cols=0, lines=24, fill=True, offset=0, name='Assembleur')
+        self._asmFrame.grid(row=0, column=1, rowspan=24, sticky="nsew")
 
         self.executeur = executeur
         self._ualW = UalWidget(self, self.executeur.ual, mode=mode)
         self._inputBufferW = BufferWidget(self, self.executeur.inputBuffer, mode=mode)
         self._instrRegW = RegisterWidget(self, self.executeur.instructionRegister, unsigned = True, mode=mode)
         self._linePointerW = RegisterWidget(self, self.executeur.linePointer, unsigned = True, mode=mode)
-        self._memoryW = MemoryWidget(self, self.executeur.memory, mode=mode)
-        self._registersW = MemoryWidget(self, self.executeur.registers, name="Registres", lines="8", mode=mode)
+        self._memoryW = MemoryWidget(self, self.executeur.memory, name="Mémoire", lines=20, mode=mode)
+        self._registersW = MemoryWidget(self, self.executeur.registers, name="Registres", lines=12, mode=mode)
         self._screenW = ScreenWidget(self, self.executeur.screen, mode=mode)
 
-        self._inputBufferW.grid(row=0, column=2, rowspan=4, stick="nsew")
-        self._screenW.grid(row=4, column=2, rowspan=4, stick="nsew")
-        self._instrRegW.grid(row=8, column=2, rowspan=2, stick="nsew")
-        self._linePointerW.grid(row=10, column=2, rowspan=2, stick="nsew")
+        self._inputBufferW.grid(row=0, column=2, rowspan=6, stick="nsew")
+        self._screenW.grid(row=6, column=2, rowspan=6, stick="nsew")
+        self._instrRegW.grid(row=12, column=2, rowspan=6, stick="nsew")
+        self._linePointerW.grid(row=18, column=2, rowspan=6, stick="nsew")
         self._ualW.grid(row=0, column=3, rowspan=6, stick="nsew")
-        self._registersW.grid(row=6, column=3, rowspan=6, stick="nsew")
-        self._memoryW.grid(row=0, column=4, rowspan=12, stick="nsew")
+        self._registersW.grid(row=6, column=3, rowspan=18, stick="nsew")
+        self._memoryW.grid(row=0, column=4, rowspan=24, stick="nsew")
 
         self.highlightCodeLine(0)
 

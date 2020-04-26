@@ -6,14 +6,15 @@
 
 from typing import List, Union
 
-from errors import *
-from litteral import Litteral
-from variable import Variable
-from arithmeticexpressionnodes import *
-from comparaisonexpressionnodes import *
-from logicexpressionnodes import *
+#from errors import *
+#from litteral import Litteral
+#from variable import Variable
+#from arithmeticexpressionnodes import *
+#from comparaisonexpressionnodes import *
+#from logicexpressionnodes import *
 import re
-from abc import ABC, ABCMeta, abstractmethod
+#from abc import ABC, ABCMeta, abstractmethod
+from logicexpressionnodes import *
 
 
 class Token(metaclass=ABCMeta):

@@ -11,12 +11,13 @@
 
 from typing import Union, List, Optional
 
-from errors import *
-from variable import Variable
-from litteral import Litteral
-from label import Label
-from processorengine import ProcessorEngine
-from assembleurcontainer import AssembleurContainer
+#from errors import *
+#from variable import Variable
+#from litteral import Litteral
+#from label import Label
+#from processorengine import ProcessorEngine
+#from assembleurcontainer import AssembleurContainer
+from assembleurcontainer import *
 
 class CompileExpressionManager:
     __log:str = ""

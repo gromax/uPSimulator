@@ -11,18 +11,18 @@
         assurées par des jeux de sauts conditionnels adéquats
     * CompilationManager produit un objet AssembleurContainer contenant le code assembleur
 
-.. note:: CompilationManager délègue à ExpressionCompilationManager la compilation des
+.. note:: CompilationManager délègue à CompileExpressionManager la compilation des
     expressions arithmétiques.
 """
 from typing import List, Dict, Optional, Tuple
 
-from errors import *
+#from errors import *
 from structuresnodes import *
-from assembleurcontainer import AssembleurContainer
-from compileexpressionmanager import CompileExpressionManager
-from processorengine import ProcessorEngine
-from arithmeticexpressionnodes import ArithmeticExpressionNode
-from comparaisonexpressionnodes import ComparaisonExpressionNode
+#from assembleurcontainer import AssembleurContainer
+#from compileexpressionmanager import CompileExpressionManager
+#from processorengine import ProcessorEngine
+#from arithmeticexpressionnodes import ArithmeticExpressionNode
+#from comparaisonexpressionnodes import ComparaisonExpressionNode
 
 
 class CompilationManager:
@@ -157,3 +157,11 @@ if __name__=="__main__":
     print(cm.asm)
     print()
     print(cm.asm.getBinary())
+
+    # Pb sur linearize ? Pb Lab5 cas if après un else
+    print()
+    print()
+    from codeparser import *
+    code = CodeParser(filename = "example3.code")
+    cm = CompilationManager(engine, code.getFinalStructuredList())
+    print(cm.asm)

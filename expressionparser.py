@@ -6,12 +6,13 @@
 
 from typing import List, Union
 
-from errors import *
-from arithmeticexpressionnodes import ArithmeticExpressionNode
-from comparaisonexpressionnodes import ComparaisonExpressionNode
-from logicexpressionnodes import LogicExpressionNode
-from parsertokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
-import re
+#from errors import *
+#from arithmeticexpressionnodes import ArithmeticExpressionNode
+#from comparaisonexpressionnodes import ComparaisonExpressionNode
+#from logicexpressionnodes import LogicExpressionNode
+#from parsertokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
+#import re
+from parsertokens import *
 
 class ExpressionParser:
     TokensList =  [TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]

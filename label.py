@@ -14,7 +14,7 @@ class Label:
     def getNextFreeIndex(cls) -> int:
         """génère un nouvel index de numéro de label. Assure l'unicité des numéros.
 
-        :return: index pour in nouveau label
+        :return: index pour un nouveau label
         :rtype: int
         """
         cls._currentIndex += 1
@@ -39,9 +39,9 @@ class Label:
         return self._name
 
     def __str__(self) -> 'str':
-        """Transtypage -> str. Affiche le nom de la variable préfixé par @
+        """Transtypage -> str. Affiche le nom de l'étiquette
 
-        :return: @ + nom de la variable
+        :return: nom de l'étiquette
         :rtype: str
 
         :Example:

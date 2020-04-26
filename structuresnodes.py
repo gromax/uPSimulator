@@ -4,11 +4,12 @@
 """
 from typing import List, Optional, Union, cast
 
-from arithmeticexpressionnodes import ArithmeticExpressionNode
-from comparaisonexpressionnodes import ComparaisonExpressionNode
-from logicexpressionnodes import LogicExpressionNode, NotNode, AndNode, OrNode
-from variable import Variable
-from label import Label
+#from arithmeticexpressionnodes import ArithmeticExpressionNode
+#from comparaisonexpressionnodes import ComparaisonExpressionNode
+#from logicexpressionnodes import LogicExpressionNode, NotNode, AndNode, OrNode
+#from variable import Variable
+#from label import Label
+from logicexpressionnodes import *
 from linkedlistnode import LinkedList, LinkedListNode
 
 class StructureNodeList(LinkedList):
@@ -628,12 +629,28 @@ if __name__=="__main__":
         cast(ArithmeticExpressionNode, EP.buildExpression('y'))
     )
 
+#     print("Avant linéarisation...")
+#     print()
+#     structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
+#     print(structureList)
+#     print()
+#     print("Après linéarisation avec (< et == étant les tests pris en charge)...")
+#     print()
+#     structureList.linearize(["<","=="])
+#     print(structureList)
+
+
+    print()
+    
+    from codeparser import *
+    code = CodeParser(filename = "example3.code")
+    structureList = StructureNodeList(code.getFinalStructuredList())
+#    for item in code.getFinalStructuredList():
+#        structureList.append(item)
     print("Avant linéarisation...")
-    print()
-    structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
     print(structureList)
+    structureList.linearize([">","<","=="])
+    print("Après linéarisation avec  (>, < et == étant les tests pris en charge)...")
     print()
-    print("Après linéarisation avec (< et == étant les tests pris en charge)...")
-    print()
-    structureList.linearize(["<","=="])
     print(structureList)
+    

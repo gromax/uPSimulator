@@ -6,8 +6,9 @@
 """
 
 from typing import Union, Tuple
-from comparaisonexpressionnodes import ComparaisonExpressionNode
-from abc import ABC, ABCMeta, abstractmethod
+#from comparaisonexpressionnodes import ComparaisonExpressionNode
+#from abc import ABC, ABCMeta, abstractmethod
+from comparaisonexpressionnodes import *
 
 class LogicExpressionNode(metaclass=ABCMeta):
     @abstractmethod

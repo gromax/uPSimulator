@@ -5,11 +5,12 @@
 
 from typing import Union, Tuple, Optional, List
 
-from errors import CompilationError, AttributesError
-from litteral import Litteral
-from variable import Variable
-from label import Label
-from assembleurlines import AsmLine
+#from errors import CompilationError, AttributesError
+#from litteral import Litteral
+#from variable import Variable
+#from label import Label
+#from assembleurlines import AsmLine
+from assembleurlines import *
 from processorengine import ProcessorEngine
 
 class AssembleurContainer:

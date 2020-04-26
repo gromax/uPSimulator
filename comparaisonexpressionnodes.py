@@ -7,10 +7,10 @@
 
 from typing import Dict, List, Sequence, Union
 
-from errors import *
-from processorengine import ProcessorEngine
-from compileexpressionmanager import CompileExpressionManager
-from arithmeticexpressionnodes import ArithmeticExpressionNode
+#from errors import *
+#from processorengine import ProcessorEngine
+#from compileexpressionmanager import CompileExpressionManager
+from arithmeticexpressionnodes import *
 
 class ComparaisonExpressionNode:
     _KNOWN_OPERATORS: Sequence[str] = ('<', '>', '<=', '>=', '==', '!=')

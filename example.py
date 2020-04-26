@@ -140,8 +140,8 @@ if __name__ == "__main__":
 
 
     tests = [
-        'example.code',
-        'example2.code'
+        'example2.code',
+        'example.code'
     ]
 
     engine16 = ProcessorEngine()

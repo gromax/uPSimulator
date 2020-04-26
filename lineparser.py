@@ -6,13 +6,14 @@
 from typing import List, Union
 from typing_extensions import TypedDict
 
-import re
-from errors import ParseError
-from expressionparser import ExpressionParser
-from variable import Variable
-from arithmeticexpressionnodes import ArithmeticExpressionNode
-from comparaisonexpressionnodes import ComparaisonExpressionNode
-from logicexpressionnodes import LogicExpressionNode
+#import re
+#from errors import ParseError
+#from expressionparser import ExpressionParser
+#from variable import Variable
+#from arithmeticexpressionnodes import ArithmeticExpressionNode
+#from comparaisonexpressionnodes import ComparaisonExpressionNode
+#from logicexpressionnodes import LogicExpressionNode
+from expressionparser import *
 
 Caracteristiques = TypedDict('Caracteristiques', {
     'lineNumber': int,

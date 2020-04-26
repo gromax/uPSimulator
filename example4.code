@@ -1,0 +1,10 @@
+A=1
+B=input()
+if (A==B):
+    print(0)
+else:
+    if (A>B):
+        print(A)
+    else:
+        print(B)
+

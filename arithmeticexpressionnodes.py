@@ -8,11 +8,12 @@
 from typing import Optional, Sequence, Union
 from abc import ABC, ABCMeta, abstractmethod
 
-from errors import *
-from litteral import Litteral
-from variable import Variable
-from processorengine import ProcessorEngine
-from compileexpressionmanager import CompileExpressionManager
+#from errors import *
+#from litteral import Litteral
+#from variable import Variable
+#from processorengine import ProcessorEngine
+#from compileexpressionmanager import CompileExpressionManager
+from compileexpressionmanager import *
 
 class ArithmeticExpressionNode(metaclass=ABCMeta):
     """Classe abstraite définissant les propriétés des noeuds arithmétiques

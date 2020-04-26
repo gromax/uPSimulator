@@ -6,7 +6,7 @@
 from typing import List, Optional
 from lineparser import LineParser, Caracteristiques
 from structuresnodes import *
-from errors import *
+#from errors import *
 
 class CodeParser: # Définition classe
     """Classe CodeParser
@@ -293,3 +293,8 @@ elif x == 0 :
     for item in code.getFinalStructuredList():
         print(item)
 
+    # test programme avec if else if (compil ok si instruction simple entre else et if)
+    print("")
+    code = CodeParser(filename = "example3.code")
+    for item in code.getFinalStructuredList():
+        print(item)
