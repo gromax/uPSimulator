@@ -287,6 +287,15 @@ class IfNode(StructureNode):
         :return: version linéaire du noeud if
         :rtype: StructureNodeList
         """
+
+        # Ce noeud est enfant d'une liste L
+        # il pourrait être le dernier et alors self._next
+        # pointerait sur L._head au lieu d'un véritable _next
+        # on ajoute donc un élément dummy à la suite pour prévenir
+        # cette situation (gênante pour le saut)
+        dummy = SimpleNode("dummy")
+        self.insertRight(dummy)
+
         self._children._linearizeRecursive(csl)
         cibleIf = self._children.head
         if cibleIf is None:
@@ -294,7 +303,7 @@ class IfNode(StructureNode):
         listForCondition = self._decomposeCondition(
             csl,
             cast(StructureNode, cibleIf),
-            cast(StructureNode,self._next)
+            cast(StructureNode, self._next)
         )
         listForCondition.append(self._children)
         return listForCondition
@@ -344,6 +353,14 @@ class IfElseNode(IfNode):
         :rtype: StructureNodeList
         """
 
+        # Ce noeud est enfant d'une liste L
+        # il pourrait être le dernier et alors self._next
+        # pointerait sur L._head au lieu d'un véritable _next
+        # on ajoute donc un élément dummy à la suite pour prévenir
+        # cette situation (gênante pour le saut)
+        dummy = SimpleNode("dummy")
+        self.insertRight(dummy)
+
         self._children._linearizeRecursive(csl)
         self._elseChildren._linearizeRecursive(csl)
         cibleIf = self._children.head
@@ -352,6 +369,7 @@ class IfElseNode(IfNode):
             cibleElse = self._next
         if cibleIf is None:
             cibleIf = cibleElse
+
 
         sautFin = JumpNode(
             self._lineNumber,
@@ -393,8 +411,16 @@ class WhileNode(IfNode):
         :return: version linéaire du noeud
         :rtype: StructureNodeList
         """
-        self._children._linearizeRecursive(csl)
 
+        # Ce noeud est enfant d'une liste L
+        # il pourrait être le dernier et alors self._next
+        # pointerait sur L._head au lieu d'un véritable _next
+        # on ajoute donc un élément dummy à la suite pour prévenir
+        # cette situation (gênante pour le saut)
+        dummy = SimpleNode("dummy")
+        self.insertRight(dummy)
+
+        self._children._linearizeRecursive(csl)
         cibleWhile = self._children.head
         dummy:Optional[SimpleNode] = None
         # il est indispensable que la liste children soit non vide
@@ -641,9 +667,9 @@ if __name__=="__main__":
 
 
     print()
-    
+
     from codeparser import *
-    code = CodeParser(filename = "example3.code")
+    code = CodeParser(filename = "example2.code")
     structureList = StructureNodeList(code.getFinalStructuredList())
 #    for item in code.getFinalStructuredList():
 #        structureList.append(item)
@@ -653,4 +679,3 @@ if __name__=="__main__":
     print("Après linéarisation avec  (>, < et == étant les tests pris en charge)...")
     print()
     print(structureList)
-    
