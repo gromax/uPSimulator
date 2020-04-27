@@ -158,7 +158,6 @@ if __name__=="__main__":
     print()
     print(cm.asm.getBinary())
 
-    # Pb sur linearize ? Pb Lab5 cas if après un else
     print()
     print()
     from codeparser import *
