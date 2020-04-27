@@ -63,10 +63,13 @@ class LinkedList:
             node = node._next
         if node != nodeToDel:
             return False
+        nodeNext = nodeToDel._next
         nodeToDel._prev._next = nodeToDel._next
         nodeToDel._next._prev = nodeToDel._prev
         nodeToDel._next = nodeToDel
         nodeToDel._prev = nodeToDel
+        if self._head == nodeToDel:
+            self._head = nodeNext
         return True
 
     def has(self, nodeToSearch:"LinkedListNode") -> bool:
