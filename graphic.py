@@ -52,12 +52,16 @@ class InputCodeWindow:
             self.__addExemple(sousMenuFileExample, nomExemple, nomFichier)
         self._menuFile.add_separator()
         self._menuFile.add_command(label='Exit', command=self.__exit)
-        
+
         #Menu Edit
         self._menuEdit = Menu(self._menu,tearoff=0)
         self._menu.add_cascade(label="Edit", menu=self._menuEdit)
         self._menuEdit.add_command(label='Effacer', command=self.__clearProgramInput)
         self._menuEdit.add_command(label='Modifier', command=self.__goEditMode)
+        self._menuEdit.add_separator()
+        self._menuEdit.add_command(label='Compile', command=self.__editModeCompile)
+        self._menuEdit.add_separator()
+        self._menuEdit.add_command(label='Clear log', command=self.__clearMessage)
 
         #Menu Options
         self._menuOptions = Menu(self._menu,tearoff=0)
@@ -82,7 +86,7 @@ class InputCodeWindow:
         #Menu Pause
         self._menu.add_command(label='Pause', command=self.__pause)
         self._menu.entryconfig("Pause", state="disabled")
-        
+
         # Menu Run
         self._menuRun = Menu(self._menu,tearoff=0)
         self._menu.add_cascade(label="Run", menu = self._menuRun)
@@ -93,12 +97,14 @@ class InputCodeWindow:
         self._menuRun.add_command(label="Run x10", command=self.__run_v10)
         self._menuRun.add_command(label="Run x100", command=self.__run_v100)
         self._menuRun.add_separator()
+        self._menuRun.add_command(label='Pause', command=self.__pause)
+        self._menuRun.add_separator()
         self._menuRun.add_command(label="Réinit", command=self.__reinitSim)
 
         #Menu Next Step
         self._menu.add_command(label="Next Step", command=self.__step)
         self._menu.entryconfig("Next Step", state="disabled")
-        
+
         #Menu Clear messages
         self._menu.add_command(label='Clear log', command=self.__clearMessage)
 
@@ -175,6 +181,7 @@ class InputCodeWindow:
     def __goEditMode(self, textCode=""):
         if not self.inEditMode():
             self._menu.entryconfig("Compile", state="normal")
+            self._menuEdit.entryconfig("Compile", state="normal")
             self._menuEdit.entryconfig("Effacer", state="normal")
             self._menu.entryconfig("Pause", state="disabled")
             self._menu.entryconfig("Run", state="disabled")
@@ -229,6 +236,7 @@ class InputCodeWindow:
             self.addMessage(e)
         else :
             self._menu.entryconfig("Compile", state="disabled")
+            self._menuEdit.entryconfig("Compile", state="disabled")
             self._menuEdit.entryconfig("Effacer", state="disabled")
             self._menu.entryconfig("Run", state="normal")
             self.__goSimMode(executeur, textCode, asm)
@@ -275,7 +283,7 @@ class InputCodeWindow:
             if self._runningSpeed > 0:
                 self._root.after(self._runningSpeed, self.__step)
                 self._menu.entryconfig("Pause", state="normal")
-                self._menu.entryconfig("Next Step", state="disabled")              
+                self._menu.entryconfig("Next Step", state="disabled")
 
     def show(self):
         self._root.mainloop()
@@ -285,6 +293,3 @@ class InputCodeWindow:
 if __name__=="__main__":
     g = InputCodeWindow()
     g.show()
-
-
-
