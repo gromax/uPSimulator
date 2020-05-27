@@ -1,0 +1,52 @@
+
+\documentclass[10pt]{scrreprt} % Default font size and left-justified equations
+\KOMAoptions{parskip=half}
+
+\input{structure} % Insert the commands.tex file which contains the majority of the structure behind the template
+\input{aliases}
+
+\title{UPSimulator}
+\author{Maxence KLEIN\\ \and Véronique REYNAUD\\ \and Guillaume DESJOUIS }
+\date{2020}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\clearpage
+
+\section{Présentation générale du projet}
+\subsection{Objectifs}
+\input{sec-objectifs}
+\subsection{Structure}
+diag UML ou équivalent
+
+\clearpage
+\section{Choix techniques}
+\subsection{Langage jouet}
+
+\input{sec-lang_jouet}
+
+\subsection{Parsing}
+
+
+\input{sec-parsing}
+
+\subsection{Code Assembleur}
+\subsection{Modèle de processeur}
+\subsection{Interface utilisateur}
+\subsection{Gestion de la documentation}
+\section{Organisation}
+\subsection{Planification}
+
+\begin{figure}[h!]
+	\includegraphics[width=\textwidth]{./Pictures/Gantt.png}
+	\caption{Diagramme de Gantt du projet}
+\end{figure}
+
+\subsection{Répartition des tâches}
+\begin{appendix}
+	\listoffigures
+	\listoftables
+\end{appendix}
+
+\end{document}

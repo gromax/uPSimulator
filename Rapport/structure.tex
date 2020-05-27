@@ -1,0 +1,132 @@
+\usepackage[top=2cm,bottom=2cm,inner=1cm,outer=1cm, a4paper]{geometry} % Page margins
+
+\usepackage{xcolor, colortbl} % Required for specifying colors by name
+\definecolor{bleu}{RGB}{0,102,204} % Define the blue color used for highlighting throughout the book
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\usepackage[french]{babel}  % French language
+\DecimalMathComma
+\usepackage[bitstream-charter]{mathdesign}
+
+% Index
+\usepackage{calc} % For simpler calculation - used for spacing the index letter headings correctly
+\usepackage{makeidx} % Required to make an index
+\makeindex % Tells LaTeX to create the files required for indexing
+
+\usepackage{markdown}
+%----------------------------------------------------------------------------------------
+%	VARIOUS REQUIRED PACKAGES
+%----------------------------------------------------------------------------------------
+\usepackage{amsmath,amsfonts,amsthm} % For math equations, theorems, symbols, etc
+\usepackage{esint}
+\usepackage{siunitx}
+\sisetup{locale = FR,inter-unit-product =\cdot}
+\usepackage{titlesec} % Allows customization of titles
+
+\usepackage{graphicx} % Required for including pictures
+\usepackage{wrapfig}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tabularx}
+
+\graphicspath{Pictures/} % Specifies the directory where pictures are stored
+\renewcommand{\thefigure}{\arabic{figure}}
+\renewcommand{\thetable}{\arabic{table}}
+
+\usepackage{tikz} % Required for drawing custom shapes
+\usetikzlibrary{trees,arrows,patterns,plotmarks, positioning}
+
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.10}
+\usepgfplotslibrary{fillbetween}
+
+\usepackage{enumitem} % Customize lists
+\usepackage[f]{esvect}
+
+\setlist{itemsep=1pt,topsep=1pt} % Reduce spacing between bullet points and numbered lists
+\setitemize{label=\textbullet}
+
+\usepackage{booktabs} % Required for nicer horizontal rules in tables
+
+\usepackage{eso-pic} % Required for specifying an image background in the title page
+
+\usepackage{multicol,multirow}
+\usepackage{filecontents}
+
+\usepackage{float}
+
+%---------------
+% 	 CODE
+%---------------
+\usepackage{minted}
+\usepackage{tcolorbox}
+\tcbuselibrary{listings, minted, skins}
+
+\newfloat{lstfloat}{htbp}{lop}
+\floatname{lstfloat}{Listing}
+\def\lstfloatautorefname{Listing}
+
+\tcbset{listing engine=minted}
+\usemintedstyle[python]{tango}
+\usemintedstyle[pycon]{tango}
+\setmintedinline[python]{fontsize = \small}
+\newcommand{\pyinline}[1]{\mintinline{python}{#1}}
+
+\newtcblisting{pythonlst}{	listing only, minted language=python,
+	sharp corners,
+	width=10cm,
+	minted options={%fontfamily=jkptt, 
+		fontsize=\footnotesize, tabsize=2, breaklines, autogobble}, enhanced,frame hidden, 
+	overlay unbroken and last={%
+		\draw[line width=1mm, gray] (interior.north west)++(0,-0.25cm)   -- (interior.north west)-- (interior.north east)-- ++(0,-0.25cm) ;
+		\draw[line width=1mm, gray] (interior.south west)++(0,0.25cm)   -- (interior.south west)-- (interior.south east)-- ++(0,0.25cm) ;}}
+
+\newtcbinputlisting{\inputPython}[3]{listing file={#1},
+	listing only, minted language=python,
+	sharp corners,
+	width=10cm,
+	minted options={firstline=#2,lastline=#3,linenos, %fontfamily=jkptt, 
+		fontsize=\footnotesize, tabsize=2, breaklines, autogobble}, enhanced,frame hidden, 
+	overlay unbroken and last={%
+		\draw[line width=1mm, gray] (interior.north west)++(0,-0.25cm)   -- (interior.north west)-- (interior.north east)-- ++(0,-0.25cm) ;
+		\draw[line width=1mm, gray] (interior.south west)++(0,0.25cm)   -- (interior.south west)-- (interior.south east)-- ++(0,0.25cm) ;}}
+
+
+\usepackage[noend]{algpseudocode}
+\algrenewcommand\algorithmicwhile{\texttt{while}}
+\algrenewcommand\algorithmicdo{\texttt{do}}
+\algrenewcommand\algorithmicif{\texttt{if}}
+\algrenewcommand\algorithmicthen{\texttt{then}}
+\algrenewcommand\algorithmicelse{\texttt{else}}
+\algnewcommand\Skip{\texttt{skip}}%	
+
+%----------------------------------------------------------------------------------------
+%	HYPERLINKS IN THE DOCUMENTS
+%----------------------------------------------------------------------------------------
+
+% For an unclear reason, the package should be loaded now and not later
+\usepackage{hyperref}
+\hypersetup{hidelinks,backref=true,pagebackref=true,hyperindex=true,colorlinks=false,breaklinks=true,urlcolor= bleu,bookmarks=true,bookmarksopen=false,pdftitle={Title},pdfauthor={Author}}
+
+
+%----------------------------------------------------------------------------------------
+%	SECTION NUMBERING
+%----------------------------------------------------------------------------------------
+\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\arabic{section}.\arabic{subsection}}
+
+%-------Set parskip for minipages--------
+\makeatletter 
+\let\org@parboxrestore\@parboxrestore 
+\def\@parboxrestore{% 
+  \edef\restore@parsettings{% 
+    \parindent=\the\parindent\relax 
+    \parskip=\the\parskip\relax 
+  }% 
+  \org@parboxrestore 
+  \restore@parsettings 
+} 
+\makeatother 

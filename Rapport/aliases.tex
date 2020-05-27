@@ -1,0 +1,35 @@
+
+%equations sur plusieurs lignes, avec ou sans accolades
+\newcommand\meq[1]{\begin{equation*}\begin{split}#1\end{split}\end{equation*}}
+\newcommand\meqa[1]{\begin{equation*}\left\{\begin{split}#1\end{split}\right.\end{equation*}}
+
+%Vecteurs (bases, opérateurs,...)
+\newcommand\ux{\vv{u}_x}
+\newcommand\uy{\vv{u}_y}
+\newcommand\uz{\vv{u}_z}
+\newcommand\ur{\vv{u}_r}
+\newcommand\ut{\vv{u}_\theta}
+\newcommand\uf{\vv{u}_\varphi}
+
+\newcommand\ve[1]{\vv{#1}}
+
+\newcommand\grad{\ve{\mathrm{grad}\,}}
+\newcommand\dive{\mathrm{div}\,}
+\newcommand\rot{\ve{\mathrm{rot}}\,}
+
+%Opérateurs différentiels
+\newcommand\dt[1]{\dfrac{\mathrm d #1}{\mathrm d t}}
+\newcommand\ddt[1]{\dfrac{\mathrm d^2 #1}{\mathrm d t^2}}
+\newcommand\Dt[1]{\dfrac{\mathrm D #1}{\mathrm D t}}
+
+\newcommand\de {\mathrm d}
+\newcommand\De {\mathrm D}
+
+\newcommand\diff[2]{\dfrac{\mathrm d #1}{\mathrm d #2}}
+\newcommand\pdiff[2]{\dfrac{\partial #1}{\partial #2}}
+
+\newcommand\ddiff[2]{\dfrac{\mathrm d^2 #1}{\mathrm d #2^2}}
+\newcommand\pddiff[2]{\dfrac{\partial^2 #1}{\partial #2^2}}
+
+%unités
+\newcommand\un[1]{\mathrm{\, #1}}

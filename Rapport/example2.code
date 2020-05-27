@@ -1,0 +1,11 @@
+s = 0
+i = 0
+m = input()
+while i < m:
+    if i % 2 == 0:
+        s = s + i
+        if s < 10:
+            y = s * 2
+            print(y)
+    i = i + 3
+print(s)

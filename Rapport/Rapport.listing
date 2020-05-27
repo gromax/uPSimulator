@@ -1,0 +1,11 @@
+aaaaaaaaaa:
+	aaaaaaaaaa
+	aaaaaaaaaa
+		aaaaaaaaaa # pas valable il manque : avant
+		aaaaaaaaaa
+	aaaaaaaaaa
+aaaaaaaaaa
+aaaaaaaaaa:
+			aaaaaaaaaa
+	aaaaaaaaaa # pas valable. Ce niveau a été atteint avant mais pas dans le même bloc
+aaaaaaaaaa

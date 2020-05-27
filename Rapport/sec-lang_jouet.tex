@@ -1,0 +1,135 @@
+Le langage jouet doit permettre à l'utilisateur de produire un exemple de code simple reprenant les principales structures (boucles, branchements conditionnels,...)
+
+\begin{lstfloat}[h!]
+	\centering
+\inputPython{example2.code}{1}{11}
+\caption{Exemple de code dans le langage jouet}
+\end{lstfloat}
+
+\subsubsection{Expressions admissibles}
+
+Les expression admissibles sont présentées dans la table  \ref{tab:expressions} ci-dessous.
+\begin{table}[h!]\caption{\label{tab:expressions}Expressions admissibles}
+	\centering
+	\begin{tabular}{|c|c|c|}
+	\hline
+	\multicolumn{2}{|c|}{Variable}   &            \pyinline{x}            \\ \hline
+	\multicolumn{2}{|c|}{Entier}     &            \pyinline{n}            \\ \hline
+	              &      Somme       &         \pyinline{e1 + e2}         \\ \cline{2-3}
+	              &    Différence    &         \pyinline{e1 - e2}         \\ \cline{2-3}
+	 Opérations   &     Produit      &         \pyinline{e1 * e2}         \\ \cline{2-3}
+	arithmétiques & Division entière &         \pyinline{e1 / e2}         \\ \cline{2-3}
+	              &      Reste       & \pyinline{e1 % e2
+	              } \\ \cline{2-3}
+	              &      Opposé      &           \pyinline{-e1}           \\ \hline
+\end{tabular}
+\hspace{3cm}
+\begin{tabular}{|c|c|c|}
+	\hline
+	\multicolumn{3}{|c|}{Opérations logiques}                                         \\ \hline
+	\multirow{10}{*}{Binaires} &           Egalité           &  \pyinline{e1 == e2}   \\ \cline{2-3}
+	                           &         Différence          &  \pyinline{e1 != e2}   \\ \cline{2-3}
+	                           & \multirow{4}{*}{Inégalités} &   \pyinline{e1 < e2}   \\ \cline{3-3}
+	                           &                             &   \pyinline{e1 > e2}   \\ \cline{3-3}
+	                           &                             &  \pyinline{e1 <= e2}   \\ \cline{3-3}
+	                           &                             &  \pyinline{e1 >= e2}   \\ \cline{2-3}
+	                           &     \multirow{2}{*}{Et}     &  \pyinline{e1 and e2}  \\ \cline{3-3}
+	                           &                             &  \pyinline{e1 \& e2}   \\ \cline{2-3}
+	                           &     \multirow{2}{*}{Ou}     &  \pyinline{e1 or e2}   \\ \cline{3-3}
+	                           &                             & \pyinline{e1     | e2} \\ \hline
+	 \multirow{2}{*}{Unaire}   &      inverse bit à bit      &     \pyinline{~e1}     \\ \cline{2-3}
+	                           &      négation logique       &   \pyinline{not e1}    \\ \hline
+\end{tabular}
+\end{table}
+%
+\subsubsection{Liste de commandes admissibles}
+
+\begin{minipage}[c]{0.48\textwidth}
+	\begin{minted}[frame = single, label={Affectation}]{python}
+x=e
+\end{minted}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+	avec \pyinline{e} une expression logique ou arithmétique.
+\end{minipage}
+\vspace{0.5cm}
+
+\begin{minipage}[c]{0.48\textwidth}
+\begin{minted}[frame = single, label={Branchement conditionnel}]{python}
+if e :
+	c1
+elif e2: 
+	c2
+else:
+	c3
+\end{minted}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+	avec \pyinline{e1} et \pyinline{e2} des expressions et \pyinline{c1}, \pyinline{c2} et \pyinline{c3} des commandes.
+	
+	Les branchement \pyinline{else} et \pyinline{elif} sont optionnels.
+\end{minipage}
+\vspace{0.5cm}
+
+\begin{minipage}[c]{0.48\textwidth}
+\begin{minted}[frame = single, label={Boucle}]{python}
+while e :
+	c1
+\end{minted}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+	avec \pyinline{e} une expression et \pyinline{c} une commande.	
+\end{minipage}
+\vspace{0.5cm}
+
+\begin{minipage}[c]{0.48\textwidth}
+\begin{minted}[frame = single, label={Lecture clavier}]{python}
+input()
+\end{minted}
+\end{minipage}
+\vspace{0.5cm}
+
+\begin{minipage}[c]{0.48\textwidth}
+\begin{minted}[frame = single, label={Ecriture sur la sortie courante}]{python}
+print(v)
+\end{minted}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+	avec \pyinline{e} une expression	
+\end{minipage}
+
+\subsubsection{Indentations}
+Le code est indenté comme en python afin de détecter les blocs:
+\begin{itemize}
+	\item L'indentation n'augmente qu'après un \pyinline{:} lié à une structure \pyinline{if} ou \pyinline{while}
+	\item L'indentation ne peut diminuer que atteindre un niveau précédemment atteint.
+\end{itemize}
+
+\subsubsection{Commentaires}
+Les commentaires sont repérés par le caractère \pyinline{#} .
+
+\begin{lstfloat}
+	\begin{center}
+	\begin{pythonlst}
+aaaaaaaaaa:
+	aaaaaaaaaa
+	aaaaaaaaaa
+		aaaaaaaaaa # pas valable il manque : avant
+		aaaaaaaaaa
+	aaaaaaaaaa
+aaaaaaaaaa
+aaaaaaaaaa:
+			aaaaaaaaaa
+	aaaaaaaaaa # pas valable. Ce niveau a été atteint avant mais pas dans le même bloc
+aaaaaaaaaa
+\end{pythonlst}
+\caption{Langage jouet - Commentaires et indentations}
+\end{center}
+\end{lstfloat}
+
+
+

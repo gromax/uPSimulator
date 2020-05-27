@@ -1,0 +1,13 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{n}{aaaaaaaaaa}\PYG{p}{:}
+	\PYG{n}{aaaaaaaaaa}
+	\PYG{n}{aaaaaaaaaa}
+		\PYG{n}{aaaaaaaaaa} \PYG{c+c1}{\PYGZsh{} pas valable il manque : avant}
+		\PYG{n}{aaaaaaaaaa}
+	\PYG{n}{aaaaaaaaaa}
+\PYG{n}{aaaaaaaaaa}
+\PYG{n}{aaaaaaaaaa}\PYG{p}{:}
+			\PYG{n}{aaaaaaaaaa}
+	\PYG{n}{aaaaaaaaaa} \PYG{c+c1}{\PYGZsh{} pas valable. Ce niveau a été atteint avant mais pas dans le même bloc}
+\PYG{n}{aaaaaaaaaa}
+\end{Verbatim}
