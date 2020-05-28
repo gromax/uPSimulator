@@ -1,0 +1,94 @@
+
+\tikzset{
+	every leaf node/.style={draw=black, rectangle, align=center},
+	every tree node/.style={font=\tiny},
+	tt/.style={font=\ttfamily},
+}
+\forestset{tikzQtree/.style={for tree={l sep=3em, anchor=center, if n children=0{
+				node options=every leaf node/.try}{node options=every tree node/.try}}}}
+	\scriptsize
+	\begin{forest}
+		tikzQtree
+[	,
+	[ 0,
+		[ 00,
+			[ 000, 
+				[ 0000
+					[00000[\texttt{HALT}]],[00001[\texttt{JUMP}]]
+				],
+				[ 0001,
+					[ 00010,
+						[ 000100,
+							[0001000[\texttt{BNE}]], [0001001[\texttt{BEQ}]]
+						],
+						[ 000100,
+							[0001010[\texttt{BLT}]], [0001011[\texttt{BGT}]]
+						]
+					],
+					[00011[\texttt{CMP}]]
+				]
+			],
+			[ 001,
+				[ 0010,
+					[00100[\texttt{PRINT}]], [00101[\texttt{INPUT}]]
+				],
+				[0011[\texttt{LOAD}]]
+			]
+		],
+		[ 01,
+			[ 010,
+				[ 0100,
+					[01000[\texttt{MOVE}]], [01001[\texttt{MOVE}]],
+				],
+				[ 0101,
+					[ 01010,
+						[010100[\texttt{NEG}]], [010101[\texttt{NOT}]]
+					],
+					[ 01011,
+					[010110[\texttt{NEG}]], [010111[\texttt{NOT}]]
+					]
+				]
+			],
+			[011
+				[0110,
+					[01100,
+						[011000,
+							[0110000[\texttt{ADD}]], [0110001[\texttt{SUB}]]
+						],
+						[011001,
+							[0110010[\texttt{MULT}]], [0110011[\texttt{DIV}]]
+						]
+					],
+					[01101,
+						[011010,
+							[0110100[\texttt{MOD}]], [0110101[\texttt{AND}]]
+						],
+						[011011,
+							[0110110[\texttt{OR}]], [0110111[\texttt{XOR}]]
+						]
+					],
+				],
+				[0111[\texttt{STORE}]]
+			]
+		]
+	], 
+	[1,
+		[10,
+			[100,
+				[1000[\texttt{ADD}]], [1001[\texttt{SUB}]]
+			],
+			[101,
+				[1010[\texttt{MULT}]], [1011[\texttt{DIV}]]
+			]
+		],
+		[11,
+			[110,
+				[1100[\texttt{MOD}]], [1101[\texttt{AND}]]
+			],
+			[111,
+				[1110[\texttt{OR}]], [1111[\texttt{XOR}]]
+			]
+		]
+	]	
+]
+\end{forest}

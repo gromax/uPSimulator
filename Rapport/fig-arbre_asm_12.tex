@@ -1,0 +1,77 @@
+
+\tikzset{
+	every leaf node/.style={draw=black, rectangle, align=center},
+	every tree node/.style={font=\tiny},
+	tt/.style={font=\ttfamily},
+}
+\forestset{tikzQtree/.style={for tree={l sep=3em, anchor=center, if n children=0{
+				node options=every leaf node/.try}{node options=every tree node/.try}}}}
+	\scriptsize
+	\begin{forest}
+		tikzQtree
+[	,
+	[ 0,
+		[00,
+			[000,
+				[0000[HALT]],
+				[0001[JMP]]
+			],
+			[001,
+				[0010[BEQ]],
+				[0011[BLT]]
+			]
+		],
+		[01,
+			[010,
+				[0100[PRINT]],
+				[0101[INPUT]]
+			]
+		]
+	], 
+	[1,
+		[10,
+			[100[LOAD]],
+			[101[STORE]]
+		],
+		[11,
+			[111,
+				[1111,
+					[11110,
+						[111101,
+							[1111010,
+								[11110101[CMP]]
+							],
+							[1111011,
+								[11110110[MOVE]],
+								[11110111[NOT]]
+							]
+						]
+					],
+					[11111,
+						[111110,
+							[1111100,
+								[11111000[ADD]],
+								[11111001[SUB]]
+							],
+							[1111101,
+								[11111010[MULT]],
+								[11111011[DIV]]
+							]
+						],
+						[111111,
+							[1111110,
+								[111111100[MOD]],
+								[111111101[AND]]
+							],
+							[1111111,
+								[111111110[OR]],
+								[111111111[XOR]]
+							]
+						]
+					]
+				]
+			]
+		]
+	]	
+]
+\end{forest}
