@@ -115,7 +115,7 @@ class ExpressionParser:
             elif suivant.isOperand():
                 return precedent.isOpening()
             elif isinstance(suivant, TokenParenthesis):
-                return precedent.isOpening() != suivant.isOpening()
+                return precedent.isOpening() == suivant.isOpening()
         # par défaut on retourne faux
         return False
 
