@@ -295,6 +295,6 @@ elif x == 0 :
 
     # test programme avec if else if (compil ok si instruction simple entre else et if)
     print("")
-    code = CodeParser(filename = "example3.code")
+    code = CodeParser(filename = "example2.code")
     for item in code.getFinalStructuredList():
         print(item)

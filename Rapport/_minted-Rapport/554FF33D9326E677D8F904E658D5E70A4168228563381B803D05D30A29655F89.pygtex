@@ -1,0 +1,7 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{if} \PYG{n}{e1} \PYG{p}{:}
+	\PYG{n}{c1}
+\PYG{k}{elif} \PYG{n}{e2} \PYG{p}{:}
+	\PYG{n}{c2}
+\PYG{k}{else} \PYG{n}{c3}
+\end{Verbatim}

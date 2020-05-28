@@ -1,0 +1,8 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{n}{x}\PYG{o}{=}\PYG{l+m+mi}{0}
+\PYG{n}{y}\PYG{o}{=}\PYG{l+m+mi}{0}
+\PYG{k}{while} \PYG{p}{(}\PYG{n}{x} \PYG{o}{\PYGZlt{}} \PYG{l+m+mi}{10} \PYG{o+ow}{or} \PYG{n}{y} \PYG{o}{\PYGZlt{}} \PYG{l+m+mi}{1500}\PYG{p}{):}
+    \PYG{n}{x}\PYG{o}{=}\PYG{n}{x}\PYG{o}{+}\PYG{l+m+mi}{1}
+    \PYG{n}{y}\PYG{o}{=}\PYG{n}{y}\PYG{o}{+}\PYG{n}{x}
+\PYG{n+nb}{print}\PYG{p}{(}\PYG{n}{y}\PYG{p}{)}
+\end{Verbatim}

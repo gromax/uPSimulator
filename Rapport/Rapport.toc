@@ -1,18 +1,21 @@
 \babel@toc {french}{}
 \contentsline {section}{\numberline {1}Présentation générale du projet}{3}{section.0.1}% 
-\contentsline {subsection}{\numberline {1.1}Objectifs}{3}{subsection.0.1.1}% 
-\contentsline {subsection}{\numberline {1.2}Structure}{3}{subsection.0.1.2}% 
+\contentsline {subsection}{\numberline {1.1.0}Objectifs}{3}{subsection.0.1.1}% 
+\contentsline {subsection}{\numberline {1.2.0}Structure}{3}{subsection.0.1.2}% 
 \contentsline {section}{\numberline {2}Choix techniques}{4}{section.0.2}% 
-\contentsline {subsection}{\numberline {2.1}Langage jouet}{4}{subsection.0.2.1}% 
+\contentsline {subsection}{\numberline {2.1.0}Langage jouet}{4}{subsection.0.2.1}% 
 \contentsline {subsubsection}{Expressions admissibles}{4}{subsubsection*.2}% 
 \contentsline {subsubsection}{Liste de commandes admissibles}{4}{subsubsection*.4}% 
 \contentsline {subsubsection}{Indentations}{5}{subsubsection*.5}% 
 \contentsline {subsubsection}{Commentaires}{5}{subsubsection*.6}% 
-\contentsline {subsection}{\numberline {2.2}Parsing}{5}{subsection.0.2.2}% 
-\contentsline {subsection}{\numberline {2.3}Code Assembleur}{6}{subsection.0.2.3}% 
-\contentsline {subsection}{\numberline {2.4}Modèle de processeur}{6}{subsection.0.2.4}% 
-\contentsline {subsection}{\numberline {2.5}Interface utilisateur}{6}{subsection.0.2.5}% 
-\contentsline {subsection}{\numberline {2.6}Gestion de la documentation}{6}{subsection.0.2.6}% 
-\contentsline {section}{\numberline {3}Organisation}{6}{section.0.3}% 
-\contentsline {subsection}{\numberline {3.1}Planification}{6}{subsection.0.3.1}% 
-\contentsline {subsection}{\numberline {3.2}Répartition des tâches}{7}{subsection.0.3.2}% 
+\contentsline {subsection}{\numberline {2.2.0}Parsing}{6}{subsection.0.2.2}% 
+\contentsline {subsubsection}{Classe CodeParser}{6}{subsubsection*.8}% 
+\contentsline {subsubsection}{Classe LineParser}{7}{subsubsection*.9}% 
+\contentsline {subsubsection}{Classe ExpressionParser}{7}{subsubsection*.10}% 
+\contentsline {subsection}{\numberline {2.3.0}Code Assembleur}{7}{subsection.0.2.3}% 
+\contentsline {subsection}{\numberline {2.4.0}Modèle de processeur}{7}{subsection.0.2.4}% 
+\contentsline {subsection}{\numberline {2.5.0}Interface utilisateur}{7}{subsection.0.2.5}% 
+\contentsline {subsection}{\numberline {2.6.0}Gestion de la documentation}{7}{subsection.0.2.6}% 
+\contentsline {section}{\numberline {3}Organisation}{7}{section.0.3}% 
+\contentsline {subsection}{\numberline {3.1.0}Planification}{7}{subsection.0.3.1}% 
+\contentsline {subsection}{\numberline {3.2.0}Répartition des tâches}{7}{subsection.0.3.2}% 
