@@ -26,17 +26,28 @@
 \usepackage{titlesec} % Allows customization of titles
 
 \usepackage{graphicx} % Required for including pictures
+\usepackage{rotating}
 \usepackage{wrapfig}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{tabularx}
 
-\graphicspath{Pictures/} % Specifies the directory where pictures are stored
-\renewcommand{\thefigure}{\arabic{figure}}
-\renewcommand{\thetable}{\arabic{table}}
+\usepackage{diagbox}
+
+\usepackage{array}
+\newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
+\newcolumntype{C}[1]{>{\PreserveBackslash\centering}m{#1}}
+\newcolumntype{R}[1]{>{\PreserveBackslash\raggedleft}m{#1}}
+\newcolumntype{L}[1]{>{\PreserveBackslash\raggedright}m{#1}}
+
+
+\graphicspath{./Pictures/} % Specifies the directory where pictures are stored
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+\renewcommand{\thetable}{\arabic{section}.\arabic{table}}
 
 \usepackage{tikz} % Required for drawing custom shapes
 \usetikzlibrary{trees,arrows,patterns,plotmarks, positioning}
+\usepackage{forest}
 
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
@@ -109,15 +120,21 @@
 
 % For an unclear reason, the package should be loaded now and not later
 \usepackage{hyperref}
-\hypersetup{hidelinks,backref=true,pagebackref=true,hyperindex=true,colorlinks=false,breaklinks=true,urlcolor= bleu,bookmarks=true,bookmarksopen=false,pdftitle={Title},pdfauthor={Author}}
-
+\hypersetup{
+	colorlinks,
+	linkcolor={red!50!black},
+	citecolor={blue!50!black},
+	urlcolor={blue!80!gray}
+}
 
 %----------------------------------------------------------------------------------------
 %	SECTION NUMBERING
 %----------------------------------------------------------------------------------------
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
 \renewcommand\thesection{\arabic{section}}
 \renewcommand\thesubsection{\arabic{section}.\arabic{subsection}}
-\renewcommand\thesubsection{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+\renewcommand\thesubsubsection{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
 
 %-------Set parskip for minipages--------
 \makeatletter 
