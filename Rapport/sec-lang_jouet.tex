@@ -43,6 +43,7 @@ Les expression admissibles sont présentées dans la table  \ref{tab:expressions
 \end{table}
 %
 \subsubsection{Liste de commandes admissibles}
+Les commandes admissibles et la syntaxe associée sont détaillées ci-après.
 
 \begin{minipage}[c]{0.38\textwidth}
 	\begin{minted}[frame = single, label={Affectation}]{python}
@@ -97,17 +98,19 @@ input()
 print(v)
 \end{minted}
 \end{minipage}
-\hfill
+\hspace{1cm}
 \begin{minipage}[c]{0.38\textwidth}
-	avec \pyinline{e} une expression	
+avec \pyinline{e} une expression	
 \end{minipage}
 
 \subsubsection{Indentations}
 Le code est indenté comme en python afin de détecter les blocs:
 \begin{itemize}
-	\item L'indentation n'augmente qu'après un \pyinline{:} lié à une structure \pyinline{if} ou \pyinline{while}
-	\item L'indentation ne peut diminuer que atteindre un niveau précédemment atteint.
+	\item L'indentation n'augmente qu'après un \pyinline{':'} lié à une structure \pyinline{if} ou \pyinline{while}
+	\item L'indentation ne peut diminuer que pour atteindre un niveau précédemment atteint.
 \end{itemize}
+
+Indentation admissible et rejetée sont présentées sur le \cref{list:Comment_Indent}.
 
 \subsubsection{Commentaires}
 Les commentaires sont repérés par le caractère \pyinline{#} .
@@ -127,7 +130,7 @@ aaaaaaaaaa:
 	aaaaaaaaaa # pas valable. Ce niveau a été atteint avant mais pas dans le même bloc
 aaaaaaaaaa
 \end{pythonlst}
-\caption{Langage jouet - Commentaires et indentations}
+\caption{\label{list:Comment_Indent}Langage jouet - Commentaires et indentations}
 \end{center}
 \end{lstfloat}
 

@@ -32,6 +32,7 @@
 \usepackage{subcaption}
 \usepackage{tabularx}
 
+
 \usepackage{diagbox}
 
 \usepackage{array}
@@ -46,7 +47,8 @@
 \renewcommand{\thetable}{\arabic{section}.\arabic{table}}
 
 \usepackage{tikz} % Required for drawing custom shapes
-\usetikzlibrary{trees,arrows,patterns,plotmarks, positioning}
+\usetikzlibrary{trees,arrows,patterns,plotmarks, positioning,automata}
+\tikzset{>=latex}
 \usepackage{forest}
 
 \usepackage{pgfplots}
@@ -80,7 +82,7 @@
 \floatname{lstfloat}{Listing}
 \def\lstfloatautorefname{Listing}
 
-\tcbset{listing engine=minted}
+\tcbset{listing engine=minted, colback=white}
 \usemintedstyle[python]{tango}
 \usemintedstyle[pycon]{tango}
 \setmintedinline[python]{fontsize = \small}
@@ -91,9 +93,10 @@
 	width=10cm,
 	minted options={%fontfamily=jkptt, 
 		fontsize=\footnotesize, tabsize=2, breaklines, autogobble}, enhanced,frame hidden, 
-	overlay unbroken and last={%
-		\draw[line width=1mm, gray] (interior.north west)++(0,-0.25cm)   -- (interior.north west)-- (interior.north east)-- ++(0,-0.25cm) ;
-		\draw[line width=1mm, gray] (interior.south west)++(0,0.25cm)   -- (interior.south west)-- (interior.south east)-- ++(0,0.25cm) ;}}
+%	overlay unbroken and last={%
+%		\draw[line width=1mm, gray] (interior.north west)++(0,-0.25cm)   -- (interior.north west)-- (interior.north east)-- ++(0,-0.25cm) ;
+%		\draw[line width=1mm, gray] (interior.south west)++(0,0.25cm)   -- (interior.south west)-- (interior.south east)-- ++(0,0.25cm) ;}
+	}
 
 \newtcbinputlisting{\inputPython}[3]{listing file={#1},
 	listing only, minted language=python,
@@ -101,9 +104,10 @@
 	width=10cm,
 	minted options={firstline=#2,lastline=#3,linenos, %fontfamily=jkptt, 
 		fontsize=\footnotesize, tabsize=2, breaklines, autogobble}, enhanced,frame hidden, 
-	overlay unbroken and last={%
-		\draw[line width=1mm, gray] (interior.north west)++(0,-0.25cm)   -- (interior.north west)-- (interior.north east)-- ++(0,-0.25cm) ;
-		\draw[line width=1mm, gray] (interior.south west)++(0,0.25cm)   -- (interior.south west)-- (interior.south east)-- ++(0,0.25cm) ;}}
+%	overlay unbroken and last={%
+%		\draw[line width=1mm, gray] (interior.north west)++(0,-0.25cm)   -- (interior.north west)-- (interior.north east)-- ++(0,-0.25cm) ;
+%		\draw[line width=1mm, gray] (interior.south west)++(0,0.25cm)   -- (interior.south west)-- (interior.south east)-- ++(0,0.25cm) ;}
+	}
 
 
 \usepackage[noend]{algpseudocode}
@@ -127,6 +131,8 @@
 	urlcolor={blue!80!gray}
 }
 
+
+\usepackage{cleveref}
 %----------------------------------------------------------------------------------------
 %	SECTION NUMBERING
 %----------------------------------------------------------------------------------------

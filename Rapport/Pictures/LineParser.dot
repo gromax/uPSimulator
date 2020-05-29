@@ -1,0 +1,14 @@
+digraph "classes" {
+charset="utf-8"
+rankdir=BT
+"CodeParser" [label="{codeparser.CodeParser|__listingCode : list\l__structuredListeNode : list\l|__blocControl()\l__buildFinalNodeList()\l__init__()\l__manageElif()\l__parseFile(filename)\l__recursiveStringifyLine(line, tab)\l__str__()\l__structureList()\lgetFinalStructuredList()\lparseCode(lignesCode)\l}", shape="record"];
+"ExpressionParser" [label="{ExpressionParser|TokensList : list\l|__buildReversePolishNotation(tokensList)\l__buildTokensList(cls, expression)\l__buildTree(polishTokensList)\l__consolidAddSub(cls, tokensList)\l__tokensListIsLegal(cls, tokensList)\lbuildExpression(cls, originalExpression)\lexpressionRegex(cls)\lisLegal(precedent, suivant)\lregex(cls)\lstrIsExpression(cls, expression)\lstrIsVariableName(cls, nomVariable)\ltestBrackets(expression)\lvariableRegex(cls)\l}", shape="record"];
+"LineParser" [label="{LineParser|__caracteristiques : dict\l__cleanLine\l__lineNumber\l__originalLine\l|__countIndentation(line)\l__identificationMotif(line)\l__init__(originalLine, lineNumber)\l__isAffectation(line)\l__isElse(line)\l__isInput(line)\l__isPrint(line)\l__isTestStructure(testStructureKeyword, line)\l__str__()\l__suppCommentsAndEndSpaces(line)\lgetCaracs()\l}", shape="record"];
+"StructureNode" [label="{StructureNode|_label : Label\llabel\llineNumber\l|__str__()\lassignLabel()\llabelToStr()\l}", shape="record"];
+"Token" [label="{Token|regex\l|getPriority()\lisOperand()\lisOperator()\ltest(cls, expression)\l}", shape="record"];
+
+"LineParser" -> "ExpressionParser" [arrowhead="normal", arrowtail="none"];
+"CodeParser" -> "LineParser" [arrowhead="normal", arrowtail="none"];
+"StructureNode" -> "CodeParser" [arrowhead="diamond", arrowtail="none"];
+"Token" -> "ExpressionParser" [arrowhead="diamond", arrowtail="none"];
+}

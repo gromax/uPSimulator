@@ -1,10 +1,6 @@
 
 \subsubsection{ProcessorEngine}
-Le simulateur doit offrir une certaine modularité afin de permettre d'apprécier l'incidence des choix de conception sur le code assembleur et sur l'exécution. 
-
-Les propriétés du processeur sont gérées par la classe \pyinline{ProcessorEngine}
-
-On pourra donc définir le modèle de processeur retenu à l'aide d'un dictionnaire qui prend pour clés:
+Le simulateur doit offrir une certaine modularité afin de permettre d'apprécier l'incidence des choix de conception sur le code assembleur et sur l'exécution. Les propriétés du processeur sont gérées par la classe \pyinline{ProcessorEngine}. On pourra donc définir le modèle de processeur retenu à l'aide d'un dictionnaire qui prend pour clés:
 \begin{itemize}
 	\item le nom du modèle associé: \pyinline{'name': str};
 	\item la taille des registres: \pyinline{'register_bits': int};
@@ -16,15 +12,15 @@ On pourra donc définir le modèle de processeur retenu à l'aide d'un dictionna
 
 Chaque \pyinline{Command} correspond à un dictionnaire qui prends pour clés:
 \begin{itemize}
-	\item un code binaire \pyinline{'opcode': str,}. Le choix des \pyinline{opcode} est fait de telle sorte que la taille des mots soit op
+	\item un code binaire \pyinline{'opcode': str}. Le choix des \pyinline{opcode} est fait de telle sorte que la taille des mots permettent d'optimiser la taille alloué aux autres arguments (littéraux, adresses mémoire, etc...)
 	\item une commande assembleur \pyinline{'asm': str},
 	\item la taille du littéral associé	\pyinline{'litteral_bits': int}
 \end{itemize}
 
-Deux modèles sont implémentés par défaut dans le simulateur.
+Deux modèles sont implémentés par défaut dans le simulateur et sont présentés dans les \cref{tab:proc16} et \cref{tab:proc16}.
 
 \begin{minipage}[t]{0.48\textwidth}
-	\captionof{table}{Processeur 16 bits}
+	\captionof{table}{\label{tab:proc16}Processeur 16 bits}
 \begin{minipage}[t]{0.5\textwidth}
 	\vspace{0cm}
 	\centering
@@ -86,7 +82,7 @@ store              & 0111    & STORE
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.48\textwidth}
-	\captionof{table}{Processeur 12 bits}
+	\captionof{table}{\label{tab:proc12}Processeur 12 bits}
 	\begin{minipage}[t]{0.5\textwidth}
 		\vspace{0cm}
 		\centering
@@ -135,48 +131,64 @@ store              & 0111    & STORE
 \end{minipage}
 
 La classe \pyinline{ProcessorEngine} a la responsabilité entre autre d'assurer que le modèle de processeur soit consistant, d'assurer la conversion entre code assembleur et code binaire.
-\begin{sidewaysfigure}
-	\centering
-		\input{fig-arbre_asm_16}
-		\caption{Langage 16 bits - OPCODE et ASM}
-\end{sidewaysfigure}
-
-\begin{sidewaysfigure}
-	\centering
-	\input{fig-arbre_asm_12}
-	\caption{Langage 12 bits - OPCODE et ASM}
-\end{sidewaysfigure}
+%\begin{sidewaysfigure}
+%	\centering
+%		\input{fig-arbre_asm_16}
+%		\caption{Langage 16 bits - OPCODE et ASM}
+%\end{sidewaysfigure}
+%
+%\begin{sidewaysfigure}
+%	\centering
+%	\input{fig-arbre_asm_12}
+%	\caption{Langage 12 bits - OPCODE et ASM}
+%\end{sidewaysfigure}
 
 \clearpage
-\subsubsection{Executeur}
 
-Lors de l'exécution, le processeur modèle est représenté par un objet de classe \pyinline{Executeur} (figure \ref{fig:class_Executeur}). Les différents paramètres (taille des registres, taille mémoire, fonctionnement UAL) sont définis par la classe \pyinline{ProcessorEngine} associée. Afin de permettre le suivi de l'exécution, l'\pyinline{Executeur} implémente entre autre:
-\begin{itemize}
-	\item 2 bus de données: \pyinline{_DATA_BUS} et \pyinline{_DATA_BUS_2};
-	\item une mémoire: \pyinline{_MEMORY}
-	\item un registre adresse mémoire \pyinline{_MEMORY_ADDRESS} et un registre instruction \pyinline{_INSTRUCTION_REGISTER}
-	\item un pointeur de ligne \pyinline{_LINE_POINTER}
-	\item une sortie affichage \pyinline{_PRINT}
-	\item un buffer \pyinline{_BUFFER}
-	\item une UAL \pyinline{_UAL}
-\end{itemize}
-
-
-
-Chaque composant est modélisé par une instance d'une classe dédiée ( \pyinline{ScreenComponent}, \pyinline{UalComponent}, \pyinline{RegisterGroup}, etc...) implémentant les méthodes associées au comportement de chaque composant physique, par exemple pour l'UAL:
-\begin{itemize}
-	\item définir l'opération à venir: \pyinline{setOperation()};
-	\item mémoriser le premier opérande:\pyinline{writeFirstOperand()};
-	\item mémoriser le second opérande: \pyinline{writeSecondOperand()};
-	\item exécuter le calcul: \pyinline{execCalc()};
-	\item lire le résultat: \pyinline{read()};
-\end{itemize}
-
-
-\begin{figure}[h!]
+\begin{figure}[p]
 	\centering
 	\includegraphics[height = 0.85\textheight]{./Pictures/Executeur.pdf}
 	\caption{\label{fig:class_Executeur} Diagramme de classe - Executeur}
-\end{figure} 
+\end{figure}
+
+\subsubsection{Executeur}
+
+Lors de l'exécution, le processeur modèle est représenté par un objet de classe \pyinline{Executeur} (\cref{fig:class_Executeur}). Les différents paramètres (taille des registres, taille mémoire, fonctionnement UAL) sont définis par la classe \pyinline{ProcessorEngine} associée. Afin de permettre le suivi de l'exécution, l'\pyinline{Executeur} implémente entre autre:
+\begin{itemize}
+	\item 2 bus de données: \pyinline{_DATA_BUS} et \pyinline{_DATA_BUS_2};
+	\item une mémoire: \pyinline{_MEMORY};
+	\item un registre adresse mémoire \pyinline{_MEMORY_ADDRESS} et un registre instruction \pyinline{_INSTRUCTION_REGISTER};
+	\item un pointeur de ligne \pyinline{_LINE_POINTER};
+	\item une sortie affichage \pyinline{_PRINT};
+	\item un buffer \pyinline{_BUFFER};
+	\item une UAL \pyinline{_UAL}.
+\end{itemize}
+
+
+
+Chaque composant est modélisé par une instance d'une classe dédiée (\pyinline{ScreenComponent}, \pyinline{UalComponent}, \pyinline{RegisterGroup}, etc...) implémentant les méthodes associées au comportement de chaque composant physique. Par exemple pour l'UAL, (\pyinline{UalComponent}) a pour méthodes:
+\begin{itemize}
+	\item  \pyinline{setOperation()}: pour définir l'opération à venir;
+	\item \pyinline{writeFirstOperand()}: pour mémoriser le premier opérande;
+	\item \pyinline{writeSecondOperand()}: pour mémoriser le premier opérande;
+	\item \pyinline{execCalc()}: pour exécuter le calcul;
+	\item \pyinline{read()}: pour transférer le résultat vers le registre de sortie ;
+\end{itemize}
+
+
+
+\paragraph{Exécution}
+La classe \pyinline{Executeur} a la charge de l'exécution du programme. L'exécution d'une instruction correspond à l'ensemble des étapes permettant d'évaluer un mot binaire. Chaque instruction se décompose en une série d'étapes élémentaires ou \textit{pas}. On suit l'évolution de l'exécution des différents pas à l'aide d'une variable d'état \pyinline{_currentState} (voir \cref{fig:graphe_currentState}).
+
+Le simulateur doit permettre d'accéder aux informations processeur (usages registres, mémoires, état UAL,...) à chaque pas. Les messages à visée didactique traçant l'exécution sont stockés dans l'attribut \pyinline{messages} (voir \cref{sec:interface})
+
+\begin{figure}
+	\centering
+	\input{fig-currentState.tex}
+	\caption{\label{fig:graphe_currentState}Graphe exécution instruction. Etat \pyinline{currentState}}
+\end{figure}
+
+
+ 
 
 \clearpage

@@ -1,0 +1,47 @@
+\tikzset{>=latex}
+\begin{tikzpicture}[shorten >=1pt,node distance=3cm,on grid,auto]
+\tikzstyle{command}=[sloped, align=center, font={\footnotesize\ttfamily}]
+
+\node[state,initial,accepting] (s_0)  {$0$};
+
+\node[state] (s_5) [above right of=s_0]  {$5$};
+
+\node[state] (s_1) [below right of=s_5]  {$1$};
+
+\node[state] (s_4) [above right of=s_1]  {$4$};
+
+\node[state] (s_2) [below right of=s_4]  {$2$};
+
+\node[state,accepting] (s_m1) [right of=s_2]  {$-1$};
+
+\node[state] (s_3) [below of=s_1]  {$3$};
+
+\node[state] (s_6) [above right of = s_5] {$6$};
+
+\node[state] (s_8) [above right  = 1.5 cm and 3 cm of s_6] {$8$};
+\node[state] (s_m2) [above left  = 1.5 cm and 3 cm of s_6] {$-2$};
+
+\node[state] (s_7) [below = 1.5 cm of s_3] {$7$};
+
+\path[->]
+(s_0)	edge				node[command]				{Line pointer ->\\ reg. adresse}	(s_1)
+(s_1)	edge				node[command]				{Mem. ->\\ reg. instruction}			(s_2)
+(s_2)	edge				node[command]				{HALT}								(s_m1)
+		edge				node[command,anchor=north]	{CMP}								(s_3)
+		edge				node[command]				{Opé. (+,-,\ldots)  \\-> UAL }		(s_4)
+		edge[bend left]		node[command]				{NOP, GOTO,...}						(s_0)
+		edge[bend right=40]	node[command]				{STORE}								(s_6)
+		edge[bend left]		node[command]				{LOAD}								(s_7)
+		edge[bend right]	node[command]				{INPUT}								(s_8)
+(s_3)	edge				node[command,anchor=north]	{Exécution\\UAL}					(s_0)
+(s_4)	edge				node[command]				{Exécution\\UAL}					(s_5)
+(s_5)	edge				node[command]				{UAL->\\reg. sortie}				(s_0)
+(s_6)	edge[bend right=40]	node[command]				{reg.->mem.}						(s_0)
+(s_7)	edge[bend left]		node[command]				{mem.->reg.}						(s_0)
+(s_8)	edge[bend right]	node[command]				{WAIT}								(s_m2)
+		edge[bend right=60]	node[command]				{Buffer->mem.}						(s_0)
+(s_m2)	edge[bend right]	node[command]				{Buffer->mem.}						(s_0)
+(s_m2)	edge[loop left]		node[command, anchor = south]				{WAIT}								()
+;
+
+\end{tikzpicture}

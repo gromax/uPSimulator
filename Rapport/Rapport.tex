@@ -15,10 +15,8 @@
 \clearpage
 
 \section{Présentation générale du projet}
-\subsection{Objectifs}
 \input{sec-objectifs}
-\subsection{Structure}
-diag UML ou équivalent
+
 
 \clearpage
 \section{Choix techniques}
@@ -28,35 +26,59 @@ diag UML ou équivalent
 
 \clearpage
 
-\subsection{Modèle de processeur}
+\subsection{\label{sec:processeur}Modèle de processeur}
 \input{sec-processeur}
 
-\subsection{Parsing}
+\subsection{\label{sec:Parsing}Parsing}
 
 
 \input{sec-parsing}
 
-\subsection{Structure de donnée du code analysé}
+\subsection{\label{sec:ParsedCode}Structure de donnée du code analysé}
 \input{sec-parsed_code}
 
+\clearpage
 \subsection{Compilation}
 \input{sec-compilation}
-%\subsection{Interface utilisateur}
 
+\clearpage
+\subsection{\label{sec:interface}Interface utilisateur}
+\input{sec-interface.tex}
+
+\clearpage
 \subsection{Gestion de la documentation}
 \input{sec-doc}
-\section{Organisation}
-\subsection{Planification}
 
+\clearpage
+\section{Organisation}
+\subsection{Outils de suivi}
+\paragraph{Gestion de projet}
+
+Le suivi de gestion de projet a été réalisé sur l'instance Redmine installée par Pascal Padilla sur un serveur de l'IREM (\url{https://pp.irem.univ-mrs.fr/projects/ctes-projet-mathematiques-informatique/}). Cet outil aura été mis à profit pour assurer le suivi des demandes et la planification, et se sera révélé aussi bien adapté pour centraliser et garder trace des échanges (forum).
+
+\paragraph{Gestion de version}
+La gestion de version a été réalisée sur Github (\url{https://github.com/gromax/uPSimulator})
+
+\subsection{Planification}
+L'organisation des tâches et le planning associé sont présentés sur la \cref{fig:Gantt}.
 \begin{figure}[h!]
-	\includegraphics[width=\textwidth]{./Pictures/Gantt.png}
-	\caption{Diagramme de Gantt du projet}
+	\centering
+	\includegraphics[width=0.9\textwidth]{./Pictures/Gantt.png}
+	\caption{\label{fig:Gantt}Diagramme de Gantt du projet}
 \end{figure}
 
 \subsection{Répartition des tâches}
+
+Le projet a été imaginé et conçu par Maxence Klein. La connaissance fine de l'objet physique modélisé, des contraintes pédagogiques attendues mais aussi des concepts de programmations à mettre en \oe uvre ont très rapidement mis en lumière un différentiel de compétences important avec les autres membres du projet . Il a dès le départ assumé pleinement son rôle de chef de projet en organisant le travail, en détaillant les taches à réaliser et les solutions techniques à implémenter. 
+
+Véronique Reynaud et Guillaume Desjouis ont pu assurer la mise en \oe uvre de certains éléments techniques sur la base du cahier des charges détaillé établi tandis que l'intégration finale était assuré par Maxence.
+
 \begin{appendix}
-	\listoffigures
-	\listoftables
+\listoffigures
+\begingroup
+\let\clearpage\relax
+\listoftables
+\endgroup
 \end{appendix}
 
 \end{document}

@@ -1,7 +1,5 @@
 \babel@toc {french}{}
 \contentsline {section}{\numberline {1}Présentation générale du projet}{3}{section.0.1}% 
-\contentsline {subsection}{\numberline {1.1}Objectifs}{3}{subsection.0.1.1}% 
-\contentsline {subsection}{\numberline {1.2}Structure}{3}{subsection.0.1.2}% 
 \contentsline {section}{\numberline {2}Choix techniques}{4}{section.0.2}% 
 \contentsline {subsection}{\numberline {2.1}Langage jouet}{4}{subsection.0.2.1}% 
 \contentsline {subsubsection}{\numberline {2.1.1}Expressions admissibles}{4}{subsubsection.0.2.1.1}% 
@@ -10,17 +8,25 @@
 \contentsline {subsubsection}{\numberline {2.1.4}Commentaires}{5}{subsubsection.0.2.1.4}% 
 \contentsline {subsection}{\numberline {2.2}Modèle de processeur}{6}{subsection.0.2.2}% 
 \contentsline {subsubsection}{\numberline {2.2.1}ProcessorEngine}{6}{subsubsection.0.2.2.1}% 
-\contentsline {subsubsection}{\numberline {2.2.2}Executeur}{9}{subsubsection.0.2.2.2}% 
-\contentsline {subsection}{\numberline {2.3}Parsing}{11}{subsection.0.2.3}% 
-\contentsline {subsubsection}{\numberline {2.3.1}Classe CodeParser}{11}{subsubsection.0.2.3.1}% 
-\contentsline {subsubsection}{\numberline {2.3.2}Classe LineParser}{12}{subsubsection.0.2.3.2}% 
+\contentsline {subsubsection}{\numberline {2.2.2}Executeur}{7}{subsubsection.0.2.2.2}% 
+\contentsline {paragraph}{Exécution}{7}{paragraph*.5}% 
+\contentsline {subsection}{\numberline {2.3}Parsing}{10}{subsection.0.2.3}% 
+\contentsline {subsubsection}{\numberline {2.3.1}Classe CodeParser}{10}{subsubsection.0.2.3.1}% 
+\contentsline {subsubsection}{\numberline {2.3.2}Classe LineParser}{10}{subsubsection.0.2.3.2}% 
 \contentsline {subsubsection}{\numberline {2.3.3}Classe ExpressionParser}{12}{subsubsection.0.2.3.3}% 
 \contentsline {subsubsection}{\numberline {2.3.4}Token}{13}{subsubsection.0.2.3.4}% 
 \contentsline {subsection}{\numberline {2.4}Structure de donnée du code analysé}{13}{subsection.0.2.4}% 
 \contentsline {subsubsection}{\numberline {2.4.1}Classe StructureNode}{13}{subsubsection.0.2.4.1}% 
 \contentsline {subsubsection}{\numberline {2.4.2}Classes ArithmeticExpressionNode, LogicExpressionNode et ComparisonExpressionNode}{15}{subsubsection.0.2.4.2}% 
-\contentsline {subsection}{\numberline {2.5}Compilation}{15}{subsection.0.2.5}% 
-\contentsline {subsection}{\numberline {2.6}Gestion de la documentation}{15}{subsection.0.2.6}% 
-\contentsline {section}{\numberline {3}Organisation}{15}{section.0.3}% 
-\contentsline {subsection}{\numberline {3.1}Planification}{15}{subsection.0.3.1}% 
-\contentsline {subsection}{\numberline {3.2}Répartition des tâches}{15}{subsection.0.3.2}% 
+\contentsline {subsection}{\numberline {2.5}Compilation}{16}{subsection.0.2.5}% 
+\contentsline {subsubsection}{\numberline {2.5.1}Classe CompilationManager}{16}{subsubsection.0.2.5.1}% 
+\contentsline {subsubsection}{\numberline {2.5.2}CompileExpressionManager}{16}{subsubsection.0.2.5.2}% 
+\contentsline {subsubsection}{\numberline {2.5.3}AssembleurContainer}{16}{subsubsection.0.2.5.3}% 
+\contentsline {subsection}{\numberline {2.6}Interface utilisateur}{17}{subsection.0.2.6}% 
+\contentsline {subsection}{\numberline {2.7}Gestion de la documentation}{18}{subsection.0.2.7}% 
+\contentsline {section}{\numberline {3}Organisation}{19}{section.0.3}% 
+\contentsline {subsection}{\numberline {3.1}Outils de suivi}{19}{subsection.0.3.1}% 
+\contentsline {paragraph}{Gestion de projet}{19}{paragraph*.17}% 
+\contentsline {paragraph}{Gestion de version}{19}{paragraph*.18}% 
+\contentsline {subsection}{\numberline {3.2}Planification}{19}{subsection.0.3.2}% 
+\contentsline {subsection}{\numberline {3.3}Répartition des tâches}{20}{subsection.0.3.3}% 

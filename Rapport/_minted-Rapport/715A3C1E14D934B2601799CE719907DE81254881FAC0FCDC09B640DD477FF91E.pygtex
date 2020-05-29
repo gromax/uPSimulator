@@ -1,0 +1,78 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{.. module:: litteral}
+\PYG{l+s+sd}{   :synopsis: définition d\PYGZsq{}un objet contenant une valeur littérale}
+\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+
+\PYG{k}{class} \PYG{n+nc}{Litteral}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{value}\PYG{p}{:} \PYG{n+nb}{int}\PYG{p}{):}
+        \PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Constructeur de la classe}
+
+\PYG{l+s+sd}{        :param value: valeur du littéral}
+\PYG{l+s+sd}{        :type value: int}
+\PYG{l+s+sd}{        \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+        \PYG{k}{assert} \PYG{n+nb}{isinstance}\PYG{p}{(}\PYG{n}{value}\PYG{p}{,}\PYG{n+nb}{int}\PYG{p}{)}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}value} \PYG{o}{=} \PYG{n}{value}
+
+    \PYG{n+nd}{@property}
+    \PYG{k}{def} \PYG{n+nf}{value}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{int}\PYG{p}{:}
+        \PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Retourne la valeur du littéral}
+
+\PYG{l+s+sd}{        :return: valeur du littéral}
+\PYG{l+s+sd}{        :rtype: int}
+
+\PYG{l+s+sd}{        :Example:}
+\PYG{l+s+sd}{            \PYGZgt{}\PYGZgt{}\PYGZgt{} Litteral(8).value}
+\PYG{l+s+sd}{            8}
+\PYG{l+s+sd}{            \PYGZgt{}\PYGZgt{}\PYGZgt{} Litteral(\PYGZhy{}15).value}
+\PYG{l+s+sd}{            \PYGZhy{}15}
+\PYG{l+s+sd}{        \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+
+        \PYG{k}{return} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}value}
+
+    \PYG{k}{def} \PYG{n+nf}{negClone}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{l+s+s1}{\PYGZsq{}Litteral\PYGZsq{}}\PYG{p}{:}
+        \PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Produit un clone du littéral avec valeur opposée}
+
+\PYG{l+s+sd}{        :return: clone du littéral avec valeur opposée}
+\PYG{l+s+sd}{        :rtype: Litteral}
+
+\PYG{l+s+sd}{        :Example:}
+\PYG{l+s+sd}{            \PYGZgt{}\PYGZgt{}\PYGZgt{} Litteral(8).negClone().value}
+\PYG{l+s+sd}{            \PYGZhy{}8}
+\PYG{l+s+sd}{        \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+
+        \PYG{k}{return} \PYG{n}{Litteral}\PYG{p}{(}\PYG{o}{\PYGZhy{}}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}value}\PYG{p}{)}
+
+\PYG{k}{def} \PYG{n+nf}{isBetween}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{minValue}\PYG{p}{:}\PYG{n+nb}{int}\PYG{p}{,} \PYG{n}{maxValue}\PYG{p}{:}\PYG{n+nb}{int}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{bool}\PYG{p}{:}
+    \PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Retourne True si la valeur courante est comprise entre minValue et maxValue.}
+
+\PYG{l+s+sd}{    :param minValue: valeur minimum}
+\PYG{l+s+sd}{    :type minValue: int}
+\PYG{l+s+sd}{    :param maxValue: valeur maximum}
+\PYG{l+s+sd}{    :type maxValue: int}
+\PYG{l+s+sd}{    :return: Vrai si la valeur du littéral est compris entre minValue et maxValue, inclus}
+\PYG{l+s+sd}{    :rtype: bool}
+
+\PYG{l+s+sd}{    :Example:}
+\PYG{l+s+sd}{        \PYGZgt{}\PYGZgt{}\PYGZgt{} Litteral(8).isBetween(4,12)}
+\PYG{l+s+sd}{        True}
+\PYG{l+s+sd}{        \PYGZgt{}\PYGZgt{}\PYGZgt{} Litteral(25).isBetween(4,12)}
+\PYG{l+s+sd}{        False}
+
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+
+    \PYG{k}{return} \PYG{n}{minValue} \PYG{o}{\PYGZlt{}=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}value} \PYG{o}{\PYGZlt{}=} \PYG{n}{maxValue}
+
+\PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}str\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{str}\PYG{p}{:}
+    \PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Transtypage \PYGZhy{}\PYGZgt{} str. Affiche le littéral préfixé par \PYGZsh{}}
+
+\PYG{l+s+sd}{    :return: \PYGZsh{} + valeur du littéral}
+\PYG{l+s+sd}{    :rtype: str}
+
+\PYG{l+s+sd}{    :Example:}
+\PYG{l+s+sd}{        \PYGZgt{}\PYGZgt{}\PYGZgt{} str(Litteral(8))}
+\PYG{l+s+sd}{        \PYGZsq{}\PYGZsh{}8\PYGZsq{}}
+
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{k}{return} \PYG{l+s+s2}{\PYGZdq{}\PYGZsh{}\PYGZdq{}}\PYG{o}{+}\PYG{n+nb}{str}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}value}\PYG{p}{)}
+\end{Verbatim}
