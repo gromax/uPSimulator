@@ -34,6 +34,7 @@ class StructureNodeList(LinkedList):
         :param csl: liste des comparaisons permises par le processeur utilisé
         :type csl: List[str]
         """
+
         for node in self.toList():
             if isinstance(node, IfNode):
                 nodeLinear = node._getLinearStructureList(csl)
@@ -111,6 +112,7 @@ class StructureNodeList(LinkedList):
 class StructureNode(LinkedListNode):
     _lineNumber = 0 # type : int
     _label:Optional["Label"] = None
+
     def __str__(self) -> str:
         """Transtypage -> str
 
@@ -338,7 +340,7 @@ class IfElseNode(IfNode):
         """
         childrenStr = self._children.tabulatedStr()
         elseChildrenStr = self._elseChildren.tabulatedStr()
-        return "{}\tif {} {{\n{}\n\t}}\nelse {{\n{}\n\t}}".format(self.labelToStr(), self._condition, childrenStr, elseChildrenStr)
+        return "{}\tif {} {{\n{}\n\t}} else {{\n{}\n\t}}".format(self.labelToStr(), self._condition, childrenStr, elseChildrenStr)
 
     def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud If Else.
@@ -417,8 +419,7 @@ class WhileNode(IfNode):
         # pointerait sur L._head au lieu d'un véritable _next
         # on ajoute donc un élément dummy à la suite pour prévenir
         # cette situation (gênante pour le saut)
-        dummy = SimpleNode("dummy")
-        self.insertRight(dummy)
+        self.insertRight(SimpleNode("dummy"))
 
         self._children._linearizeRecursive(csl)
         cibleWhile = self._children.head
@@ -668,11 +669,9 @@ if __name__=="__main__":
 
     print()
 
-    from codeparser import *
-    code = CodeParser(filename = "example2.code")
-    structureList = StructureNodeList(code.getFinalStructuredList())
-#    for item in code.getFinalStructuredList():
-#        structureList.append(item)
+    from codeparser import CodeParser
+    code = CodeParser.parse(filename = "example2.code")
+    structureList = StructureNodeList(cast(List[LinkedListNode], code))
     print("Avant linéarisation...")
     print(structureList)
     structureList.linearize([">","<","=="])
