@@ -46,8 +46,9 @@ class CompilationManager:
         self._asm = AssembleurContainer(self._engine)
         self._linearList = StructureNodeList(listOfStructureNodes)
         comparaisonSymbolsAvailables = self._engine.getComparaisonSymbolsAvailables()
+        print(self._linearList)
         self._linearList.linearize(comparaisonSymbolsAvailables)
-        self.__compileASM()
+        self._compileASM()
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -57,7 +58,7 @@ class CompilationManager:
         """
         return "\n".join([str(item) for item in self._linearList])
 
-    def __pushArithmeticAsm(self, lineNumber:int, label:Optional[Label], expression:ArithmeticExpressionNode) -> int:
+    def _pushArithmeticAsm(self, lineNumber:int, label:Optional[Label], expression:ArithmeticExpressionNode) -> int:
         """Gère la compilation d'une expression arithmétique
 
         :param lineNumber: numéro de ligne d'origine de l'expression
@@ -73,7 +74,7 @@ class CompilationManager:
         expression.compile(cem)
         return cem.getResultRegister()
 
-    def __pushComparaisonAsm(self, lineNumber:int, label:Optional[Label], condition:ComparaisonExpressionNode) -> None:
+    def _pushComparaisonAsm(self, lineNumber:int, label:Optional[Label], condition:ComparaisonExpressionNode) -> None:
         """Gère la compilation d'une expression de comparaison
 
         :param lineNumber: numéro de ligne d'origine de l'expression
@@ -87,7 +88,7 @@ class CompilationManager:
         condition.compile(cem)
 
 
-    def __pushNodeAsm(self, node:StructureNode) -> None:
+    def _pushNodeAsm(self, node:StructureNode) -> None:
         """Exécute la compilation pour un noeud. Le résultat est ajouté à l'objet assembleur.
 
         :param node: noeud à compiler
@@ -96,14 +97,14 @@ class CompilationManager:
         """
         lineNumber = node.lineNumber
         if isinstance(node, AffectationNode):
-            resultRegister = self.__pushArithmeticAsm(lineNumber, node.label, node.expression)
+            resultRegister = self._pushArithmeticAsm(lineNumber, node.label, node.expression)
             self._asm.pushStore(lineNumber, None, resultRegister, node.cible)
             return
         if isinstance(node, InputNode):
             self._asm.pushInput(lineNumber, node.label, node.cible)
             return
         if isinstance(node, PrintNode):
-            resultRegister = self.__pushArithmeticAsm(lineNumber, node.label, node.expression)
+            resultRegister = self._pushArithmeticAsm(lineNumber, node.label, node.expression)
             self._asm.pushPrint(lineNumber, resultRegister)
             return
         if isinstance(node, JumpNode):
@@ -113,19 +114,19 @@ class CompilationManager:
                 self._asm.pushJump(lineNumber, node.label, labelCible)
                 return
             comparaisonSymbol = condition.comparaisonSymbol
-            self.__pushComparaisonAsm(lineNumber, node.label, condition)
+            self._pushComparaisonAsm(lineNumber, node.label, condition)
             self._asm.pushJump(lineNumber, None, labelCible, comparaisonSymbol)
         if isinstance(node, SimpleNode) and node.snType == 'halt':
             self._asm.pushHalt(node.label)
 
-    def __compileASM(self) -> None:
+    def _compileASM(self) -> None:
         """Produit le code assembleur et conclut par HALT.
         Le résultat est stocké directement dans l'objet assembleur créé à l'initialisation.
 
         :return: pas de retour
         """
         for node in self._linearList.toList():
-            self.__pushNodeAsm(node)
+            self._pushNodeAsm(node)
 
     @property
     def asm(self) -> AssembleurContainer:
@@ -161,6 +162,6 @@ if __name__=="__main__":
     print()
     print()
     from codeparser import *
-    code = CodeParser(filename = "example3.code")
-    cm = CompilationManager(engine, code.getFinalStructuredList())
+    code = CodeParser.parse(filename = "example2.code")
+    cm = CompilationManager(engine, code)
     print(cm.asm)
