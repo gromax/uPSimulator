@@ -4,9 +4,9 @@
 """
 
 from typing import List, Optional
-from lineparser import LineParser, Caracteristiques
+from lineparser import *
 from structuresnodes import *
-#from errors import *
+from errors import *
 
 class CodeParser: # Définition classe
     """Classe CodeParser
@@ -16,249 +16,360 @@ class CodeParser: # Définition classe
     ATTENTION - pas de gestion particulière du if, elif, else -> pas de tuple pour le noeud if et else --> voir structureelements
     """
 
-    def __init__(self, **options): # Constructeur
-        '''
+    @classmethod
+    def parse(cls, **options) -> List[StructureNode]:
+        """
+        parse le contenu de l'entité fournie :
         options doit contenir l'un des attributs :
         - filename : nom de fichier contenant le code
         - code : chaîne de caractère contenant le code
-        '''
-        self.__listingCode = [] # liste des objets LineParser de chaque ligne du code parsé
-        self.__structuredListeNode = [] # liste des objets Node construite à partir de __listingCode
+        """
         if "filename" in options:
             filename = options["filename"]
-            self.__parseFile(filename)
-        elif "code" in options:
+            return cls._parseFile(filename)
+        if "code" in options:
             code = options["code"]
-            self.parseCode(code.split("\n"))
-        else:
-            raise ParseError("Il faut donner 'filename' ou 'code'")
+            return cls._parseCode(code.split("\n"))
+        raise ParseError("Il faut donner 'filename' ou 'code'")
 
-    def __parseFile(self, filename:str) -> None:
-        # Lecture de toutes les lignes du fichier
+    @classmethod
+    def _parseFile(cls, filename:str) -> List[StructureNode]:
+        """Ouverture d'un fichier avant parse
+
+        :param filename: nom du fichier
+        :type filename: str
+        :return: liste de noeuds représentant le programme
+        :rtype: List[StructureNode]
+        """
         file = open(filename, "r")
         lines = file.readlines()
         file.close()
-        self.parseCode(lines)
-        return
+        return cls._parseCode(lines)
 
-    def parseCode(self, lignesCode:List[str]) -> None:
-        # On boucle sur les lignes de code
-        for num, line in enumerate(lignesCode):
-            objLine = LineParser(line, num+1)
-            caract = objLine.getCaracs()
+    @classmethod
+    def _parseCode(cls, lignesCode:List[str]) -> List[StructureNode]:
+        """Parse du programme donné sous forme d'une liste de lignes
+
+        :param lignesCode: lignes du programme
+        :type filename: List[str]
+        :return: liste de noeuds représentant le programme
+        :rtype: List[StructureNode]
+        """
+
+        listParsedLines: List[ParsedLine] = []
+        for index, line in enumerate(lignesCode):
+            objLine = cls._parseLine(line, index+1)
             # Traitement ligne non vide
-            if not caract['emptyLine'] :
+            if not objLine.empty:
                 # Ajout des informations parsées dans le listing
-                self.__listingCode.append(caract)
+                listParsedLines.append(objLine)
 
-        self.__manageElif()
-        self.__blocControl()
-        self.__buildFinalNodeList()
-        self.__structureList()
-        return
+        indentationErrorLineNumber = cls._verifyIndent(listParsedLines)
+        if indentationErrorLineNumber >= 0:
+            raise ParseError("Erreur d'indentation.", {"lineNumber": indentationErrorLineNumber})
 
-    def __manageElif(self) -> bool:
-        # Gestion du cas Elif
-        for line in self.__listingCode:
-            if line['type'] == 'elif':
-                startIndice = self.__listingCode.index(line)
-                startIndentation = line['indentation']
-                line['type'] = 'if'
-                line['indentation'] += 4
-                tmpLine = LineParser(' ' * startIndentation + 'else:', line['lineNumber'])
-                caract = tmpLine.getCaracs()
-                # on insère le else au niveau du elif devenu if
-                self.__listingCode.insert(startIndice, caract)
-                nextIndice = startIndice + 1
-                while self.__listingCode[nextIndice + 1]['indentation'] > startIndentation:
-                    self.__listingCode[nextIndice + 1]['indentation'] += 4
-                    nextIndice += 1
-                    if len(self.__listingCode) == nextIndice + 1: break
-                # gestion du cas elif à nouveau après un cas elif traité précédemment
+        elseErrorLineNumber = cls._verifyElse(listParsedLines)
+        if elseErrorLineNumber >= 0:
+            raise ParseError("elif ou else n'est pas correctement lié à un if.", {"lineNumber": elseErrorLineNumber})
 
-                if len(self.__listingCode) > nextIndice + 1 and self.__listingCode[nextIndice + 1]['type'] == 'elif':
-                    startIndentation = self.__listingCode[nextIndice + 1]['indentation']
-                    self.__listingCode[nextIndice + 1]['indentation'] += 4
-                    nextIndice = nextIndice + 1
-                    while self.__listingCode[nextIndice + 1]['indentation'] > startIndentation:
-                        self.__listingCode[nextIndice + 1]['indentation'] += 4
-                        nextIndice += 1
-                        if len(self.__listingCode) == nextIndice + 1: break
-                # gestion du cas else du elif
-                if len(self.__listingCode) > nextIndice + 1 and self.__listingCode[nextIndice + 1]['type'] == 'else':
-                    startIndentation = self.__listingCode[nextIndice + 1]['indentation']
-                    self.__listingCode[nextIndice + 1]['indentation'] += 4
-                    nextIndice = nextIndice + 1
-                    while self.__listingCode[nextIndice + 1]['indentation'] > startIndentation:
-                        self.__listingCode[nextIndice + 1]['indentation'] += 4
-                        nextIndice += 1
-                        if len(self.__listingCode) == nextIndice + 1: break
-        return True
+        groupedList = cls._groupBlocs(listParsedLines)
+        return cls._convertParsedLinesToStructurNodes(groupedList)
 
-    def __blocControl(self) -> None:
-        # Contrôle des blocs et de l'indentation
-        for indice in range(len(self.__listingCode)):
-            if self.__listingCode[indice]['type'] in ("if", "elif", "else", "while"):
-                # cas dernière ligne de code : on attend une instruction
-                if indice+1 == len(self.__listingCode):
-                    lineNumber = self.__listingCode[indice]['lineNumber']
-                    typeBloc = self.__listingCode[indice]['type']
-                    raise ParseError(f"Il manque une instruction en fin de programme après le bloc <{typeBloc}>", {"lineNumber":lineNumber})
-                # cas ligne instruction suivante doit avoir une indentation supplémentaire
-                if self.__listingCode[indice+1]['indentation'] != self.__listingCode[indice]['indentation'] + 4:
-                    lineNumber = self.__listingCode[indice]['lineNumber']
-                    typeBloc = self.__listingCode[indice]['type']
-                    raise ParseError(f"Indentation incorrecte [+4 requis] - bloc <{typeBloc}>", {"lineNumber":lineNumber+1})
+    @classmethod
+    def _verifyIndent(cls, listParsedLines:List[ParsedLine]) -> int:
+        """
+        vérifie le bon enchaînement des indentations
 
-        # Contrôle de if associé au else - Parcours de liste en sens inverse
-        for line in reversed(self.__listingCode):
-            if line['type'] == 'else':
-                startIndice = self.__listingCode.index(line)
-                startIndentation = line['indentation']
-                nextIndice = startIndice - 1
-                while nextIndice >= 0 and self.__listingCode[nextIndice]['indentation'] > startIndentation:
-                    nextIndice -= 1
-                if nextIndice == -1 or self.__listingCode[nextIndice]['type'] != 'if':
-                    elseLineNumber = self.__listingCode[startIndice]['lineNumber']
-                    raise ParseError(f"Détection d'un <else> sans <if> associé.", {"lineNumber": elseLineNumber})
+        :param listParsedLines: liste des lignes parsées
+        :type listParsedLines: List[ParsedLine]
+        :return: numéro de ligne d'une éventuelle erreur, -1 si pas d'erreur
+        :rtype: int
+        """
 
-    def __buildFinalNodeList(self) -> bool:
-        #Construction de la liste d'objets StructureNode
-        # print("")
-        # new liste ! et revoir __structureList() ??
+        if len(listParsedLines) == 0:
+            # liste vide
+            return -1
+        firstLine = listParsedLines[0]
+        previousIndents = [firstLine.indentation]
+        for index in range(1,len(listParsedLines)):
+            currentLine  = listParsedLines[index]
+            previousLine = listParsedLines[index-1]
+            if previousLine.needIndentation():
+                # augmentation de l'indentation requise
+                if currentLine.indentation > previousLine.indentation:
+                    previousIndents.append(currentLine.indentation)
+                    continue
+                return currentLine.lineNumber
+            if currentLine.indentation > previousLine.indentation:
+                # augmentation imprévue de l'indentation
+                return currentLine.lineNumber
+            if currentLine.indentation < previousLine.indentation:
+                # diminution de l'indentation
+                # doit revenir à un niveau antérieur
+                while len(previousIndents) > 0 and previousIndents[-1] > currentLine.indentation:
+                    # dépile un niveau d'indentation
+                    previousIndents.pop()
+                if len(previousIndents) == 0 or previousIndents[-1] < currentLine.indentation:
+                    # l'indentation courante est soit trop faible soit pas sur un niveau antérieur
+                    return currentLine.lineNumber
+        # ne doit pas terminé par un item nécessitant indentation
+        lastLine = listParsedLines[-1]
+        if lastLine.needIndentation():
+            return lastLine.lineNumber
+        return -1
 
-        # copie locale inversée de __listingCode
-        localeListingCode = self.__listingCode[::-1]
-        # liste des profondeurs
-        listReverseProf = [localeListingCode[index]["indentation"] for index in range(len(localeListingCode))]
-        # print(listReverseProf)
-        # On commence par l'indentation maximale
-        if len(listReverseProf) > 0:
-            maximun = max(listReverseProf)
-        else:
-            maximun = -1
-        flagElse = False
-        # tant que l'on a un maximum > 0 il faut regrouper
-        while maximun >= 0:
-            indexMaximun = listReverseProf.index(maximun)
-            # print(f"While Principal >> maximun {maximun} > indexMaximun {indexMaximun}")
-            while listReverseProf[indexMaximun] == maximun :
-                # Parcourir toutes les lignes suivantes ayant la même indentation
-                blockInstruction:List[StructureNode] = []
-                ligneCourante = indexMaximun
-                # print(f"While Secondaire >> ligneCourante {ligneCourante} > listReverseProf[ligneCourante] {listReverseProf[ligneCourante]}")
-                while (len(listReverseProf) > 0 and listReverseProf[ligneCourante] == maximun):
-                    nodeInstruction:Optional[StructureNode] = None
-                    lineInstruction = localeListingCode.pop(ligneCourante)
-                    listReverseProf.pop(ligneCourante)
-                    # print(f"While Interne >> lineInstruction")
-                    # print(listReverseProf)
-                    # print(lineInstruction)
-                    # On détermine la StructureNode associée à la ligne instruction
-                    if lineInstruction['type'] == 'affectation':
-                        nodeInstruction = AffectationNode(lineInstruction['lineNumber'],lineInstruction['variable'],lineInstruction['expression'])
-                    if lineInstruction['type'] == 'input':
-                        nodeInstruction = InputNode(lineInstruction['lineNumber'],lineInstruction['variable'])
-                    if lineInstruction['type'] == 'print':
-                        nodeInstruction = PrintNode(lineInstruction['lineNumber'],lineInstruction['expression'])
-                    if lineInstruction['type'] == 'else':
-                        flagElse = True
-                        blockElseListInstruction = lineInstruction['children']
-                        blockElseLine = lineInstruction['lineNumber']
-                    if lineInstruction['type'] == 'if':
-                        blockIfListInstruction = lineInstruction['children']
-                        blockIfLine = lineInstruction['lineNumber']
-                        if flagElse:
-                            nodeInstruction = IfElseNode(blockIfLine,lineInstruction['condition'],blockIfListInstruction,blockElseLine,blockElseListInstruction)
-                        else:
-                            nodeInstruction = IfNode(blockIfLine,lineInstruction['condition'],blockIfListInstruction)
-                        flagElse = False
-                    if lineInstruction['type'] == 'while':
-                        blockWhileListInstruction = lineInstruction['children']
-                        blockWhileLine = lineInstruction['lineNumber']
-                        nodeInstruction = WhileNode(blockWhileLine,lineInstruction['condition'],blockWhileListInstruction)
+    @classmethod
+    def _verifyElse(cls, listParsedLines:List[ParsedLine]) -> int:
+        """
+        vérifie si un else ou elif donné correspond bien à un if
 
-                    # Listing des instructions dans un même bloc - Pour le else nodeInstruction n'est pas affecté
-                    if isinstance(nodeInstruction,StructureNode):
-                        blockInstruction.insert(0,nodeInstruction)
-                    # print(blockInstruction)
+        :param listParsedLines: liste des lignes parsées
+        :type listParsedLines: List[ParsedLine]
+        :return: numéro de ligne d'une éventuelle erreur, -1 si pas d'erreur
+        :rtype: int
+        """
+        if len(listParsedLines) == 0:
+            # liste vide
+            return -1
+        # recherche un else ou elif
+        for index in range(len(listParsedLines)):
+            currentLine = listParsedLines[index]
+            if isinstance(currentLine, (ParsedLine_Elif, ParsedLine_Else)):
+                # Il faut remonter vers la ligne antérieure de même indentation
+                # pour s'assurer que c'est un if ou elif
+                precedent = index-1
+                while precedent >= 0 and listParsedLines[precedent].indentation > currentLine.indentation:
+                    precedent -= 1
+                if precedent < 0:
+                    # on n'a pas trouvé d'indentation antérieure valable
+                    return currentLine.lineNumber
+                precLine = listParsedLines[precedent]
+                if not isinstance(precLine, (ParsedLine_If, ParsedLine_Elif)):
+                    # l'antécédent à la même indentation n'est ni if ni elif donc erreur
+                    return currentLine.lineNumber
+        return -1
 
-                    # print(f"{len(listReverseProf)} {indexMaximun}")
+    @classmethod
+    def _getIndexEndIndentation(cls, startIndex:int, listParsedLines:List[ParsedLine]) -> int:
+        """
+        en référence à l'indentation du premier élément, cherchel l'index pour lequel
+        l'indentation passe en dessous de l'indentation à l'index startIndex
 
-                    # On sort si on a vidé la liste (cas sortie du niveau 0 d'indentation)
-                    if len(listReverseProf) == 0:
-                        break
+        :param startIndex: index du premier élément considéré
+        :type startIndex: int
+        :param listParsedLines: liste des lignes parsées
+        :type listParsedLines: List[ParsedLine]
+        :return: index du premier item dont l'indentaiton passe en dessous de l'indentation du premier élément ou longueur de la liste
+        :rtype: int
+        """
+        if startIndex >= len(listParsedLines) - 1:
+            return startIndex + 1
+        firstLine = listParsedLines[startIndex]
+        firstIndentation = firstLine.indentation
+        for index in range(startIndex+1,len(listParsedLines)):
+            line = listParsedLines[index]
+            if line.indentation < firstIndentation:
+                return index
+        return len(listParsedLines)
 
-                # Cas du niveau indentation 0 -> On alimente __structuredListeNode
-                if indexMaximun == 0:
-                    # print("indexMaximun == 0 >> On alimente __structuredListeNode")
-                    self.__structuredListeNode = blockInstruction
+    @classmethod
+    def _groupBlocs(cls, listParsedLines:List[ParsedLine]) -> List[ParsedLine]:
+        """
+        regroupe les blocs en arborescence suivant l'indentation
 
-                # On sort si on a vidé la liste (cas sortie du niveau 0 d'indentation)
-                if len(listReverseProf) == 0:
-                    break
+        :param listParsedLines: liste des lignes parsées
+        :type listParsedLines: List[ParsedLine]
+        :return: liste avec les blocs regroupés
+        :rtype: List[ParsedLine]
+        """
+        if len(listParsedLines) == 0:
+            return []
+        alreadyGrouped = [listParsedLines[0]]
+        currentIndex = 1
+        while currentIndex < len(listParsedLines):
+            previousLine = alreadyGrouped[-1]
+            currentLine = listParsedLines[currentIndex]
+            if currentLine.indentation < previousLine.indentation:
+                # ce bloc est terminé
+                return alreadyGrouped
+            if currentLine.indentation == previousLine.indentation:
+                # même indentation, le bloc se poursuit
+                currentIndex += 1
+                alreadyGrouped.append(currentLine)
+                continue
+            # dernier cas : augmentation indentation
+            # il faut collecter le bloc
+            nextIndex = cls._getIndexEndIndentation(currentIndex, listParsedLines)
+            subBloc = listParsedLines[currentIndex:nextIndex]
+            subBlocGrouped = cls._groupBlocs(subBloc) # propagation récursive
+            previousLine.addChildren(subBlocGrouped)
+            currentIndex = nextIndex
+        return cls._convertElifToElseIf(alreadyGrouped)
 
-                # cas d'un bloc instruction à associer au children du container
-                # print(f"Fin bloc instruction --> Affectation à children : {ligneCourante}")
-                localeListingCode[ligneCourante]['children'] = []
-                localeListingCode[ligneCourante]['children'] = blockInstruction
+    @classmethod
+    def _convertElifToElseIf(cls, listParsedLine:List[ParsedLine]):
+        """
+        coupe les elif en else contenant if
 
-            # On sort si on a vidé la liste (cas sortie du niveau 0 d'indentation)
-            if len(listReverseProf) == 0:
-                break
+        :param listParsedLines: liste des lignes parsées
+        :type listParsedLines: List[ParsedLine]
+        :return: liste avec les elif séparés
+        :rtype: List[ParsedLine]
+        """
+        reversedListParsedLines = listParsedLine[::-1]
+        modifiedList:List[ParsedLine] = []
+        pendindElse:Optional[ParsedLine_Else] = None
+        for currentLine in reversedListParsedLines:
+            if isinstance(currentLine, ParsedLine_Else):
+                pendindElse = currentLine
+            elif isinstance(currentLine, ParsedLine_Elif):
+                newElse = currentLine.toElseIf()
+                if not(pendindElse is None):
+                    newElse.addChild(pendindElse)
+                pendindElse = newElse
+            elif isinstance(currentLine, ParsedLine_If): # après, attention héritage !
+                if not(pendindElse is None):
+                    modifiedList.append(pendindElse)
+                    pendindElse = None
+                modifiedList.append(currentLine)
+            else:
+                modifiedList.append(currentLine)
+        return modifiedList[::-1]
 
-            # Nouveau maximum d'indentation à trairer
-            maximun = max(listReverseProf)
+    @classmethod
+    def _convertParsedLinesToStructurNodes(cls, listParsedLine:List[ParsedLine]) -> List['StructureNode']:
+        """Convertit une liste de ParsedLine en liste de StructureNode
 
-        return True
+        :param listParsedLine: liste des objets à convertir
+        :type parsedLine: List[ParsedLine]
+        :return: liste sous forme de StructureNode
+        :rtype: List[StructureNode]
+        """
+
+        reversedListParsedLines = listParsedLine[::-1]
+        outList:List[StructureNode] = []
+        pendingElse:Optional[ParsedLine_Else] = None
+        newNode: StructureNode
+        children: List[StructureNode]
+        elseChildren: List[StructureNode]
+        for line in reversedListParsedLines:
+            if isinstance(line, ParsedLine_Else):
+                pendingElse = line
+                continue
+            elif isinstance(line, ParsedLine_While): # While avant If, Attention héritage !
+                children = cls._convertParsedLinesToStructurNodes(line.children)
+                newNode = WhileNode(line.lineNumber, line.condition, children)
+            elif isinstance(line, ParsedLine_If) and not(pendingElse is None):
+                children = cls._convertParsedLinesToStructurNodes(line.children)
+                elseChildren = cls._convertParsedLinesToStructurNodes(pendingElse.children)
+                newNode = IfElseNode(line.lineNumber, line.condition, children, pendingElse.lineNumber, elseChildren)
+            elif isinstance(line, ParsedLine_If):
+                children = cls._convertParsedLinesToStructurNodes(line.children)
+                newNode = IfNode(line.lineNumber, line.condition, children)
+            elif isinstance(line, ParsedLine_Print):
+                newNode = PrintNode(line.lineNumber, line.expression)
+            elif isinstance(line, ParsedLine_Input):
+                newNode = InputNode(line.lineNumber, line.variable)
+            elif isinstance(line, ParsedLine_Affectation):
+                newNode = AffectationNode(line.lineNumber, line.variable, line.expression)
+            else:
+                raise ParseError("Erreur imprévue.", {"lineNumber":line.lineNumber})
+            outList.append(newNode)
+
+        return outList[::-1]
+
+    # méthodes concernant la gestion d'une ligne
+    @classmethod
+    def _parseLine(cls, originalLine:str, lineNumber:int) -> ParsedLine:
+        """parse d'une ligne
+
+        :param originalLine: ligne d'origine
+        :type originalLine: str
+        :param lineNumber: numéro de la ligne d'origine
+        :type line Number: int
+        :return: noeud de type LP
+        :raises: ParseError si type de ligne pas reconnue
+        """
+
+        cleanLine   = cls._suppCommentsAndEndSpaces(originalLine)
+        emptyLine   = (cleanLine == "")
+        indentation = cls._countIndentation(originalLine)
+
+        if emptyLine:
+            return ParsedLine(lineNumber)
+
+        classesToTry = (ParsedLine_If, ParsedLine_Elif, ParsedLine_While, ParsedLine_Else, ParsedLine_Print, ParsedLine_Input, ParsedLine_Affectation)
+        # remarque : il faut tester input avant affectation car input() génère autrement une erreur
+        # si interprété comme une expression
+        for c in classesToTry:
+            lineObject: Optional[ParsedLine] = c.tryNew(lineNumber, indentation, cleanLine)
+            if not lineObject is None:
+                return lineObject
+        raise ParseError("Erreur de syntaxe : <{}>".format(cleanLine), {"lineNumber":lineNumber})
+        return ParsedLine(lineNumber)
+
+    @classmethod
+    def _suppCommentsAndEndSpaces(cls, line:str) -> str:
+        """
+        :param line: ligne d'origine
+        :type line: str
+        :return: ligne sans les espaces initiaux et terminaux ainsi que les éventuels commentaires
+        :rtype: str
+        """
+        return re.sub("\s*(\#.*)?$","",line).strip()
+
+    @classmethod
+    def _countIndentation(cls, line:str) -> int:
+        """
+        :param line: ligne dont il faut compter l'indentation
+        :type line: str
+        :return: nombre d'espaces d'indentation
+        :rtype: int
+        """
+        line = re.sub("\s*(\#.*)?$","",line)
+        return len(re.findall("^\s*",line)[0])
 
 
-    def __structureList(self) -> bool:
-        #Parcours du listing pour ranger les enfants
-        listProfondeur = [self.__listingCode[index]["indentation"] for index in range(len(self.__listingCode))]
-        if len(listProfondeur) > 0:
-            maximun = max(listProfondeur)
-        else:
-            maximun = -1
-        while maximun > 0:
-            indexMaximun = listProfondeur.index(maximun)
-            self.__listingCode[indexMaximun - 1]['children'] = []
-            while listProfondeur[indexMaximun] == maximun :
-                self.__listingCode[indexMaximun - 1]['children'].append(self.__listingCode.pop(indexMaximun))
-                listProfondeur.pop(indexMaximun)
-                if len(listProfondeur) == indexMaximun:
-                    break
-            maximun = max(listProfondeur)
-        return True
 
 
-    def __recursiveStringifyLine(self, line:Caracteristiques, tab:int) -> str:
-        strLine = " "*tab + ", ".join([f"{key}:{value}" for key, value in line.items() if key != "children"])
-        if "children" in line:
-            childrens = [self.__recursiveStringifyLine(child, tab+4) for child in line["children"]]
-            strLine += "\n" + "\n".join(childrens)
-        return strLine
 
-    def __str__(self) -> str:
-        strLines = [self.__recursiveStringifyLine(line,0) for line in self.__listingCode]
-        return "\n".join(strLines)
-
-    def getFinalStructuredList(self) -> List[StructureNode]:
-        return self.__structuredListeNode
 
 
 if __name__=="__main__":
-    code = CodeParser(filename = "example.code")
-    print("")
-    print(str(code))
-    print("")
-    for item in code.getFinalStructuredList():
-        print(item)
+    # parses individuels
 
-    print("")
-    code = CodeParser(filename = "example2.code")
-    for item in code.getFinalStructuredList():
-        print(item)
+    print("Parse de lignes individuelles :")
+    listExemples = [
+      '    while ( x < y) : #comment',
+      'if (A==B):',
+      'print(x)  #comment',
+      'A = 15',
+      'A = A + 1  #comment',
+      'variable = input()',
+      '    x=x+1',
+      'if x < 10 or y < 100:'
+    ]
+
+
+    for i,exemple in enumerate(listExemples):
+        print("exemple {} : {}".format(i, exemple))
+        try:
+            lp = CodeParser._parseLine(exemple, i)
+        except Exception as e:
+            print(e)
+        else:
+            print(lp)
+    print()
+
+    print("Exemples pour des programmes complets :")
+    examplesFileName = ["example.code", "example2.code"]
+    for fileName in examplesFileName:
+        code = CodeParser.parse(filename = fileName)
+        print(fileName)
+        print()
+        for l in code:
+            print(str(l))
+        print()
 
     test_code = '''
 x = 0
@@ -267,12 +378,26 @@ if x > 0:
 elif x == 0 :
     x = x + 1
 '''
-    print("")
-    code = CodeParser(code = test_code)
-    for item in code.getFinalStructuredList():
-        print(item)
 
-        test_code = '''
+    test_code = '''
+x = 0
+if x > 0:
+    x = x - 1
+else :
+    x = x + 1
+'''
+
+
+    print("exemple de code :")
+    print(test_code)
+    print()
+    code = CodeParser.parse(code = test_code)
+    for l in code:
+        print(str(l))
+
+    print()
+    print("Autre exemple de code :")
+    test_code = '''
 x = 0
 if x > 0:
     if x == 2:
@@ -281,20 +406,24 @@ elif x == 0 :
     x = x + 1
   print(x)
 '''
-    print("")
-    code = CodeParser(code = test_code)
-    for item in code.getFinalStructuredList():
-        print(item)
+
+    print(test_code)
+    print()
+    try:
+        code = CodeParser.parse(code = test_code)
+    except Exception as e:
+        print(e)
+    else:
+        for l in code:
+            print(l)
+    print()
 
     # test programme vide
+    print("test programme vide :")
     test_code = ''
-    print("")
-    code = CodeParser(code = test_code)
-    for item in code.getFinalStructuredList():
-        print(item)
+    print()
+    code = CodeParser.parse(code = test_code)
+    for l in code:
+        print(l)
 
-    # test programme avec if else if (compil ok si instruction simple entre else et if)
-    print("")
-    code = CodeParser(filename = "example2.code")
-    for item in code.getFinalStructuredList():
-        print(item)
+
