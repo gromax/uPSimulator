@@ -516,8 +516,7 @@ if __name__ == '__main__':
 
     for testFile in tests:
         print("#### Fichier "+testFile)
-        cp = CodeParser(filename = testFile)
-        structuredList = cp.getFinalStructuredList()
+        structuredList = CodeParser.parse(filename = testFile)
 
         print("Programme structuré :")
         print()
