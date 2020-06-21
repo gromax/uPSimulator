@@ -1,10 +1,9 @@
 """
 .. module:: lineparser
-   :synopsis: gestion du parse d'une ligne du programme d'origine
+   :synopsis: Objets gérant le parse d'une ligne du programme d'origine
 """
 
-from typing import List, Union
-from typing_extensions import TypedDict
+from typing import List, Union, Optional
 
 #import re
 #from errors import ParseError
@@ -15,245 +14,431 @@ from typing_extensions import TypedDict
 #from logicexpressionnodes import LogicExpressionNode
 from expressionparser import *
 
-Caracteristiques = TypedDict('Caracteristiques', {
-    'lineNumber': int,
-    'indentation': int,
-    'type': str,
-    'condition': Union[LogicExpressionNode, ComparaisonExpressionNode],
-    'expression': ArithmeticExpressionNode,
-    'emptyLine': bool,
-    'variable': Variable,
-    'children':List
-}, total = False)
 
-class LineParser: # Définition classe
-    """Classe LineParser
-    Une ligne qui passe par LineParser :
-    .__originalLine (contient la ligne d'origine)
-    .__cleanLine (contient la ligne épurée des commentaires et des éventuels espaces en fin de ligne)
-    .__caracteristiques dictonnaire
-        lineNumber  : contient le n° de ligne traitée, passé en paramètre au constructeur
-        indentation : contient le nombre d'espace pour l'indentation
-        emptyLine   : True si ligne est vide, False sinon
-        type        : correspond au motif identifié (if, elif, while, else, print, input, affectation)
-        condition   : contient un objet LogicExpressionNode ou ComparaisonExpressionNode pour les motifs attendant une condition
-        expression  : contient un objet ArithmeticExpressionNode s'il s'agit d'une affectation ou d'un print
-        variable    : contient un objet Variable s'il s'agit d'une affectation ou d'un input
-    Une méthode getCaracs() pour retourne le dictionnaire __caracteristiques
+
+class ParsedLine:
     """
-    __lineNumber: int
-    __originalLine: str
-    __cleanLine: str
-    __caracteristiques: Caracteristiques
-    def __init__(self, originalLine:str, lineNumber:int): # Constructeur
-        """Constructeur
+    classe ligne par défaut, pour élément vide
+    """
+    _lineNumber  : int
+    _indentation : int = 0
+    _children    : List['ParsedLine']
+    _needIndentation = False
 
-        :param originalLine: ligne d'origine
-        :type originalLine: str
-        :param lineNumber: numéro de la ligne d'origine
-        :type line Number: int
-        """
-        self.__lineNumber = lineNumber
-        self.__originalLine = originalLine
-        self.__cleanLine = self.__suppCommentsAndEndSpaces(self.__originalLine)
-        self.__caracteristiques = {
-            "lineNumber": lineNumber,
-            "indentation": self.__countIndentation(self.__cleanLine),
-            "emptyLine": self.__cleanLine == ""
-        }
+    def __init__(self, lineNumber:int):
+      self._lineNumber = lineNumber
+      self._children = []
 
-        if not self.__caracteristiques["emptyLine"]:
-            self.__identificationMotif(self.__cleanLine)
-
-    def __suppCommentsAndEndSpaces(self, line:str) -> str:
-        """
-        :param line: ligne d'origine
-        :type line: str
-        :return: ligne sans les espaces terminaux ainsi que les éventuels commentaires
-        :rtype: str
-        """
-        return re.sub("\s*(\#.*)?$","",line)
-
-    def __countIndentation(self, line:str) -> int:
-        """
-        :param line: ligne dont il faut compter l'indentation
-        :type line: str
-        :return: nombre d'espaces d'indentation
-        :rtype: int
-        """
-        return len(re.findall("^\s*",line)[0])
-
-    def __identificationMotif(self, line:str) -> bool:
-        """Identifie le type de ligne
-
-        :param line: ligne dont il faut tester le type
-        :type line: str
-        :return: vrai si un type compatible a été trouvé
-        :rtype: bool
-        :raises: ParseError si aucun type n'est trouvé
-        """
-        if self.__isTestStructure("if",line): return True
-        if self.__isTestStructure("elif",line): return True
-        if self.__isTestStructure("while",line): return True
-        if self.__isElse(line): return True
-        if self.__isPrint(line): return True
-        if self.__isInput(line): return True
-        if self.__isAffectation(line): return True
-        raise ParseError(f"Erreur de syntaxe : <{line}>", {"lineNumber":self.__lineNumber})
-        return False
-
-    def __isTestStructure(self, testStructureKeyword:str, line:str) -> bool:
-        """Teste si la ligne respecte le modèle [mot-clef] condition:
-
-        :param line: ligne qu'il faut tester
-        :type line: str
-        :param testStructureKeyword: mot clef de la structure, **if**, **elif** ou **while**
-        :type testStructureKeyword: str
-        :return: vrai si la structure liée au mot-clef est bien reconnue
-        :rtype: bool
-        :raises: ParseError si aucun type n'est trouvé
-        """
-        assert testStructureKeyword in ("if", "elif", "while")
-        regex = "^\s*" + testStructureKeyword + "\s("+ ExpressionParser.expressionRegex() +")\s*:$"
-        allGroup = re.search(regex,line)
-        if allGroup is None:
-            return False
-        firstGroup = allGroup[1] # tout ce qui match après testStructureKeyword et avant les :
-        expr = ExpressionParser.buildExpression(firstGroup)
-        if not isinstance(expr, (LogicExpressionNode, ComparaisonExpressionNode)) :
-            raise ParseError(f"L'expression <{expr}> n'est pas une condition.", {"lineNumber":self.__lineNumber})
-            return False
-        self.__caracteristiques["type"] = testStructureKeyword
-        self.__caracteristiques["condition"] = expr
-        return True
-
-    def __isElse(self, line:str) -> bool:
-        """Teste si la ligne respecte le modèle else:
-
-        :param line: ligne qu'il faut tester
-        :type line: str
-        :return: vrai si un else est bien reconnu
-        :rtype: bool
-        """
-        motif = "else"
-        regex = "^\s*else\s*:$"
-        if re.match(regex,line) == None :
-            return False
-        self.__caracteristiques["type"] = "else"
-        return True
-
-    def __isPrint(self, line:str) -> bool:
-        """Teste si la ligne respecte le modèle print(expression):
-
-        :param line: ligne qu'il faut tester
-        :type line: str
-        :return: vrai si un print est bien reconnu
-        :rtype: bool
-        :raises: ParseError si l'expression détectée n'est pas de type ``int``
-        """
-        regex = "^\s*print\s*\(("+ ExpressionParser.expressionRegex() +")\)$"
-        allGroup = re.search(regex,line)
-        if allGroup is None:
-            return False
-        firstGroup = allGroup[1] # tout ce qui match dans les ( )
-        expr = ExpressionParser.buildExpression(firstGroup)
-        if not isinstance(expr, ArithmeticExpressionNode):
-            raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber": self.__lineNumber})
-            return False
-        self.__caracteristiques["type"] = "print"
-        self.__caracteristiques["expression"] = expr
-        return True
-
-    def __isInput(self, line:str) -> bool:
-        """Teste si la ligne respecte le modèle input(variable):
-
-        :param line: ligne qu'il faut tester
-        :type line: str
-        :return: vrai si un input est bien reconnu
-        :rtype: bool
-        :raises: ParseError si la variable détectée est invalide
-        """
-        regex = "^\s*(" + ExpressionParser.variableRegex() +")\s*=\s*input\s*\(\)$"
-        allGroup = re.search(regex,line)
-        if allGroup is None:
-            return False
-        variableName = allGroup[1].strip() # la variable
-        if not ExpressionParser.strIsVariableName(variableName):
-            raise ParseError(f"La variable <{variableName}> est incorrecte.", {"lineNumber":self.__lineNumber})
-        self.__caracteristiques["type"] = "input"
-        self.__caracteristiques["variable"] = Variable(variableName)
-        return True
-
-    def __isAffectation(self, line:str) -> bool:
-        """Teste si la ligne respecte le modèle variable = expression
-
-        :param line: ligne qu'il faut tester
-        :type line: str
-        :return: vrai si une affectation est bien reconnue
-        :rtype: bool
-        :raises: ParseError si la variable détectée est invalide ou l'expression n'est pas de type ``int``
-        """
-        regex = "^\s*(" + ExpressionParser.variableRegex() + ")\s*=\s*(" + ExpressionParser.expressionRegex() + ")$"
-        allGroup = re.search(regex,line)
-        if allGroup is None:
-            return False
-        variableName = allGroup[1].strip() # la variable
-        expressionStr = allGroup[2] # tout ce qu'il y a dans les ( ) de l'input
-        if not ExpressionParser.strIsVariableName(variableName):
-            raise ParseError(f"La variable <{variableName}> est incorrecte.", {"lineNumber":self.__lineNumber})
-        expr = ExpressionParser.buildExpression(expressionStr)
-        if not isinstance(expr, ArithmeticExpressionNode):
-            raise ParseError(f"L'expression <{expr}> est incorrecte.", {"lineNumber":self.__lineNumber})
-            return False
-        self.__caracteristiques["type"] = "affectation"
-        self.__caracteristiques["variable"] = Variable(variableName)
-        self.__caracteristiques["expression"] = expr
-        return True
-
-    def getCaracs(self) -> Caracteristiques:
+    @property
+    def lineNumber(self) -> int:
         """Accesseur
 
-        :return: caractéristiques de la ligne
-        :rtype: Caracteristiques
+        :return: numéro de la ligne
+        :rtype: int
         """
-        return self.__caracteristiques
+        return self._lineNumber
+
+    def needIndentation(self) -> bool:
+        """Prédicat
+
+        :return: nécessite une indentation
+        :rtype: bool
+        """
+        return self._needIndentation
 
     def __str__(self) -> str:
         """Transtypage -> str
 
-        :return: représentation texte des caractéristiques.
+        :return: représentation texte.
         :rtype: str
         """
+        line = self._parentLineToStr()
+        if len(self._children) == 0:
+            return line
+        return line + "\n" + self._childrenToStr()
 
-        if self.__caracteristiques["type"] in ("if", "elif", "while"):
-            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> {self.__caracteristiques['type']} {self.__caracteristiques['condition']}"
-        elif self.__caracteristiques["type"] == "else":
-            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> else"
-        elif self.__caracteristiques["type"] == "input":
-            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> {self.__caracteristiques['variable']} = input()"
-        elif self.__caracteristiques["type"] == "print":
-            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> print({str(self.__caracteristiques['expression'])})"
-        elif self.__caracteristiques["type"] == "affectation":
-            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> {self.__caracteristiques['variable']} = {str(self.__caracteristiques['expression'])}"
-        else:
-            return f"#{self.__lineNumber}_{self.__caracteristiques['indentation']} >> Erreur !"
+    def _childrenToStr(self) -> str:
+        """Transtypage -> str des enfants
+        """
+        brutStrList = [str(c) for c in self._children]
+        # on colle et décolle suivant "\n" pour obtenir chaque ligne séparée
+        strList = ("\n".join(brutStrList)).split("\n")
+        # on ajoute des "  " devant et on recolle
+        return "\n".join(["  "+s for s in strList])
+
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_0 >> Vide".format(self._lineNumber)
+
+    @property
+    def indentation(self) -> int:
+        """Accesseur
+
+        :return: indentation de la ligne
+        :rtype: int
+        """
+        return self._indentation
+
+    @property
+    def empty(self) -> bool:
+        """Prédicat
+
+        :return: la ligne est vide
+        :rtype: bool
+        """
+        return type(self) == ParsedLine
+
+    def addChild(self, child:'ParsedLine') -> None:
+        """Ajoute un enfant
+
+        :param child: enfant à ajouter
+        :type child: ParsedLine
+        """
+        self._children.append(child)
+
+    def addChildren(self, children:List['ParsedLine']) -> None:
+        """Ajoute une liste d'enfants
+
+        :param children: liste d'enfants à ajouter
+        :type child: List[ParsedLine]
+        """
+        for c in children:
+            self.addChild(c)
+
+    @property
+    def children(self) -> List['ParsedLine']:
+        """Accesseur
+
+        :return: liste des enfants
+        :rtype: List[ParsedLine]
+        """
+        return self._children
+
+class ParsedLine_If(ParsedLine):
+    KEYWORD = "if"
+    _condition: Union[LogicExpressionNode, ComparaisonExpressionNode]
+    _needIndentation = True
+    def __init__(self, lineNumber:int, indentation:int, condition:Union[LogicExpressionNode, ComparaisonExpressionNode]):
+        super().__init__(lineNumber)
+        self._condition = condition
+        self._indentation = indentation
+
+    @classmethod
+    def regex(cls):
+        return "^" + cls.KEYWORD + "\s*("+ ExpressionParser.expressionRegex() +")\s*:$"
+
+    @classmethod
+    def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
+        """Teste si la ligne respecte le modèle [mot-clef] condition
+        et crée l'item correspondant le cas échéant
+
+        :param lineNumber: numéro de la ligne
+        :type lineNumber: int
+        :param indentation: indentation de la ligne
+        :type indentation: int
+        :param line: ligne à analyser
+        :type line: str
+        :return: noeud du type reconnu ou None
+        :rtype: Union[ParsedLine_If, ParsedLine_Elif, ParsedLine_While, None]
+        :raises: ParseError si l'expression trouvée n'a pas le bon type
+        """
+
+        allGroup = re.search(cls.regex(), line)
+
+        if allGroup is None:
+            return None
+
+        firstGroup = allGroup[1] # tout ce qui match après testStructureKeyword et avant les :
+        condition = ExpressionParser.buildExpression(firstGroup)
+        if not isinstance(condition, (LogicExpressionNode, ComparaisonExpressionNode)) :
+            raise ParseError("L'expression <{}> n'est pas une condition.".format(condition), {"lineNumber":lineNumber})
+            return None
+        node = cls(lineNumber, indentation, condition)
+        return node
+
+    def needIndentation(self) -> bool:
+        """Prédicat
+
+        :return: nécessite une indentation
+        :rtype: bool
+        """
+        return True
+
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_{} >> if {}".format(self._lineNumber, self._indentation, self._condition)
+
+    @property
+    def condition(self) -> Union[LogicExpressionNode, ComparaisonExpressionNode]:
+        """Accesseur
+
+        :return: condition
+        :rtype: Union[LogicExpressionNode, ComparaisonExpressionNode]
+        """
+        return self._condition
+
+class ParsedLine_Elif(ParsedLine_If):
+    KEYWORD = "elif"
+    _condition: Union[LogicExpressionNode, ComparaisonExpressionNode]
+
+    def __init__(self, lineNumber:int, indentation:int, condition:Union[LogicExpressionNode, ComparaisonExpressionNode]):
+        super().__init__(lineNumber, indentation, condition)
+
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_{} >> elif {}".format(self._lineNumber, self._indentation, self._condition)
+
+    def toElseIf(self) -> 'ParsedLine_Else':
+        """Transforme le noeud en noeud Else If (lors de la conversion elif en else if)
+
+        :return: le noeud en else
+        :rtype: ParsedLine_Else
+        """
+        newElse = ParsedLine_Else(self._lineNumber, self._indentation)
+        newIf = ParsedLine_If(self._lineNumber, self._indentation, self._condition)
+        newIf.addChildren(self._children)
+        newElse.addChild(newIf)
+        return newElse
+
+class ParsedLine_Else(ParsedLine):
+    KEYWORD = "else"
+    _needIndentation = True
+    def __init__(self, lineNumber:int, indentation:int):
+        super().__init__(lineNumber)
+        self._indentation = indentation
+
+    @classmethod
+    def regex(cls):
+        return "^"+cls.KEYWORD+"\s*:$"
+
+    @classmethod
+    def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
+        """Teste si la ligne respecte le modèle else
+        et crée l'item correspondant le cas échéant
+
+        :param lineNumber: numéro de la ligne
+        :type lineNumber: int
+        :param indentation: indentation de la ligne
+        :type indentation: int
+        :param line: ligne à analyser
+        :type line: str
+        :return: noeud du type else ou None
+        :rtype: Optional[ParsedLine_Else]
+        """
+
+        if re.match(cls.regex(), line) == None :
+            return None
+        return ParsedLine_Else(lineNumber, indentation)
+
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_{} >> else".format(self._lineNumber, self._indentation)
+
+class ParsedLine_While(ParsedLine_If):
+    KEYWORD= "while"
+    _condition: Union[LogicExpressionNode, ComparaisonExpressionNode]
+    def __init__(self, lineNumber:int, indentation:int, condition:Union[LogicExpressionNode, ComparaisonExpressionNode]):
+        super().__init__(lineNumber, indentation, condition)
+
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_{} >> while {}".format(self._lineNumber, self._indentation, self._condition)
+
+class ParsedLine_Print(ParsedLine):
+    KEYWORD = "print"
+    _expression: ArithmeticExpressionNode
+    def __init__(self, lineNumber:int, indentation:int, expression:ArithmeticExpressionNode):
+        super().__init__(lineNumber)
+        self._expression = expression
+        self._indentation = indentation
+
+    @classmethod
+    def regex(cls):
+        return "^" + cls.KEYWORD + "\s*\((" + ExpressionParser.expressionRegex() + ")\)$"
+
+    @classmethod
+    def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
+        """Teste si la ligne respecte le modèle print
+        et crée l'item correspondant le cas échéant
+
+        :param lineNumber: numéro de la ligne
+        :type lineNumber: int
+        :param indentation: indentation de la ligne
+        :type indentation: int
+        :param line: ligne à analyser
+        :type line: str
+        :return: noeud du type print ou None
+        :rtype: Optional[ParsedLine_Print]
+        :raises: ParseError si l'expression détectée n'est pas du bon type
+        """
+
+        allGroup = re.search(cls.regex(), line)
+        if allGroup is None:
+            return None
+        firstGroup = allGroup[1] # tout ce qui match dans les ( )
+        expr = ExpressionParser.buildExpression(firstGroup)
+        if not isinstance(expr, ArithmeticExpressionNode):
+            raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber": lineNumber})
+            return None
+        return ParsedLine_Print(lineNumber, indentation, expr)
+
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_{} >> print {}".format(self._lineNumber, self._indentation, self._expression)
+
+    @property
+    def expression(self) -> ArithmeticExpressionNode:
+        """Accesseur
+
+        :return: expression
+        :rtype: ArithmeticExpressionNode
+        """
+        return self._expression
+
+class ParsedLine_Input(ParsedLine):
+    KEYWORD = "input"
+    _variable: Variable
+    def __init__(self, lineNumber:int, indentation:int, variable:Variable):
+        super().__init__(lineNumber)
+        self._variable = variable
+        self._indentation = indentation
+
+    @classmethod
+    def regex(cls):
+        return "^(" + ExpressionParser.variableRegex() +")\s*=\s*" + cls.KEYWORD + "\s*\(\s*\)$"
+
+    @classmethod
+    def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
+        """Teste si la ligne respecte le modèle print
+        et crée l'item correspondant le cas échéant
+
+        :param lineNumber: numéro de la ligne
+        :type lineNumber: int
+        :param indentation: indentation de la ligne
+        :type indentation: int
+        :param line: ligne à analyser
+        :type line: str
+        :return: noeud du type print ou None
+        :rtype: Optional[ParsedLine_Print]
+        :raises: ParseError si la variable n'a pas la bonne forme
+        """
+        allGroup = re.search(cls.regex(), line)
+        if allGroup is None:
+            return None
+        variableName = allGroup[1].strip() # la variable
+
+        if not ExpressionParser.strIsVariableName(variableName):
+            raise ParseError("La variable <{}> est incorrecte.".format(variableName), {"lineNumber":lineNumber})
+            return None
+        return ParsedLine_Input(lineNumber, indentation, Variable(variableName))
 
 
-if __name__=="__main__":
-    listExemples = [
-      '    while ( x < y) : #comment',
-      'if (A==B):',
-      'print(x)  #comment',
-      'A = 15',
-      'A = A + 1  #comment',
-      'variable = input()',
-      '    x=x+1',
-      'if x < 10 or y < 100:'
-    ]
-    for i,exemple in enumerate(listExemples):
-        try:
-            lp = LineParser(exemple, i)
-        except Exception as e:
-            print(e)
-        else:
-            print(lp)
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_{} >> {} = input()".format(self._lineNumber, self._indentation, str(self._variable))
+
+    @property
+    def variable(self) -> Variable:
+        """Accesseur
+
+        :return: variable
+        :rtype: Variable
+        """
+        return self._variable
+
+class ParsedLine_Affectation(ParsedLine):
+    _variable: Variable
+    _expression: ArithmeticExpressionNode
+
+    def __init__(self, lineNumber:int, indentation:int, variable:Variable, expression:ArithmeticExpressionNode):
+        super().__init__(lineNumber)
+        self._variable = variable
+        self._expression = expression
+        self._indentation = indentation
+
+    @classmethod
+    def regex(cls):
+        return "^(" + ExpressionParser.variableRegex() + ")\s*=\s*(" + ExpressionParser.expressionRegex() + ")$"
+
+    @classmethod
+    def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
+        """Teste si la ligne respecte le modèle variable = expression
+        et crée l'item correspondant le cas échéant
+
+        :param lineNumber: numéro de la ligne
+        :type lineNumber: int
+        :param indentation: indentation de la ligne
+        :type indentation: int
+        :param line: ligne à analyser
+        :type line: str
+        :return: noeud du type print ou None
+        :rtype: Optional[ParsedLine_Print]
+        :raises: ParseError si l'expression ou variable détectée n'ont pas la bonne forme
+        """
+        allGroup = re.search(cls.regex(), line)
+        if allGroup is None:
+            return None
+        variableName = allGroup[1].strip() # la variable
+        expressionStr = allGroup[2] # tout ce qu'il y a dans les ( ) de l'input
+        if not ExpressionParser.strIsVariableName(variableName):
+            raise ParseError("La variable <{}> est incorrecte.".format(variableName), {"lineNumber":lineNumber})
+            return None
+        expr = ExpressionParser.buildExpression(expressionStr)
+        if not isinstance(expr, ArithmeticExpressionNode):
+            raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber":lineNumber})
+            return None
+        return ParsedLine_Affectation(lineNumber, indentation, Variable(variableName), expr)
+
+    def _parentLineToStr(self) -> str:
+        """Transtypage -> str
+
+        :return: représentation texte.
+        :rtype: str
+        """
+        return "#{}_{} >> {} = {}".format(self._lineNumber, self._indentation, str(self._variable), str(self._expression))
+
+    @property
+    def variable(self) -> Variable:
+        """Accesseur
+
+        :return: variable
+        :rtype: Variable
+        """
+        return self._variable
+
+    @property
+    def expression(self) -> ArithmeticExpressionNode:
+        """Accesseur
+
+        :return: expression
+        :rtype: ArithmeticExpressionNode
+        """
+        return self._expression
