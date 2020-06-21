@@ -213,8 +213,7 @@ class InputCodeWindow:
         e = self._currentEngineId.get()
         engine = ProcessorEngine(e)
         try :
-            cp = CodeParser(code = textCode)
-            structuredList = cp.getFinalStructuredList()
+            structuredList = CodeParser.parse(code = textCode)
             cm = CompilationManager(engine, structuredList)
             asm = cm.asm
             executeur = Executeur(engine,asm.getDecimal())
