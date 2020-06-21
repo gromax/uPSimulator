@@ -15,8 +15,7 @@ class CompilationTest(unittest.TestCase):
 
     def test_affectation_16bits(self):
         programme = "x=3"
-        cp = CodeParser(code = programme)
-        structuredList = cp.getFinalStructuredList()
+        structuredList = CodeParser.parse(code = programme)
         cm = CompilationManager(self.engine16, structuredList)
 
         goodAsm = [
@@ -37,8 +36,7 @@ class CompilationTest(unittest.TestCase):
 
     def test_affectation_12bits(self):
         programme = "x=3"
-        cp = CodeParser(code = programme)
-        structuredList = cp.getFinalStructuredList()
+        structuredList = CodeParser.parse(code = programme)
         cm = CompilationManager(self.engine12, structuredList)
 
         goodAsm = [
@@ -62,8 +60,7 @@ class CompilationTest(unittest.TestCase):
 
     def test_example_1_16bits(self):
         filename = 'example.code'
-        cp = CodeParser(filename = filename)
-        structuredList = cp.getFinalStructuredList()
+        structuredList = CodeParser.parse(filename = filename)
         cm = CompilationManager(self.engine16, structuredList)
 
         goodAsm = [
@@ -149,8 +146,7 @@ if __name__ == "__main__":
 
     for testFile in tests:
         print("#### Fichier "+testFile)
-        cp = CodeParser(filename = testFile)
-        structuredList = cp.getFinalStructuredList()
+        structuredList = CodeParser.parse(filename = testFile)
 
         print("Programme structuré :")
         print()
