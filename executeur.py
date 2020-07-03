@@ -462,10 +462,11 @@ class Executeur:
         return f'ligne = {self.linePointer.read()}'
 
 if __name__ == '__main__':
-    from processorengine import ProcessorEngine
+    from processor16bits import Processor16Bits
+    from processor12bits import Processor12Bits
     from codeparser import CodeParser
     from compilemanager import CompilationManager
-    engine = ProcessorEngine()
+    engine = Processor16Bits()
 
 
     print("TEST 0")
@@ -511,8 +512,8 @@ if __name__ == '__main__':
     ]
     '''
 
-    engine16 = ProcessorEngine()
-    engine12 = ProcessorEngine("12bits")
+    engine16 = Processor16Bits()
+    engine12 = Processor12Bits()
 
     for testFile in tests:
         print("#### Fichier "+testFile)
