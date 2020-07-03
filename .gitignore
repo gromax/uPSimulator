@@ -6,3 +6,4 @@ __pycache__
 Makefile
 make.bat
 sphinx_folder
+.pytest_cache
