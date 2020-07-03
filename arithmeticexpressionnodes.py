@@ -5,15 +5,13 @@
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import Optional, Sequence, Union
+from typing import Optional, List, Union
 from abc import ABC, ABCMeta, abstractmethod
 
-#from errors import *
-#from litteral import Litteral
-#from variable import Variable
-#from processorengine import ProcessorEngine
-#from compileexpressionmanager import CompileExpressionManager
-from compileexpressionmanager import *
+from primitives.operators import Operator, Operators
+from primitives.litteral import Litteral
+from primitives.variable import Variable
+from primitives.actionsfifo import ActionsFIFO
 
 class ArithmeticExpressionNode(metaclass=ABCMeta):
     """Classe abstraite définissant les propriétés des noeuds arithmétiques
@@ -31,65 +29,6 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
             return None
         return opValue
 
-    @staticmethod
-    def _engineHasLitteralIntruction(engine:ProcessorEngine, operator:str, operand:'ArithmeticExpressionNode') -> bool:
-        """Calcule le nombre de registre nécessaire pour l'évaluation d'un noeud
-
-        :param engine: modèle de processeur
-        :type engine: ProcessorEngine
-        :param operator: opération
-        :type operator: str
-        :param operand: valeur à tester
-        :type operand: ArithmeticExpressionNode
-        :return: vrai si l'opération c'est une possible opération sur littéral
-        :rtype: bool
-        """
-        opValue = ArithmeticExpressionNode._operandAsLitteral(operand)
-        if opValue is None:
-            return False
-        if not engine.litteralOperatorAvailable(operator, opValue):
-            return False
-        return True
-
-    @staticmethod
-    def _tryPushLitteralInstruction(CEMObject:CompileExpressionManager, operator:str, operand:'ArithmeticExpressionNode') -> bool :
-        """Ajoute une opération avec littéral si possible
-
-        :param CEMObject: gestionnaire de compilation pour une expression
-        :type CEMObject: CompileExpressionManager
-        :param operator: opération
-        :type operator: str
-        :param operand: valeur à tester
-        :type operand: ArithmeticExpressionNode
-        :return: vrai si l'opération a réussi
-        :rtype: bool
-        """
-        opValue = ArithmeticExpressionNode._operandAsLitteral(operand)
-        if opValue is None:
-            return False
-        if not CEMObject.engine.litteralOperatorAvailable(operator, opValue):
-            return False
-        CEMObject.pushUnaryOperatorWithLitteral(operator, opValue)
-        return True
-
-    @abstractmethod
-    def compile(self, CEMObject:CompileExpressionManager) -> None:
-        """Exécute la compilation
-
-        :param CEMObject: gestionnaire de compilation pour une expression
-        :type CEMObject: CompileExpressionManager
-        """
-        pass
-
-    @abstractmethod
-    def getRegisterCost(self, engine:ProcessorEngine) -> int:
-        """Calcule le nombre de registre nécessaire pour l'évaluation d'un noeud
-
-        :return: nombre de registres
-        :rtype: int
-        """
-        return 1
-
     @abstractmethod
     def clone(self) -> 'ArithmeticExpressionNode':
         """Fonction par défaut
@@ -99,15 +38,27 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
         """
         return self
 
-    def _precompile(self, CEMObject:CompileExpressionManager) -> None:
-        """Calculs communs en amont de la compilation
+    @abstractmethod
+    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+        """Produit une file de type polonaise inversée de façon à donner
+        l'ordre de calcul le plus efficace
 
-        :param CEMObject: gestionnaire de compilation pour une expression
-        :type CEMObject: CompileExpressionManager
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: file de tokens, opérandes ou opérateurs
+        :rtype: ActionsFIFO
         """
-        myCost = self.getRegisterCost(CEMObject.engine)
-        needUAL = True
-        CEMObject.getNeededRegisterSpace(myCost, needUAL)
+        return ActionsFIFO()
+
+    def cost(self, litteralMaxSize:int = 0) -> int:
+        """
+        Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: Coût en nombre de registres
+        :rtype: int
+        """
+        return 1
 
 
 class NegNode(ArithmeticExpressionNode):
@@ -121,10 +72,19 @@ class NegNode(ArithmeticExpressionNode):
         :param operand: opérande
         :type operand: ArithmeticExpressionNode
         """
-
         self._operand = operand
         zero = ValueNode(Litteral(0))
-        self._replacement_binary_sub = BinaryArithmeticNode("-", zero, self._operand)
+        self._replacement_binary_sub = BinaryArithmeticNode(Operators.MINUS.value, zero, self._operand)
+
+    def cost(self, litteralMaxSize:int = 0) -> int:
+        """
+        Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: Coût en nombre de registres
+        :rtype: int
+        """
+        return self._operand.cost(litteralMaxSize)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -135,52 +95,6 @@ class NegNode(ArithmeticExpressionNode):
         .. note:: L'expression est entièrement parenthèsée.
         """
         return " - ({})".format(self._operand)
-
-    def getRegisterCost(self, engine:ProcessorEngine) -> int:
-        """Calcul le nombre de registre nécessaire pour l'évaluation d'un noeud
-
-        :return: nombre de registres
-        :rtype: int
-
-        .. note:: L'opérande étant placée dans un registre, on peut envisager de placer le résultat au même endroit.
-          L'opération ne nécessite alors pas de registres supplémentaire.
-
-        :Example:
-            >>> engine = ProcessorEngine()
-            >>> oLitteral1 = ValueNode(Litteral(4))
-            >>> oLitteral2 = ValueNode(Litteral(-15))
-            >>> oAdd = BinaryArithmeticNode('+', oLitteral1, oLitteral2)
-            >>> oNeg = NegNode(oAdd)
-            >>> oNeg.getRegisterCost(engine)
-            1
-
-            >>> engine = ProcessorEngine('12bits')
-            >>> oLitteral1 = ValueNode(Litteral(4))
-            >>> oLitteral2 = ValueNode(Litteral(-15))
-            >>> oAdd = BinaryArithmeticNode('+', oLitteral1, oLitteral2)
-            >>> oNeg = NegNode(oAdd)
-            >>> oNeg.getRegisterCost(engine)
-            2
-        """
-        if engine.hasNEG():
-            return self._operand.getRegisterCost(engine)
-        return self._replacement_binary_sub.getRegisterCost(engine)
-
-    def compile(self, CEMObject:CompileExpressionManager) -> None:
-        """Exécute la compilation
-
-        :param CEMObject: gestionnaire de compilation pour une expression
-        :type CEMObject: compileExpressionManager
-        :return: None
-        """
-        if not CEMObject.engine.hasNEG():
-            self._replacement_binary_sub.compile(CEMObject)
-            return
-
-        self._precompile(CEMObject)
-        if not ArithmeticExpressionNode._tryPushLitteralInstruction(CEMObject, "neg", self._operand):
-            self._operand.compile(CEMObject)
-            CEMObject.pushUnaryOperator("neg")
 
     def clone(self) -> 'ArithmeticExpressionNode':
         """Crée un noeud clone
@@ -193,6 +107,18 @@ class NegNode(ArithmeticExpressionNode):
         cloneOperand = self._operand.clone()
         return NegNode(cloneOperand)
 
+    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+        """Produit une file de type polonaise inversée de façon à donner
+        l'ordre de calcul le plus efficace
+
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: file de tokens, opérandes ou opérateurs
+        :rtype: ActionsFIFO
+        """
+        return self._operand.getFIFO().append(Operators.NEG.value)
+
+
 class InverseNode(ArithmeticExpressionNode):
     """Noeud pour inversion logique
     """
@@ -203,8 +129,17 @@ class InverseNode(ArithmeticExpressionNode):
         :param operand: opérande
         :type operand: ArithmeticExpressionNode
         """
-
         self._operand = operand
+
+    def cost(self, litteralMaxSize:int = 0) -> int:
+        """
+        Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: Coût en nombre de registres
+        :rtype: int
+        """
+        return self._operand.cost(litteralMaxSize)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -216,27 +151,6 @@ class InverseNode(ArithmeticExpressionNode):
         """
         return " ~ ({})".format(self._operand)
 
-    def getRegisterCost(self, engine:ProcessorEngine) -> int:
-        """Calcul le nombre de registre nécessaire pour l'évaluation d'un noeud
-
-        :return: nombre de registres
-        :rtype: int
-
-        .. note:: L'opérande étant placée dans un registre, on peut envisager de placer le résultat au même endroit.
-          L'opération ne nécessite alors pas de registres supplémentaire.
-        """
-        return self._operand.getRegisterCost(engine)
-
-    def compile(self, CEMObject:CompileExpressionManager) -> None:
-        """Exécute la compilation
-
-        :param CEMObject: gestionnaire de compilation pour une expression
-        :type CEMObject: compileExpressionManager
-        """
-        self._precompile(CEMObject)
-        if not ArithmeticExpressionNode._tryPushLitteralInstruction(CEMObject, "~", self._operand):
-            self._operand.compile(CEMObject)
-            CEMObject.pushUnaryOperator("~")
 
     def clone(self) -> 'ArithmeticExpressionNode':
         """Crée un noeud clone
@@ -249,32 +163,44 @@ class InverseNode(ArithmeticExpressionNode):
         cloneOperand = self._operand.clone()
         return InverseNode(cloneOperand)
 
+    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+        """Produit une file de type polonaise inversée de façon à donner
+        l'ordre de calcul le plus efficace
+
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: file de tokens, opérandes ou opérateurs
+        :rtype: ActionsFIFO
+        """
+        return self._operand.getFIFO().append(Operators.INVERSE.value)
+
 class BinaryArithmeticNode(ArithmeticExpressionNode):
     """Noeud pour opération arithmétique binaire parmi +, -, *, /, &, |, ^
     """
-    _KNOWN_OPERATORS:Sequence[str] = ('+', '-', '*', '/', '%', '&', '|', '^')
-    _SYMETRIC_OPERATORS:Sequence[str] = ('+', '*', '&', '|', '^')
     _operand1: ArithmeticExpressionNode
     _operand2: ArithmeticExpressionNode
-    def __init__(self, operator:str, operand1:ArithmeticExpressionNode, operand2:ArithmeticExpressionNode):
+    def __init__(self, operator:Operator, operand1:ArithmeticExpressionNode, operand2:ArithmeticExpressionNode):
         """Constructeur
 
-        :param operator: opérateur du noéud, parmi +, -, *, /, %, and, or, &,  |, ^, <, <=, >, >=, ==, !=
-        :type operator: str
+        :param operator: opérateur du noéud
+        :type operator: Operator
         :param operand1: premier opérande
         :type operand1: ArithmeticExpressionNode
         :param operand2: deuxième opérande
         :type operand2: ArithmeticExpressionNode
         """
-
-        assert operator in self._KNOWN_OPERATORS
+        assert operator.arity == 2, "Opérateur {} n'a pas une arité de 2.".format(operator)
+        assert operator.isArithmetic, "Opérateur {} n'est pas arithmétique.".format(operator)
         self._operator = operator
 
         # affectation dans l'ordre par défaut
         self._operand1 = operand1
         self._operand2 = operand2
 
-        if not operator in self._SYMETRIC_OPERATORS:
+        # En cas d'opération sur littéral positif, place le littéral si possible à droite
+        # si deux littéraux, positifs, de préférence le plus petit à droite
+
+        if not operator.isCommutatif:
             return
 
         op1AsLitteral = ArithmeticExpressionNode._operandAsLitteral(operand1)
@@ -283,11 +209,25 @@ class BinaryArithmeticNode(ArithmeticExpressionNode):
 
         op2AsLitteral = ArithmeticExpressionNode._operandAsLitteral(operand2)
         if not (op2AsLitteral is None) and (op2AsLitteral.value > 0) and (op2AsLitteral.value <= op1AsLitteral.value):
+            # signifie que op2 est un meilleur litteral
             return
 
+        # l'opérateur est commutatif, operande1 est un litteral positif et si operande2 aussi, operande1 est plus petit...
         # placement de operand1 à droite
         self._operand1 = operand2
         self._operand2 = operand1
+
+    def cost(self, litteralMaxSize:int = 0) -> int:
+        """
+        Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: Coût en nombre de registres
+        :rtype: int
+        """
+        costOp1 = self._operand1.cost(litteralMaxSize)
+        costOp2 = self._operand2.cost(litteralMaxSize)
+        return min(max(costOp1, costOp2 + 1), max(costOp1 + 1, costOp2))
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -305,66 +245,6 @@ class BinaryArithmeticNode(ArithmeticExpressionNode):
 
         return '({} {} {})'.format(self._operand1, self._operator, self._operand2)
 
-    def getRegisterCost(self, engine:ProcessorEngine) -> int:
-        """Calcul du nombre de registre nécessaires pour évaluer ce noeud
-
-        :param engine: modèle de processeur
-        :type engine: ProcessorEngine
-        :return: nombre de registres
-        :rtype: int
-
-        :Example:
-            >>> engine = ProcessorEngine()
-            >>> oLitteral1 = ValueNode(Litteral(4))
-            >>> oLitteral2 = ValueNode(Litteral(-15))
-            >>> oLitteral3 = ValueNode(Litteral(-47))
-            >>> oAdd1 = BinaryArithmeticNode('+', oLitteral1, oLitteral2)
-            >>> oAdd2 = BinaryArithmeticNode('+', oLitteral2, oLitteral3)
-            >>> oMult = BinaryArithmeticNode('*', oAdd1, oAdd2)
-            >>> oMult.getRegisterCost(engine)
-            2
-
-            >>> engine = ProcessorEngine('12bits')
-            >>> oLitteral1 = ValueNode(Litteral(4))
-            >>> oLitteral2 = ValueNode(Litteral(-15))
-            >>> oLitteral3 = ValueNode(Litteral(-47))
-            >>> oAdd1 = BinaryArithmeticNode('+', oLitteral1, oLitteral2)
-            >>> oAdd2 = BinaryArithmeticNode('+', oLitteral2, oLitteral3)
-            >>> oMult = BinaryArithmeticNode('*', oAdd1, oAdd2)
-            >>> oMult.getRegisterCost(engine)
-            3
-        """
-
-        if ArithmeticExpressionNode._engineHasLitteralIntruction(engine, self._operator, self._operand2):
-            return self._operand1.getRegisterCost(engine)
-        costOperand1 = self._operand1.getRegisterCost(engine)
-        costOperand2 = self._operand2.getRegisterCost(engine)
-        return min(max(costOperand1, costOperand2+1), max(costOperand1+1, costOperand2))
-
-    def compile(self, CEMObject:CompileExpressionManager) -> None:
-        """Procédure d'exécution de la compilation
-
-        :param CEMObject: objet prenant en charge la compilation d'une expression
-        :type CEMObject: CompileExpressionManager
-        :return: None
-        """
-        self._precompile(CEMObject)
-        engine = CEMObject.engine
-        if ArithmeticExpressionNode._engineHasLitteralIntruction(engine, self._operator, self._operand2):
-            firstToCalc = self._operand1
-            secondToCalc = self._operand2
-        elif self._operand1.getRegisterCost(engine) >= self._operand2.getRegisterCost(engine):
-            firstToCalc = self._operand1
-            secondToCalc = self._operand2
-        else:
-            firstToCalc = self._operand2
-            secondToCalc = self._operand1
-        firstToCalc.compile(CEMObject)
-        if not ArithmeticExpressionNode._tryPushLitteralInstruction(CEMObject, self._operator, self._operand2):
-            secondToCalc.compile(CEMObject)
-            goodOrder = (firstToCalc == self._operand1)
-            CEMObject.pushBinaryOperator(self._operator, goodOrder)
-
     def clone(self) -> 'BinaryArithmeticNode':
         """Produit un clone de l'objet avec son arborescence
 
@@ -376,6 +256,21 @@ class BinaryArithmeticNode(ArithmeticExpressionNode):
         operator = self._operator
         return BinaryArithmeticNode(operator, cloneOp1, cloneOp2)
 
+    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+        """Produit une file de type polonaise inversée de façon à donner
+        l'ordre de calcul le plus efficace
+
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: file de tokens, opérandes ou opérateurs
+        :rtype: ActionsFIFO
+        """
+        if self._operand2.cost(litteralMaxSize) > self._operand1.cost(litteralMaxSize):
+            fifo = self._operand2.getFIFO().concat(self._operand1.getFIFO())
+            if self._operator.isCommutatif:
+                return fifo.append(self._operator)
+            return fifo.append(Operators.SWAP.value, self._operator)
+        return self._operand1.getFIFO().concat(self._operand2.getFIFO()).append(self._operator)
 
 class ValueNode(ArithmeticExpressionNode):
     def __init__(self, value:Union[Litteral, Variable]):
@@ -394,6 +289,18 @@ class ValueNode(ArithmeticExpressionNode):
         :rtype: Union[Variable,Litteral]
         """
         return self._value
+
+    def cost(self, litteralMaxSize:int = 0) -> int:
+        """
+        Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: Coût en nombre de registres
+        :rtype: int
+        """
+        if isinstance(self._value, Litteral) and self._value.bitMinSize() <= litteralMaxSize:
+            return 0
+        return 1
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -414,28 +321,6 @@ class ValueNode(ArithmeticExpressionNode):
         """
         return str(self._value)
 
-    def getRegisterCost(self, engine:ProcessorEngine) -> int:
-        """Calcule le nombre de registre nécessaire pour l'évaluation d'un noeud
-
-        :return: nombre de registres
-        :rtype: int
-
-        :Example:
-            >>> v = ValueNode(Litteral(5))
-            >>> v.getRegisterCost(ProcessorEngine())
-            1
-        """
-        return 1
-
-    def compile(self, CEMObject:CompileExpressionManager) -> None:
-        """Procédure d'exécution de la compilation
-
-        :param CEMObject: objet prenant en charge la compilation d'une expression
-        :type CEMObject: CompileExpressionManager
-        :return: None
-        """
-        self._precompile(CEMObject)
-        CEMObject.pushValue(self._value)
 
     def clone(self) -> 'ValueNode':
         """Produit un clone de l'objet
@@ -446,6 +331,17 @@ class ValueNode(ArithmeticExpressionNode):
         .. note::la valeur étant un objet ne pouvant être modifié, elle n'est pas clonée.
         """
         return ValueNode(self._value)
+
+    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+        """Produit une file de type polonaise inversée de façon à donner
+        l'ordre de calcul le plus efficace
+
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: file de tokens, opérandes ou opérateurs
+        :rtype: ActionsFIFO
+        """
+        return ActionsFIFO().append(self._value)
 
 if __name__=="__main__":
     import doctest
