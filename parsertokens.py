@@ -15,12 +15,12 @@ from typing import List, Union
 import re
 #from abc import ABC, ABCMeta, abstractmethod
 from logicexpressionnodes import *
-
+from operators import Operator, Operators
 
 class Token(metaclass=ABCMeta):
     """Classe abstraite qui ne devrait pas être instanciée
     """
-    regex:str
+    _operators: List[Operator] = []
 
     @classmethod
     def test(cls, expression:str) -> bool:
@@ -37,7 +37,11 @@ class Token(metaclass=ABCMeta):
             >>> TokenBinaryOperator.test("2 + 3")
             False
         """
-        return re.match("^"+cls.regex+"$", expression.strip()) != None
+        return re.match("^"+cls.regex()+"$", expression.strip()) != None
+
+    @classmethod
+    def regex(cls):
+        return "|".join([op.regex for op in cls._operators if op.regex != ""])
 
     def isOperand(self) -> bool:
         """Le token est-il une opérande ?
@@ -79,30 +83,33 @@ class Token(metaclass=ABCMeta):
         """
         return 0
 
-
 class TokenBinaryOperator(Token):
-    regex:str = "<=|==|>=|!=|[\^<>+\-*\/%&|]|and|or"
-    _LOGIC = ("and", "or")
-    _COMPARAISON = ("<=", "==", ">=", "!=", "<", ">")
-    def __init__(self,operator:str):
+    _operators:List[Operator] = [op.value for op in Operators if op.value.arity == 2]
+    def __init__(self,operator:Operator):
         """Constructeur
 
         :param operator: operateur
-        :type operator: str
+        :type operator: Operator
         """
-        self._operator = operator.strip()
+        operator = operator.strip()
+        for op in TokenBinaryOperator._operators:
+            if op.symbol == operator:
+                self._operator = op
+                return
+        # par défaut on retourne un +
+        self._operator = Operators.ADD.value
 
     @property
-    def operator(self) -> str:
+    def operator(self) -> Operator:
         """Accesseur
 
         :return: opérateur
-        :rtype: str
+        :rtype: Operator
 
         :Example:
-            >>> TokenBinaryOperator("or").operator
+            >>> str(TokenBinaryOperator("or").operator)
             'or'
-            >>> TokenBinaryOperator("+").operator
+            >>> str(TokenBinaryOperator("+").operator)
             '+'
         """
         return self._operator
@@ -124,21 +131,7 @@ class TokenBinaryOperator(Token):
             >>> TokenBinaryOperator("|").getPriority()
             6
         """
-        if self._operator == "and":
-            return 3
-        elif self._operator in "<==>":
-            return 4
-        elif self._operator in "+-":
-            return 5
-        elif self._operator == "|":
-            return 6
-        elif self._operator in "*/&^":
-            return 7
-        elif self._operator == "%":
-            return 8
-        else:
-            # cas du or
-            return 1
+        return self._operator.priority
 
     def toNode(self, operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
         """Conversion en objet noeud
@@ -153,14 +146,14 @@ class TokenBinaryOperator(Token):
         operand2 = operandsList.pop()
         operand1 = operandsList.pop()
 
-        if self._operator in self._LOGIC:
+        if self._operator.isLogic:
             if not isinstance(operand2, (LogicExpressionNode, ComparaisonExpressionNode)):
                 return None
             if not isinstance(operand1, (LogicExpressionNode, ComparaisonExpressionNode)):
                 return None
-            if self._operator == "and":
+            if self._operator == Operators.LOGICAND.value:
                 return AndNode(operand1, operand2)
-            if self._operator == "or":
+            if self._operator == Operators.LOGICOR.value:
                 return OrNode(operand1, operand2)
             return None
         if not isinstance(operand2, ArithmeticExpressionNode):
@@ -168,7 +161,7 @@ class TokenBinaryOperator(Token):
         if not isinstance(operand1, ArithmeticExpressionNode):
             return None
 
-        if self._operator in self._COMPARAISON:
+        if self._operator.isComparaison:
             return ComparaisonExpressionNode(self._operator, operand1, operand2)
         return BinaryArithmeticNode(self._operator, operand1, operand2)
 
@@ -187,15 +180,26 @@ class TokenBinaryOperator(Token):
         return str(self._operator)
 
 class TokenUnaryOperator(Token):
-    regex:str = "~|not"
+    _operators:List[Operator] = [op.value for op in Operators if op.value.arity == 1]
 
-    def __init__(self,operator:str):
+    @staticmethod
+    def makeFromOperator(operator:Operator) -> 'TokenUnaryOperator':
+        assert operator.arity == 1
+        return TokenUnaryOperator(operator.symbol)
+
+    def __init__(self,strOperator:str):
         """Constructeur
 
-        :param operator: operateur
-        :type operator: str
+        :param strOperator: operateur
+        :type strOperator: str
         """
-        self._operator = operator.strip()
+        strOperator = strOperator.strip()
+        for op in TokenUnaryOperator._operators:
+            if op.symbol == strOperator:
+                self._operator = op
+                return
+        # par défaut on retourne un ~
+        self._operator = Operators.INVERSE.value
 
     @property
     def operator(self) -> str:
@@ -205,9 +209,9 @@ class TokenUnaryOperator(Token):
         :rtype: str
 
         :Example:
-            >>> TokenUnaryOperator("not").operator
+            >>> str(TokenUnaryOperator("not").operator)
             'not'
-            >>> TokenUnaryOperator("-").operator
+            >>> str(TokenUnaryOperator("-").operator)
             '-'
         """
         return self._operator
@@ -223,10 +227,7 @@ class TokenUnaryOperator(Token):
             >>> TokenUnaryOperator("~").getPriority()
             6
         """
-        if self._operator == "not":
-            return 2
-        return 6
-
+        return self._operator.priority
 
     def toNode(self, operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
         """Conversion en objet noeud
@@ -244,11 +245,11 @@ class TokenUnaryOperator(Token):
             return None
         operand = operandsList.pop()
         # Le cas NEG sur litteral devrait se contenter de prendre l'opposé du littéral
-        if self._operator == "neg" and isinstance(operand, ValueNode) and isinstance(operand.value, Litteral):
+        if self._operator == Operators.NEG.value and isinstance(operand, ValueNode) and isinstance(operand.value, Litteral):
             negLitt = operand.value.negClone()
             return ValueNode(negLitt)
 
-        if self._operator == "not":
+        if self._operator == Operators.LOGICNOT.value:
             if not isinstance(operand, (LogicExpressionNode, ComparaisonExpressionNode)):
                 return None
             return NotNode(operand)
@@ -256,10 +257,10 @@ class TokenUnaryOperator(Token):
         if not isinstance(operand, ArithmeticExpressionNode):
             return None
 
-        if self._operator == "neg":
+        if self._operator == Operators.NEG.value:
             return NegNode(operand)
 
-        if self._operator == "~":
+        if self._operator == Operators.INVERSE.value:
             return InverseNode(operand)
 
         return None
@@ -281,7 +282,6 @@ class TokenUnaryOperator(Token):
 
 class TokenVariable(Token):
     RESERVED_NAMES = ("and", "or", "not", "while", "if", "else", "elif")
-    regex:str = "[a-zA-Z][a-zA-Z_0-9]*"
 
     def __init__(self, name):
         """Constructeur
@@ -315,6 +315,10 @@ class TokenVariable(Token):
         if expression_stripped in cls.RESERVED_NAMES:
             return False
         return super().test(expression_stripped)
+
+    @classmethod
+    def regex(cls):
+        return "[a-zA-Z][a-zA-Z_0-9]*"
 
     @property
     def value(self) -> str:
@@ -354,7 +358,6 @@ class TokenVariable(Token):
         return str(self._name)
 
 class TokenNumber(Token):
-    regex:str = "[0-9]+"
     _value:int
 
     def __init__(self, expression):
@@ -364,6 +367,10 @@ class TokenNumber(Token):
         :type operator: str
         """
         self._value = int(expression.strip())
+
+    @classmethod
+    def regex(cls):
+        return "[0-9]+"
 
     @property
     def value(self) -> int:
@@ -403,8 +410,6 @@ class TokenNumber(Token):
 
 
 class TokenParenthesis(Token):
-    regex:str = "\(|\)"
-
     def __init__(self, expression):
         """Constructeur
 
@@ -412,6 +417,10 @@ class TokenParenthesis(Token):
         :type expression: str
         """
         self._isOpening = (expression == '(')
+
+    @classmethod
+    def regex(cls):
+        return "\(|\)"
 
     def isOpening(self) -> bool:
         """
