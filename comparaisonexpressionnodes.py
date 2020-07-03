@@ -5,36 +5,79 @@
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import Dict, List, Sequence, Union
+from typing import List, Union
 
-#from errors import *
-#from processorengine import ProcessorEngine
-#from compileexpressionmanager import CompileExpressionManager
-from arithmeticexpressionnodes import *
+from primitives.operators import Operator, Operators
+from primitives.errors import AttributesError
+from primitives.actionsfifo import ActionsFIFO
+
+from arithmeticexpressionnodes import ArithmeticExpressionNode
+
 
 class ComparaisonExpressionNode:
-    _KNOWN_OPERATORS: Sequence[str] = ('<', '>', '<=', '>=', '==', '!=')
-    _NEGATE_OPERATORS: Dict[str, str] = { "<":">=", ">":"<=", "<=":">", ">=":"<", "==":"!=", "!=":"==" }
-    _MIRRORED_OPERATORS: Dict[str, str] = { "<":">", ">":"<", "<=":">=", ">=":"<=", "!=":"!=", "==":"==" }
-    _NEGATE_MIRRORED_OPERATORS: Dict[str, str] = { "<":"<=", ">":">=", "<=":"<", ">=":">", "==":"!=", "!=":"==" }
-
     _inversed: bool = False
-    _operator: str
+    _operator: Operator
     _operand1: ArithmeticExpressionNode
     _operand2: ArithmeticExpressionNode
 
-    def __init__(self, operator:str, operand1:ArithmeticExpressionNode, operand2:ArithmeticExpressionNode):
+    @staticmethod
+    def negateOperator(operator:Operator) -> Operator:
+        assert operator.isComparaison
+        if operator == Operators.INF.value:
+            return Operators.SUPOREQ.value
+        if operator == Operators.SUP.value:
+            return Operators.INFOREQ.value
+        if operator == Operators.INFOREQ.value:
+            return Operators.SUP.value
+        if operator == Operators.SUPOREQ.value:
+            return Operators.INF.value
+        if operator == Operators.EQ.value:
+            return Operators.NOTEQ.value
+        return Operators.EQ.value
+
+    @staticmethod
+    def mirroredOperator(operator:Operator) -> Operator:
+        assert operator.isComparaison
+        if operator == Operators.INF.value:
+            return Operators.SUP.value
+        if operator == Operators.SUP.value:
+            return Operators.INF.value
+        if operator == Operators.INFOREQ.value:
+            return Operators.SUPOREQ.value
+        if operator == Operators.SUPOREQ.value:
+            return Operators.INFOREQ.value
+        if operator == Operators.EQ.value:
+            return Operators.EQ.value
+        return Operators.NOTEQ.value
+
+    @staticmethod
+    def negateMirroredOperator(operator:Operator) -> Operator:
+        assert operator.isComparaison
+        if operator == Operators.INF.value:
+            return Operators.INFOREQ.value
+        if operator == Operators.SUP.value:
+            return Operators.SUPOREQ.value
+        if operator == Operators.INFOREQ.value:
+            return Operators.INF.value
+        if operator == Operators.SUPOREQ.value:
+            return Operators.SUP.value
+        if operator == Operators.EQ.value:
+            return Operators.NOTEQ.value
+        return Operators.EQ.value
+
+
+    def __init__(self, operator:Operator, operand1:ArithmeticExpressionNode, operand2:ArithmeticExpressionNode):
         """Constructeur
 
         :param operator: opérateur du noeud, parmi <, <=, >, >=, ==, !=
-        :type operator: str
+        :type operator: Operator
         :param operand1: premier opérande
         :type operand1: ArithmeticExpressionNode
         :param operand2: deuxième opérande
         :type operand2: ArithmeticExpressionNode
         """
 
-        assert operator in self._KNOWN_OPERATORS
+        assert operator.isComparaison, "{} n'est pas une comparaison.".format(operator)
         self._operator = operator
         self._operand1 = operand1
         self._operand2 = operand2
@@ -60,11 +103,11 @@ class ComparaisonExpressionNode:
         oComp._inversed = not self._inversed
         return oComp
 
-    def adjustConditionClone(self,csl:List[str]) -> 'ComparaisonExpressionNode':
+    def adjustConditionClone(self,csl:List[Operator]) -> 'ComparaisonExpressionNode':
         """Ajustement des opérateurs de tests en fonction des symboles de comparaison disponibles
 
         :param csl: symboles de comparaison disponibles
-        :type csl: list[str]
+        :type csl: list[Operator]
         :return: clone dont l'expression est adaptée
         :rtype: ComparaisonExpressionNode
         :raises: AttributesErrors si aucun opérateur ne convient
@@ -95,17 +138,17 @@ class ComparaisonExpressionNode:
             # opérateur pris en charge, pas de changement
             return self
 
-        mirroredOperator = self._MIRRORED_OPERATORS[self._operator]
+        mirroredOperator = ComparaisonExpressionNode.mirroredOperator(self._operator)
         if mirroredOperator in csl:
             return ComparaisonExpressionNode(mirroredOperator, self._operand2, self._operand1)
 
-        negateOperator = self._NEGATE_OPERATORS[self._operator]
+        negateOperator = ComparaisonExpressionNode.negateOperator(self._operator)
         if negateOperator in csl:
             compNode = ComparaisonExpressionNode(negateOperator, self._operand1, self._operand2)
             compNode._inversed = not self._inversed
             return compNode
 
-        mirroredNegateOperator = self._NEGATE_MIRRORED_OPERATORS[self._operator]
+        mirroredNegateOperator = ComparaisonExpressionNode.negateMirroredOperator(self._operator)
         if mirroredNegateOperator in csl:
             compNode = ComparaisonExpressionNode(mirroredNegateOperator, self._operand2, self._operand1)
             compNode._inversed = not self._inversed
@@ -129,7 +172,7 @@ class ComparaisonExpressionNode:
         :return: symbole de comparaison
         :rtype: str
         """
-        return self._operator
+        return self._operator.symbol
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -151,64 +194,21 @@ class ComparaisonExpressionNode:
             return 'not ({} {} {})'.format(self._operand1, self._operator, self._operand2)
         return '({} {} {})'.format(self._operand1, self._operator, self._operand2)
 
-    def getRegisterCost(self, engine:ProcessorEngine) -> int:
-        """Calcul du nombre de registre nécessaires pour évaluer ce noeud
+    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+        """Produit une file de type polonaise inversée de façon à donner
+        l'ordre de calcul le plus efficace
 
-        :param engine: modèle de processeur
-        :type engine: ProcessorEngine
-        :return: nombre de registres
-        :rtype: int
-
-        :Example:
-            >>> engine = ProcessorEngine()
-            >>> from arithmeticexpressionnodes import ValueNode, BinaryArithmeticNode
-            >>> from litteral import Litteral
-            >>> oLitteral1 = ValueNode(Litteral(4))
-            >>> oLitteral2 = ValueNode(Litteral(-15))
-            >>> oLitteral3 = ValueNode(Litteral(-47))
-            >>> oAdd1 = BinaryArithmeticNode('+', oLitteral1, oLitteral2)
-            >>> oAdd2 = BinaryArithmeticNode('+', oLitteral2, oLitteral3)
-            >>> oComp = ComparaisonExpressionNode('<', oAdd1, oAdd2)
-            >>> oComp.getRegisterCost(engine)
-            2
-
-            >>> engine = ProcessorEngine('12bits')
-            >>> from arithmeticexpressionnodes import ValueNode, BinaryArithmeticNode
-            >>> from litteral import Litteral
-            >>> oLitteral1 = ValueNode(Litteral(4))
-            >>> oLitteral2 = ValueNode(Litteral(-15))
-            >>> oLitteral3 = ValueNode(Litteral(-47))
-            >>> oAdd1 = BinaryArithmeticNode('+', oLitteral1, oLitteral2)
-            >>> oAdd2 = BinaryArithmeticNode('+', oLitteral2, oLitteral3)
-            >>> oComp = ComparaisonExpressionNode('<', oAdd1, oAdd2)
-            >>> oComp.getRegisterCost(engine)
-            3
+        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
+        :type litteralMaxSize: int
+        :return: file de tokens, opérandes ou opérateurs
+        :rtype: ActionsFIFO
         """
-        costOperand1 = self._operand1.getRegisterCost(engine)
-        costOperand2 = self._operand2.getRegisterCost(engine)
-        return min(max(costOperand1, costOperand2+1), max(costOperand1+1, costOperand2))
-
-    def compile(self, CEMObject:CompileExpressionManager) -> None:
-        """Procédure d'exécution de la compilation
-
-        :param CEMObject: objet prenant en charge la compilation d'une expression
-        :type CEMObject: CompileExpressionManager
-        """
-        engine = CEMObject.engine
-        myCost = self.getRegisterCost(engine)
-        needUAL = False
-        CEMObject.getNeededRegisterSpace(myCost, needUAL)
-
-        if self._operand1.getRegisterCost(engine) >= self._operand2.getRegisterCost(engine):
-            firstToCalc = self._operand1
-            secondToCalc = self._operand2
-        else:
-            firstToCalc = self._operand2
-            secondToCalc = self._operand1
-        firstToCalc.compile(CEMObject)
-        secondToCalc.compile(CEMObject)
-        goodOrder = (firstToCalc == self._operand1)
-        CEMObject.pushBinaryOperator("cmp", goodOrder)
+        if self._operand2.cost(litteralMaxSize) > self._operand1.cost(litteralMaxSize):
+            fifo = self._operand2.getFIFO().concat(self._operand1.getFIFO())
+            if self._operator.isCommutatif:
+                return fifo.append(self._operator)
+            return fifo.append(Operators.SWAP.value, self._operator)
+        return self._operand1.getFIFO().concat(self._operand2.getFIFO()).append(self._operator)
 
     def clone(self) -> 'ComparaisonExpressionNode':
         """Produit un clone de l'objet avec son arborescence
