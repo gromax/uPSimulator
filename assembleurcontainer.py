@@ -5,12 +5,12 @@
 
 from typing import Union, Tuple, Optional, List
 
-#from errors import CompilationError, AttributesError
-#from litteral import Litteral
-#from variable import Variable
-#from label import Label
-#from assembleurlines import AsmLine
-from assembleurlines import *
+from primitives.errors import CompilationError, AttributesError
+from primitives.litteral import Litteral
+from primitives.variable import Variable
+from primitives.label import Label
+
+from assembleurlines import AsmLine
 from processorengine import ProcessorEngine
 
 class AssembleurContainer:
@@ -147,7 +147,6 @@ class AssembleurContainer:
         if opcode != "" and asmCommand != "":
             maxSize = self.__engine.getLitteralMaxSizeIn("move")
             if source.isBetween(0,maxSize):
-                moveOperands = (destination, source)
                 self.__lines.append(AsmLine(lineNumber, label, opcode, asmCommand, (destination,), source))
                 return
         self.pushLoad(lineNumber, label, source, destination)
@@ -458,21 +457,21 @@ class AssembleurContainer:
         return None
 
 if __name__=="__main__":
-    from processorengine import ProcessorEngine
+    from processor16bits import Processor16Bits
 
-    engine = ProcessorEngine()
-    AsmCont = AssembleurContainer(engine)
-    AsmCont.pushMove(0,None, 2,1)
-    AsmCont.pushMoveLitteral(0,None, Litteral(2),1)
-    AsmCont.pushUal(0,None, "+",2,(3,), Litteral(19))
-    AsmCont.pushStore(0,None, 1,Variable("x"))
-    AsmCont.pushLoad(0,None, Variable("x"),3)
-    AsmCont.pushInput(0,None, Variable("x"))
-    AsmCont.pushPrint(0,1)
-    AsmCont.pushHalt(None)
+    engine = Processor16Bits()
+    asmCont = AssembleurContainer(engine)
+    asmCont.pushMove(0,None, 2,1)
+    asmCont.pushMoveLitteral(0,None, Litteral(2),1)
+    asmCont.pushUal(0,None, "+",2,(3,), Litteral(19))
+    asmCont.pushStore(0,None, 1,Variable("x"))
+    asmCont.pushLoad(0,None, Variable("x"),3)
+    asmCont.pushInput(0,None, Variable("x"))
+    asmCont.pushPrint(0,1)
+    asmCont.pushHalt(None)
 
-    print(str(AsmCont))
+    print(str(asmCont))
     print()
-    print(AsmCont.getBinary())
+    print(asmCont.getBinary())
     print()
-    print(AsmCont.getDecimal())
+    print(asmCont.getDecimal())
