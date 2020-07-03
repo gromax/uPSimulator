@@ -1,7 +1,7 @@
 from codeparser import CodeParser
 from compilemanager import CompilationManager
-from processorengine import ProcessorEngine
-
+from processor16bits import Processort16Bits
+from processor12bits import Processort12Bits
 
 import unittest
 
@@ -9,8 +9,8 @@ import unittest
 
 class CompilationTest(unittest.TestCase):
     def setUp(self):
-        self.engine16 = ProcessorEngine()
-        self.engine12 = ProcessorEngine("12bits")
+        self.engine16 = Processort16Bits()
+        self.engine12 = Processort12Bits()
 
 
     def test_affectation_16bits(self):
