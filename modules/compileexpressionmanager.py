@@ -11,15 +11,15 @@
 
 from typing import Union, List, Optional, Tuple
 
-from errors import CompilationError
-from variable import Variable
-from litteral import Litteral
-from label import Label
-from processorengine import ProcessorEngine
-from operators import Operator, Operators
-from register import Register, RegisterBank, RegistersStack, TempMemoryStack
-from actionsfifo import ActionsFIFO
+from primitives.errors import CompilationError
+from primitives.variable import Variable
+from primitives.litteral import Litteral
+from primitives.label import Label
+from primitives.operators import Operator, Operators
+from primitives.register import Register, RegisterBank, RegistersStack, TempMemoryStack
+from primitives.actionsfifo import ActionsFIFO
 
+from processorengine import ProcessorEngine
 
 
 

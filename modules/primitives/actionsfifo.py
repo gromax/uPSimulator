@@ -5,11 +5,11 @@
 
 from typing import Union, List, Optional, Tuple
 
-from variable import Variable
-from litteral import Litteral
-from label import Label
-from operators import Operator
-from register import Register, RegisterBank, RegistersStack, TempMemoryStack
+from modules.primitives.variable import Variable
+from modules.primitives.litteral import Litteral
+from modules.primitives.label import Label
+from modules.primitives.operators import Operator
+from modules.primitives.register import Register, RegisterBank, RegistersStack, TempMemoryStack
 
 
 ActionType = Union[Operator, Variable, Litteral, Register, Label]

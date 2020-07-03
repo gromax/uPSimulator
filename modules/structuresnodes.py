@@ -36,7 +36,7 @@ class StructureNodeList(LinkedList):
         :type csl: List[Operator]
         """
 
-        for node in self.toList():
+        for node in self:
             if isinstance(node, IfNode):
                 nodeLinear = node._getLinearStructureList(csl)
                 self.replace(node, nodeLinear)
@@ -44,7 +44,7 @@ class StructureNodeList(LinkedList):
     def _deleteJumpNextLine(self):
         """Recherche un jump pointant vers la ligne suivante et le supprime
         """
-        jumpsToScan:List['JumpNode'] = [node for node in self.toList() if isinstance(node, JumpNode)]
+        jumpsToScan:List['JumpNode'] = [node for node in self if isinstance(node, JumpNode)]
         jumpsLeft:List['JumpNode'] = []
         jumpsDeleted = 1
         while jumpsDeleted > 0:
@@ -62,14 +62,14 @@ class StructureNodeList(LinkedList):
     def _deleteDummies(self):
         """Recherche les dummy
         """
-        dummiesList:List['StructureNode'] = [node for node in self.toList() if isinstance(node, SimpleNode) and node.snType == "dummy"]
+        dummiesList:List['StructureNode'] = [node for node in self if isinstance(node, SimpleNode) and node.snType == "dummy"]
         for node in dummiesList:
             self.delete(node)
 
     def _assignLabels(self):
         """Recherche les jump et assigne un label à leur cible
         """
-        jumpsList:List['JumpNode'] = [node for node in self.toList() if isinstance(node, JumpNode)]
+        jumpsList:List['JumpNode'] = [node for node in self if isinstance(node, JumpNode)]
         for j in jumpsList:
             j.cible.assignLabel()
 
@@ -79,7 +79,7 @@ class StructureNodeList(LinkedList):
         :return: version texte
         :rtype: str
         """
-        childrenList = self.toList()
+        childrenList = self
         childrenStrList = [ str(node) for node in childrenList ]
         return "\n".join(childrenStrList)
 
@@ -99,7 +99,7 @@ class StructureNodeList(LinkedList):
         :return: suppression effectuée
         :rtype: bool
         """
-        jumpsToMod = [node for node in self.toList() if node != nodeToDel and isinstance(node, JumpNode) and node.cible == nodeToDel]
+        jumpsToMod = [node for node in self if node != nodeToDel and isinstance(node, JumpNode) and node.cible == nodeToDel]
         if nodeToDel._next == self._head and len(jumpsToMod) > 0:
             # nodeToDel en dernier et jumps à brancher sur lui
             # -> insertion d'un node dummy

@@ -250,7 +250,7 @@ class ExpressionParser:
         :return: expression régulière d'une expression
         :rtype: str
         """
-        return r"(\s*" + cls.regex() + ")+"
+        return r"(\s*{})+".format(cls.regex())
 
     @classmethod
     def regex(cls) -> str:
@@ -277,7 +277,7 @@ class ExpressionParser:
         nomVariable = nomVariable.strip()
         if nomVariable in ("if", "else", "elif", "else", "while", "print", "input", "and", "or", "not"):
             return False
-        return re.match(r"^(\s*" + regex + r")+\s*$", nomVariable) != None
+        return re.match(r"^(\s*{})+\s*$".format(regex), nomVariable) != None
 
     @classmethod
     def strIsExpression(cls, expression:str) -> bool:
@@ -296,7 +296,7 @@ class ExpressionParser:
         """
 
         regex = cls.regex()
-        return re.match(r"^(\s*" + regex + r")+\s*$", expression) != None
+        return re.match(r"^(\s*{})+\s*$".format(regex), expression) != None
 
     @classmethod
     def __buildTokensList(cls, expression:str) -> List[Token]:

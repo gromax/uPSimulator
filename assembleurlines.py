@@ -5,10 +5,10 @@
 
 from typing import Tuple, Union, List, Optional
 
-from errors import *
-from litteral import Litteral
-from variable import Variable
-from label import Label
+#from modules.errors import *
+from modules.primitives.litteral import Litteral
+from modules.primitives.variable import Variable
+from modules.primitives.label import Label
 
 class AsmLine:
     """Ligne de code assembleur.
@@ -85,7 +85,7 @@ class AsmLine:
           >>> AsmLine._stringifyRegOperand(2)
           'r2'
         """
-        return "r"+str(operand)
+        return "r" + str(operand)
 
     def __str__(self) -> str:
         strOperands = [ AsmLine._stringifyRegOperand(ope) for ope in self._regOperands]

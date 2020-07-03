@@ -3,7 +3,7 @@
    :synopsis: définition d'un noeud de liste doublement chaînée
 """
 
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Iterator
 
 class LinkedList:
     _head: Optional["LinkedListNode"] = None
@@ -44,6 +44,11 @@ class LinkedList:
             node = node._next
             count += 1
         return count
+
+    def __iter__(self) -> Iterator:
+        if self._head is None:
+            return iter([])
+        return self._head
 
     def delete(self, nodeToDel:"LinkedListNode") -> bool:
         """supprime l'élément node
@@ -105,6 +110,7 @@ class LinkedList:
         self.delete(nodeToReplace)
         return self
 
+    '''
     def toList(self) -> List['LinkedListNode']:
         """Produit une liste des items enfants
 
@@ -119,6 +125,7 @@ class LinkedList:
             node = node._next
             outputList.append(node)
         return outputList
+    '''
 
     def append(self, listToAppend:Union['LinkedListNode', 'LinkedList']) -> None:
         """ajoute le contenu de listToAppend à la suite, listToAppend s'en trouve vidée
@@ -151,6 +158,11 @@ class LinkedListNode:
         :return: noeud suivant
         :rtype: LinkedListNode
         """
+        return self._next
+
+    def __next__(self) -> "LinkedListNode":
+        if self._next == self: 
+            raise StopIteration 
         return self._next
 
     def __str__(self) -> str:

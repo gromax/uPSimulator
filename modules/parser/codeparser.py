@@ -4,16 +4,16 @@
 """
 
 from typing import List, Optional
-from lineparser import *
-from structuresnodes import *
-from errors import *
+import re
+
+from modules.parser.lineparser import ParsedLine, ParsedLine_Elif, ParsedLine_If, ParsedLine_While, ParsedLine_Else, ParsedLine_Print, ParsedLine_Affectation, ParsedLine_Input
+from modules.structuresnodes import StructureNode, WhileNode, IfElseNode, IfNode, PrintNode, InputNode, AffectationNode
+from modules.errors import ParseError
 
 class CodeParser: # Définition classe
     """Classe CodeParser
     Parse le contenu d'un fichier passé en paramètre au constructeur
     Une méthode public parseCode qui construit une liste d'objets LineParser avec organisation des enfants selon indentation
-    TODO - une méthode de contrôle de cohérence du code
-    ATTENTION - pas de gestion particulière du if, elif, else -> pas de tuple pour le noeud if et else --> voir structureelements
     """
 
     @classmethod
@@ -306,7 +306,6 @@ class CodeParser: # Définition classe
             if not lineObject is None:
                 return lineObject
         raise ParseError("Erreur de syntaxe : <{}>".format(cleanLine), {"lineNumber":lineNumber})
-        return ParsedLine(lineNumber)
 
     @classmethod
     def _suppCommentsAndEndSpaces(cls, line:str) -> str:
@@ -316,7 +315,7 @@ class CodeParser: # Définition classe
         :return: ligne sans les espaces initiaux et terminaux ainsi que les éventuels commentaires
         :rtype: str
         """
-        return re.sub("\s*(\#.*)?$","",line).strip()
+        return re.sub(r"\s*(\#.*)?$","",line).strip()
 
     @classmethod
     def _countIndentation(cls, line:str) -> int:
@@ -326,8 +325,8 @@ class CodeParser: # Définition classe
         :return: nombre d'espaces d'indentation
         :rtype: int
         """
-        line = re.sub("\s*(\#.*)?$","",line)
-        return len(re.findall("^\s*",line)[0])
+        line = re.sub(r"\s*(\#.*)?$","",line)
+        return len(re.findall(r"^\s*",line)[0])
 
 
 

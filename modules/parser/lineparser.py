@@ -4,17 +4,14 @@
 """
 
 from typing import List, Union, Optional
+import re
 
-#import re
-#from errors import ParseError
-#from expressionparser import ExpressionParser
-#from variable import Variable
-#from arithmeticexpressionnodes import ArithmeticExpressionNode
-#from comparaisonexpressionnodes import ComparaisonExpressionNode
-#from logicexpressionnodes import LogicExpressionNode
-from expressionparser import *
-
-
+from modules.errors import ParseError
+from modules.parser.expressionparser import ExpressionParser
+from modules.primitives.variable import Variable
+from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
+from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
+from modules.expressionnodes.logicexpressionnodes import LogicExpressionNode
 
 class ParsedLine:
     """
@@ -129,7 +126,7 @@ class ParsedLine_If(ParsedLine):
 
     @classmethod
     def regex(cls):
-        return "^" + cls.KEYWORD + "\s*("+ ExpressionParser.expressionRegex() +")\s*:$"
+        return "^" + cls.KEYWORD + r"\s*("+ ExpressionParser.expressionRegex() + r")\s*:$"
 
     @classmethod
     def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
@@ -156,7 +153,6 @@ class ParsedLine_If(ParsedLine):
         condition = ExpressionParser.buildExpression(firstGroup)
         if not isinstance(condition, (LogicExpressionNode, ComparaisonExpressionNode)) :
             raise ParseError("L'expression <{}> n'est pas une condition.".format(condition), {"lineNumber":lineNumber})
-            return None
         node = cls(lineNumber, indentation, condition)
         return node
 
@@ -221,7 +217,7 @@ class ParsedLine_Else(ParsedLine):
 
     @classmethod
     def regex(cls):
-        return "^"+cls.KEYWORD+"\s*:$"
+        return "^" + cls.KEYWORD + r"\s*:$"
 
     @classmethod
     def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
@@ -274,7 +270,7 @@ class ParsedLine_Print(ParsedLine):
 
     @classmethod
     def regex(cls):
-        return "^" + cls.KEYWORD + "\s*\((" + ExpressionParser.expressionRegex() + ")\)$"
+        return "^" + cls.KEYWORD + r"\s*\((" + ExpressionParser.expressionRegex() + r")\)$"
 
     @classmethod
     def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
@@ -299,7 +295,6 @@ class ParsedLine_Print(ParsedLine):
         expr = ExpressionParser.buildExpression(firstGroup)
         if not isinstance(expr, ArithmeticExpressionNode):
             raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber": lineNumber})
-            return None
         return ParsedLine_Print(lineNumber, indentation, expr)
 
     def _parentLineToStr(self) -> str:
@@ -329,7 +324,7 @@ class ParsedLine_Input(ParsedLine):
 
     @classmethod
     def regex(cls):
-        return "^(" + ExpressionParser.variableRegex() +")\s*=\s*" + cls.KEYWORD + "\s*\(\s*\)$"
+        return "^(" + ExpressionParser.variableRegex() + r")\s*=\s*" + cls.KEYWORD + r"\s*\(\s*\)$"
 
     @classmethod
     def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
@@ -353,7 +348,6 @@ class ParsedLine_Input(ParsedLine):
 
         if not ExpressionParser.strIsVariableName(variableName):
             raise ParseError("La variable <{}> est incorrecte.".format(variableName), {"lineNumber":lineNumber})
-            return None
         return ParsedLine_Input(lineNumber, indentation, Variable(variableName))
 
 
@@ -386,7 +380,7 @@ class ParsedLine_Affectation(ParsedLine):
 
     @classmethod
     def regex(cls):
-        return "^(" + ExpressionParser.variableRegex() + ")\s*=\s*(" + ExpressionParser.expressionRegex() + ")$"
+        return "^(" + ExpressionParser.variableRegex() + r")\s*=\s*(" + ExpressionParser.expressionRegex() + ")$"
 
     @classmethod
     def tryNew(cls, lineNumber:int, indentation:int, line:str) -> Optional[ParsedLine]:
@@ -410,11 +404,9 @@ class ParsedLine_Affectation(ParsedLine):
         expressionStr = allGroup[2] # tout ce qu'il y a dans les ( ) de l'input
         if not ExpressionParser.strIsVariableName(variableName):
             raise ParseError("La variable <{}> est incorrecte.".format(variableName), {"lineNumber":lineNumber})
-            return None
         expr = ExpressionParser.buildExpression(expressionStr)
         if not isinstance(expr, ArithmeticExpressionNode):
             raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber":lineNumber})
-            return None
         return ParsedLine_Affectation(lineNumber, indentation, Variable(variableName), expr)
 
     def _parentLineToStr(self) -> str:

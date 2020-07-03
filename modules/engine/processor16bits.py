@@ -3,10 +3,10 @@
    :synopsis: Exemple de modèle de processeur
 """
 
-from processorengine import ProcessorEngine, Commands
-from operators import Operators, Operator
-
 from typing import Dict
+
+from modules.engine.processorengine import ProcessorEngine, Commands
+from modules.primitives.operators import Operators, Operator
 
 class Processor16Bits(ProcessorEngine):
     _name                  :str = "Processeur 16 bits"

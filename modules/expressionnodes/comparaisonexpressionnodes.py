@@ -7,11 +7,12 @@
 
 from typing import List, Union
 
-from primitives.operators import Operator, Operators
-from primitives.errors import AttributesError
-from primitives.actionsfifo import ActionsFIFO
+from modules.errors import AttributesError
 
-from arithmeticexpressionnodes import ArithmeticExpressionNode
+from modules.primitives.operators import Operator, Operators
+from modules.primitives.actionsfifo import ActionsFIFO
+
+from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
 
 
 class ComparaisonExpressionNode:

@@ -3,7 +3,7 @@
    :synopsis: définition d'un objet contenant une variable mémoire
 """
 
-from errors import CompilationError
+from modules.errors import CompilationError
 
 class Variable:
     def __init__(self, nom:str, value:int = 0):

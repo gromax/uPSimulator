@@ -8,10 +8,10 @@
 from typing import Optional, List, Union
 from abc import ABC, ABCMeta, abstractmethod
 
-from primitives.operators import Operator, Operators
-from primitives.litteral import Litteral
-from primitives.variable import Variable
-from primitives.actionsfifo import ActionsFIFO
+from modules.primitives.operators import Operator, Operators
+from modules.primitives.litteral import Litteral
+from modules.primitives.variable import Variable
+from modules.primitives.actionsfifo import ActionsFIFO
 
 class ArithmeticExpressionNode(metaclass=ABCMeta):
     """Classe abstraite définissant les propriétés des noeuds arithmétiques

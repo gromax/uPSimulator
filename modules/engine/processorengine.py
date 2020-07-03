@@ -6,15 +6,15 @@
 from typing import Union, List, Dict, Optional, Tuple, Sequence
 from typing_extensions import TypedDict
 from abc import ABC, ABCMeta, abstractmethod
-from litteral import Litteral
-from operators import Operator, Operators
+
+from modules.primitives.litteral import Litteral
+from modules.primitives.operators import Operator, Operators
 
 Commands = TypedDict('Commands', {
     'opcode': str,
     'asm'   : str
 })
 
-from errors import *
 
 class ProcessorEngine(metaclass=ABCMeta):
     _name                  :str
