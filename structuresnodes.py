@@ -4,13 +4,14 @@
 """
 from typing import List, Optional, Union, cast
 
-#from arithmeticexpressionnodes import ArithmeticExpressionNode
-#from comparaisonexpressionnodes import ComparaisonExpressionNode
-#from logicexpressionnodes import LogicExpressionNode, NotNode, AndNode, OrNode
-#from variable import Variable
-#from label import Label
-from logicexpressionnodes import *
-from linkedlistnode import LinkedList, LinkedListNode
+from primitives.linkedlistnode import LinkedList, LinkedListNode
+from primitives.operators import Operator
+from primitives.label import Label
+from primitives.variable import Variable
+
+from arithmeticexpressionnodes import ArithmeticExpressionNode
+from comparaisonexpressionnodes import ComparaisonExpressionNode
+from logicexpressionnodes import LogicExpressionNode, NotNode, AndNode, OrNode
 
 class StructureNodeList(LinkedList):
     def linearize(self, csl:List[str]) -> None:
@@ -28,11 +29,11 @@ class StructureNodeList(LinkedList):
         # enfin il faut assigner tous les labels
         self._assignLabels()
 
-    def _linearizeRecursive(self, csl:List[str]) -> None:
+    def _linearizeRecursive(self, csl:List[Operator]) -> None:
         """Propage le calcul de la version linéaire aux enfants
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: List[str]
+        :type csl: List[Operator]
         """
 
         for node in self.toList():
@@ -208,13 +209,13 @@ class IfNode(StructureNode):
         childrenStr = self._children.tabulatedStr()
         return "{}\tif {} {{\n{}\n\t}}".format(self.labelToStr(), self._condition, childrenStr)
 
-    def _decomposeCondition(self, csl:List[str], cibleOUI:'StructureNode', cibleNON:'StructureNode') -> 'StructureNodeList':
+    def _decomposeCondition(self, csl:List[Operator], cibleOUI:'StructureNode', cibleNON:'StructureNode') -> 'StructureNodeList':
         """Décompose un condition complexe, contenant des and, not, or,
         en un ensemble de branchement conditionnels, les opérations logiques
         étant assurées par l'organisation des branchements
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: List[str]
+        :type csl: List[Operator]
         :param cibleOUI: cible dans le cas d'un test Vrai
         :type cibleOUI: StructureNode
         :param cibleNON: cible dans le cas d'un test Faux
@@ -227,12 +228,12 @@ class IfNode(StructureNode):
         conditionInverse = self._condition.logicNegateClone()
         return self._recursiveDecomposeComplexeCondition(csl, conditionInverse, cibleOUI, cibleNON)
 
-    def _recursiveDecomposeComplexeCondition(self, csl:List[str], conditionSaut:Union[LogicExpressionNode, ComparaisonExpressionNode], cibleDirecte:'StructureNode', cibleSautCond:'StructureNode') -> 'StructureNodeList':
+    def _recursiveDecomposeComplexeCondition(self, csl:List[Operator], conditionSaut:Union[LogicExpressionNode, ComparaisonExpressionNode], cibleDirecte:'StructureNode', cibleSautCond:'StructureNode') -> 'StructureNodeList':
         """Fonction auxiliaire et récursive pour la décoposition d'une condition complexe
         en un ensemble de branchement et de condition élémentaire
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: List[str]
+        :type csl: List[Operator]
         :param conditionSaut: condition du saut conditionnel
         :type conditionSaut: Union[LogicExpressionNode, ComparaisonExpressionNode]
         :param cibleDirecte: cible en déroulement normal, càd condition fausse => pas de saut
@@ -277,7 +278,7 @@ class IfNode(StructureNode):
             return enfant1
         raise AttributeError("Noeud de condition {} pas pris en charge.".format(conditionSaut), {"lineNumber": self._lineNumber})
 
-    def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
+    def _getLinearStructureList(self, csl:List[Operator]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud If.
         Cela comprend :
         * les labels identifiant les différents blocs pour les sauts,
@@ -285,7 +286,7 @@ class IfNode(StructureNode):
         * le bloc enfant
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: List[str]
+        :type csl: List[Operator]
         :return: version linéaire du noeud if
         :rtype: StructureNodeList
         """
@@ -342,7 +343,7 @@ class IfElseNode(IfNode):
         elseChildrenStr = self._elseChildren.tabulatedStr()
         return "{}\tif {} {{\n{}\n\t}} else {{\n{}\n\t}}".format(self.labelToStr(), self._condition, childrenStr, elseChildrenStr)
 
-    def _getLinearStructureList(self, csl:List[str]) -> 'StructureNodeList':
+    def _getLinearStructureList(self, csl:List[Operator]) -> 'StructureNodeList':
         """Production de la version linéaire pour l'ensemble du noeud If Else.
         Cela comprend :
         * les labels identifiant les différents blocs pour les sauts,
@@ -350,7 +351,7 @@ class IfElseNode(IfNode):
         * les blocs enfants, If et Else
 
         :param csl: liste des comparaisons permises par le processeur utilisé
-        :type csl: List[str]
+        :type csl: List[Operator]
         :return: version linéaire du noeud
         :rtype: StructureNodeList
         """
