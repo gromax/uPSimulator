@@ -16,13 +16,15 @@
 """
 from typing import List, Dict, Optional, Tuple
 
-#from errors import *
-from structuresnodes import *
-#from assembleurcontainer import AssembleurContainer
-#from compileexpressionmanager import CompileExpressionManager
-#from processorengine import ProcessorEngine
-#from arithmeticexpressionnodes import ArithmeticExpressionNode
-#from comparaisonexpressionnodes import ComparaisonExpressionNode
+from primitives.label import Label
+
+from structuresnodes import StructureNode, StructureNodeList, JumpNode, InputNode, SimpleNode, AffectationNode, PrintNode
+
+from assembleurcontainer import AssembleurContainer
+from compileexpressionmanager import CompileExpressionManager
+from processorengine import ProcessorEngine
+from arithmeticexpressionnodes import ArithmeticExpressionNode
+from comparaisonexpressionnodes import ComparaisonExpressionNode
 
 
 class CompilationManager:
@@ -70,8 +72,9 @@ class CompilationManager:
         :return: numéro du registre résultat ou -1 si inutile (comparaison)
         :rtype: int
         """
-        cem = CompileExpressionManager(self._engine, self._asm, lineNumber, label)
-        expression.compile(cem)
+        fifo = expression.getFIFO(self._engine.litteralMaxSize)
+        cem = CompileExpressionManager(self._engine, lineNumber)
+        cem.compile(fifo)
         return cem.getResultRegister()
 
     def _pushComparaisonAsm(self, lineNumber:int, label:Optional[Label], condition:ComparaisonExpressionNode) -> None:
@@ -84,9 +87,9 @@ class CompilationManager:
         :param condition: comparaison à compiler
         :type condition: ComparaisonExpressionNode
         """
-        cem = CompileExpressionManager(self._engine, self._asm, lineNumber, label)
-        condition.compile(cem)
-
+        fifo = condition.getFIFO(self._engine.litteralMaxSize)
+        cem = CompileExpressionManager(self._engine, lineNumber)
+        cem.compile(fifo)
 
     def _pushNodeAsm(self, node:StructureNode) -> None:
         """Exécute la compilation pour un noeud. Le résultat est ajouté à l'objet assembleur.
@@ -139,8 +142,12 @@ class CompilationManager:
 
 if __name__=="__main__":
     from expressionparser import ExpressionParser as EP
-    from processorengine import ProcessorEngine
-    engine = ProcessorEngine()
+    from processor16bits import Processor16Bits
+    from primitives.variable import Variable
+    from structuresnodes import WhileNode
+    from codeparser import CodeParser
+
+    engine = Processor16Bits()
 
     varX = Variable('x')
     varY = Variable('y')
@@ -161,7 +168,6 @@ if __name__=="__main__":
 
     print()
     print()
-    from codeparser import *
     code = CodeParser.parse(filename = "example2.code")
     cm = CompilationManager(engine, code)
     print(cm.asm)
