@@ -3,8 +3,6 @@
    :synopsis: définition d'un objet contenant une étiquette
 """
 
-from errors import *
-
 class Label:
     PREFIX = "Lab"
     _currentIndex = 0 # type: int

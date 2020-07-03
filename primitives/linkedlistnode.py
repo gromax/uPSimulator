@@ -8,13 +8,9 @@ from typing import Optional, Union, List
 class LinkedList:
     _head: Optional["LinkedListNode"] = None
     def __init__(self, items:List["LinkedListNode"]):
-        """
-        attention : les noeuds doivent être "neufs"
-        Si les noeud étaient déjà inserrés dans une liste,
-        on pourrait avoir des problèmes
-        """
         if len(items) == 0:
             return
+        assert len(set(items)) == len(items), "La liste contient des doublons."
         self._head = items[0]
         lastInserted = self._head
         for item in items[1:]:

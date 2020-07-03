@@ -62,6 +62,26 @@ class Litteral:
 
         return minValue <= self._value <= maxValue
 
+    def bitMinSize(self) -> int:
+        """Nombre de bits minimum pour coder un tel nombre
+        :return: nombre de bits
+        :rtype: int
+
+        :Example:
+            >>> Litteral(45).bitMinSize()
+            6
+        """
+        if self._value == 0:
+            return 1
+        posValue = abs(self._value)
+        n = 0
+        while posValue > 0:
+            posValue = posValue // 2
+            n += 1
+        if self._value < 0:
+            return n + 1
+        return n
+
     def __str__(self) -> str:
         """Transtypage -> str. Affiche le littéral préfixé par #
 
@@ -74,3 +94,7 @@ class Litteral:
 
         """
         return "#"+str(self._value)
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()
