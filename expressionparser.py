@@ -5,14 +5,15 @@
 """
 
 from typing import List, Union
+import re
 
-#from errors import *
-#from arithmeticexpressionnodes import ArithmeticExpressionNode
-#from comparaisonexpressionnodes import ComparaisonExpressionNode
-#from logicexpressionnodes import LogicExpressionNode
-#from parsertokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
-#import re
-from parsertokens import *
+from primitives.operators import Operators
+from primitives.errors import ExpressionError
+
+from arithmeticexpressionnodes import ArithmeticExpressionNode
+from comparaisonexpressionnodes import ComparaisonExpressionNode
+from logicexpressionnodes import LogicExpressionNode
+from parsertokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
 
 class ExpressionParser:
     TokensList =  [TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]
@@ -240,7 +241,7 @@ class ExpressionParser:
         :return: expression régulière d'une variable
         :rtype: str
         """
-        return TokenVariable.regex
+        return TokenVariable.regex()
 
     @classmethod
     def expressionRegex(cls) -> str:
@@ -249,7 +250,7 @@ class ExpressionParser:
         :return: expression régulière d'une expression
         :rtype: str
         """
-        return f"(\s*{cls.regex()})+"
+        return "(\s*{})+".format(cls.regex())
 
     @classmethod
     def regex(cls) -> str:
@@ -258,7 +259,7 @@ class ExpressionParser:
         :return: expression régulière d'un item d'expression
         :rtype: str
         """
-        regexList = [ "("+Token.regex+")" for Token in cls.TokensList ]
+        regexList = [ "({})".format(Token.regex()) for Token in cls.TokensList ]
         return "("+"|".join(regexList)+")"
 
     @classmethod
@@ -272,11 +273,11 @@ class ExpressionParser:
         :return: vrai si le nom est valable
         :rtype: bool
         """
-        regex = TokenVariable.regex
+        regex = TokenVariable.regex()
         nomVariable = nomVariable.strip()
         if nomVariable in ("if", "else", "elif", "else", "while", "print", "input", "and", "or", "not"):
             return False
-        return re.match(f"^(\s*{regex})+\s*$", nomVariable) != None
+        return re.match("^(\s*{})+\s*$".format(regex), nomVariable) != None
 
     @classmethod
     def strIsExpression(cls, expression:str) -> bool:
@@ -295,7 +296,7 @@ class ExpressionParser:
         """
 
         regex = cls.regex()
-        return re.match(f"^(\s*{regex})+\s*$", expression) != None
+        return re.match("^(\s*{})+\s*$".format(regex), expression) != None
 
     @classmethod
     def __buildTokensList(cls, expression:str) -> List[Token]:
@@ -317,7 +318,7 @@ class ExpressionParser:
                 if TokenType.test(item):
                     newToken = TokenType(item)
                     tokensList.append(newToken)
-                    break;
+                    break
         return cls.__consolidAddSub(tokensList)
 
     @classmethod
@@ -338,7 +339,7 @@ class ExpressionParser:
         :return: La liste des tokens avec les - et + corrigés le cas échéant
         :rtype: list[Token]
         """
-
+        pmOperators = (Operators.ADD.value, Operators.MINUS.value)
         indice = 0
         while indice < len(tokensList):
             token = tokensList[indice]
@@ -346,21 +347,17 @@ class ExpressionParser:
                 tokenPrecedent = None
             else:
                 tokenPrecedent = tokensList[indice-1]
-            if indice >= len(tokensList)-1:
-                tokenSuivant = None
-            else:
-                tokenSuivant = tokensList[indice+1]
 
-            if isinstance(token,TokenBinaryOperator) and token.operator in "+-" and not ExpressionParser.isLegal(tokenPrecedent, token):
+            if isinstance(token,TokenBinaryOperator) and token.operator in pmOperators and not ExpressionParser.isLegal(tokenPrecedent, token):
                 # Ce + ou - doit être rectifié car il ne devrait pas se trouver à la suite de ce qui précède
-                if token.operator == "+":
+                if token.operator == Operators.ADD.value:
                     # Dans le cas d'un +, il suffit de le supprimer
                     del tokensList[indice]
                     # inutile de passer au suivant
                 else:
                     # l'opérateur est - et c'est un cas d'opération unaire
                     # on l'interprète comme neg
-                    tokenNeg = TokenUnaryOperator("neg")
+                    tokenNeg = TokenUnaryOperator.makeFromOperator(Operators.NEG.value)
                     del tokensList[indice]
                     tokensList.insert(indice,tokenNeg)
                     # inutile de passer au suivant
@@ -382,7 +379,7 @@ class ExpressionParser:
 
         expression = originalExpression.strip()
         if not cls.strIsExpression(expression):
-            raise ExpressionError(f"{originalExpression} : Expression incorrecte.")
+            raise ExpressionError("{} : Expression incorrecte.".format(originalExpression))
         if not cls.testBrackets(expression):
             raise ExpressionError(f"{originalExpression} : Les parenthèses ne sont pas équilibrées.")
         tokensList = cls.__buildTokensList(expression)
