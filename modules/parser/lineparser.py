@@ -7,11 +7,11 @@ from typing import List, Union, Optional
 import re
 
 from modules.errors import ParseError
-from modules.parser.expressionparser import ExpressionParser
+from modules.parser.expression import ExpressionParser
 from modules.primitives.variable import Variable
-from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
-from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
-from modules.expressionnodes.logicexpressionnodes import LogicExpressionNode
+from modules.expressionnodes.arithmetic import ArithmeticExpressionNode
+from modules.expressionnodes.comparaison import ComparaisonExpressionNode
+from modules.expressionnodes.logic import LogicExpressionNode
 
 class ParsedLine:
     """
