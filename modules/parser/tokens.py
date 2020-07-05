@@ -1,20 +1,13 @@
 """
-.. module:: parsertokens
+.. module:: modules.parser.tokens
    :synopsis: tokens pour le parse des expressions arithmétiques et logiques
 
 """
 
-from typing import List, Union
+from typing import List
 from abc import ABC, ABCMeta, abstractmethod
 import re
 
-#from errors import *
-from modules.primitives.litteral import Litteral
-from modules.primitives.variable import Variable
-from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
-from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
-from modules.expressionnodes.logicexpressionnodes import LogicExpressionNode
-import modules.expressionnodes.common as expModule
 from modules.primitives.operators import Operator, Operators
 
 class Token(metaclass=ABCMeta):
@@ -133,21 +126,6 @@ class TokenBinaryOperator(Token):
         """
         return self._operator.priority
 
-    def toNode(self, operandsList:List[expModule.ExpressionType]) -> Union[expModule.OptExpressionType]:
-        """Conversion en objet noeud
-
-        :param operandsList: opérandes enfants
-        :type operandsList: List[expModule.ExpressionType]
-        :return: noeud binaire expression correspondant
-        :rtype: Union[expModule.OptExpressionType]
-        """
-        if len(operandsList) <2:
-            return None
-        operand2 = operandsList.pop()
-        operand1 = operandsList.pop()
-
-        return expModule.operandNode(self._operator, operand1, operand2)
-
     def __str__(self) -> str:
         """Transtypage -> str
 
@@ -212,20 +190,6 @@ class TokenUnaryOperator(Token):
         """
         return self._operator.priority
 
-    def toNode(self, operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
-        """Conversion en objet noeud
-
-        :param operandsList: opérandes enfants
-        :type operandsList: list[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]
-        :return: noeud unaire ou valeur correspondant
-        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]
-
-        .. note:
-
-        un - unaire sur un littéral est aussitôt convertit en l'opposé de ce littéral
-        """
-        return expModule.operandNode(self._operator, *operandsList)
-
     def __str__(self) -> str:
         """Transtypage -> str
 
@@ -240,9 +204,8 @@ class TokenUnaryOperator(Token):
         """
         return str(self._operator)
 
-
 class TokenVariable(Token):
-    RESERVED_NAMES = ("and", "or", "not", "while", "if", "else", "elif")
+    RESERVED_NAMES = ("while", "if", "else", "elif") + tuple([op.symbol for op in Operators.list()])
 
     def __init__(self, name):
         """Constructeur
@@ -294,17 +257,6 @@ class TokenVariable(Token):
         """
         return self._name
 
-    def toNode(self):
-        """Conversion en objet noeud
-
-        .. note:: Crée un objet Variable correspondant
-
-        :return: noeud valeur correspondant
-        :rtype: ValueNode
-        """
-        variableObject = Variable(self._name)
-        return expModule.valueNode(variableObject)
-
     def __str__(self) -> str:
         """Transtypage -> str
 
@@ -345,17 +297,6 @@ class TokenNumber(Token):
         """
         return self._value
 
-    def toNode(self):
-        """Conversion en objet noeud
-
-        .. note:: Crée un objet Litteral correspondant
-
-        :return: noeud valeur correspondant
-        :rtype: ValueNode
-        """
-        litteralObject = Litteral(self._value)
-        return expModule.valueNode(litteralObject)
-
     def __str__(self) -> str:
         """Transtypage -> str
 
@@ -367,7 +308,6 @@ class TokenNumber(Token):
             '17'
         """
         return str(self._value)
-
 
 class TokenParenthesis(Token):
     def __init__(self, expression):
@@ -409,4 +349,3 @@ class TokenParenthesis(Token):
         if self._isOpening:
             return "("
         return ")"
-

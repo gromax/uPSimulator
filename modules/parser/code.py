@@ -1,5 +1,5 @@
 """
-.. module:: modules.parser.codeparser
+.. module:: modules.parser.code
 :synopsis: gestion du parse de l'ensemble du programme d'origine
 """
 
@@ -7,7 +7,7 @@ from typing import List, Optional
 import re
 
 from modules.parser.lineparser import ParsedLine, ParsedLine_Elif, ParsedLine_If, ParsedLine_While, ParsedLine_Else, ParsedLine_Print, ParsedLine_Affectation, ParsedLine_Input
-from modules.structuresnodes import StructureNode, WhileNode, IfElseNode, IfNode, PrintNode, InputNode, AffectationNode
+from modules.structuresnodes import StructureNode, WhileNode, IfElseNode, IfNode, TransfertNode
 from modules.errors import ParseError
 
 class CodeParser: # Définition classe
@@ -267,11 +267,11 @@ class CodeParser: # Définition classe
                 children = cls._convertParsedLinesToStructurNodes(line.children)
                 newNode = IfNode(line.lineNumber, line.condition, children)
             elif isinstance(line, ParsedLine_Print):
-                newNode = PrintNode(line.lineNumber, line.expression)
+                newNode = TransfertNode(line.lineNumber, None, line.expression)
             elif isinstance(line, ParsedLine_Input):
-                newNode = InputNode(line.lineNumber, line.variable)
+                newNode = TransfertNode(line.lineNumber, line.variable, None)
             elif isinstance(line, ParsedLine_Affectation):
-                newNode = AffectationNode(line.lineNumber, line.variable, line.expression)
+                newNode = TransfertNode(line.lineNumber, line.variable, line.expression)
             else:
                 raise ParseError("Erreur imprévue.", {"lineNumber":line.lineNumber})
             outList.append(newNode)

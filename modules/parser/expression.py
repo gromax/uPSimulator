@@ -1,19 +1,17 @@
 """
-.. module:: expressionparser
+.. module:: modules.parser.expression
    :synopsis: gestion du parse des expressions arithmétiques et logiques
 
 """
 
-from typing import List, Union
+from typing import List
 import re
 
 from modules.primitives.operators import Operators
 from modules.errors import ExpressionError
 
-from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
-from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
-from modules.expressionnodes.logicexpressionnodes import LogicExpressionNode
-from modules.parser.parsertokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
+import modules.expressionnodes.common as expModule
+from modules.parser.tokens import Token, TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis
 
 class ExpressionParser:
     TokensList =  [TokenVariable, TokenNumber, TokenBinaryOperator, TokenUnaryOperator, TokenParenthesis]
@@ -116,12 +114,13 @@ class ExpressionParser:
             elif suivant.isOperand():
                 return precedent.isOpening()
             elif isinstance(suivant, TokenParenthesis):
-                return precedent.isOpening() == suivant.isOpening()
+                # seul )( est illégal
+                return precedent.isOpening() or not suivant.isOpening()
         # par défaut on retourne faux
         return False
 
     @staticmethod
-    def __buildReversePolishNotation(tokensList:List[Token]) -> List[Token]:
+    def _buildReversePolishNotation(tokensList:List[Token]) -> List[Token]:
         """Construit l'expression dans une notation polonaise inversée
 
         :param tokensList: liste brute des tokens
@@ -173,34 +172,45 @@ class ExpressionParser:
         return polishStack
 
     @staticmethod
-    def __buildTree(polishTokensList:List[Token]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
+    def _buildTree(polishTokensList:List[Token]) -> expModule.OptExpressionType:
         """Construit l'arbre représentant l'expression
 
         :param polishTokensList: liste des tokens dans la version polonaise inversée
         :type polishTokensList: list(Token)
         :return: noeud racine de l'arbre représentant l'expression. None en cas d'erreur
-        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]
+        :rtype: expModule.OptExpressionType
         """
 
-        operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]] = []
+        operandsList:List[expModule.ExpressionType] = []
         for token in polishTokensList:
             if isinstance(token,TokenVariable) or isinstance(token,TokenNumber):
-                node = token.toNode()
+                node = expModule.valueNode(token.value)
                 if node is None:
                     return None
                 operandsList.append(node)
-            elif isinstance(token,TokenUnaryOperator) or isinstance(token,TokenBinaryOperator):
-                node = token.toNode(operandsList)
+            elif isinstance(token,TokenUnaryOperator):
+                assert len(operandsList) > 0, "Pas assez d'opérandes."
+                operand = operandsList.pop()
+                node = expModule.operandNode(token.operator, operand)
                 if node is None:
                     return None
                 operandsList.append(node)
-        # à la fin, normalement, il n'y a qu'un opérande
+            elif isinstance(token,TokenBinaryOperator):
+                assert len(operandsList) > 1, "Pas assez d'opérandes."
+                operand2 = operandsList.pop()
+                operand1 = operandsList.pop()
+                node = expModule.operandNode(token.operator, operand1, operand2)
+                if node is None:
+                    return None
+                operandsList.append(node)
+            
+        # à la fin, normalement, il n'y a qu'une opérande
         if len(operandsList) != 1:
             return None
         return operandsList.pop()
 
     @classmethod
-    def __tokensListIsLegal(cls, tokensList:List[Token]) -> bool:
+    def _tokensListIsLegal(cls, tokensList:List[Token]) -> bool:
         """Teste si la liste de tokens un enchaînement de paire autorisées
 
         :param tokensList: liste brute des tokens
@@ -222,15 +232,19 @@ class ExpressionParser:
           False
         """
 
+        print([str(t) for t in tokensList])
         if len(tokensList) == 0:
             return True
-        tokenPrecedent = None
-        for tokenCourant in tokensList:
-            if not cls.isLegal(tokenPrecedent, tokenCourant):
+
+        # Le premier Token est il valable en tant que premier token ?
+        if not cls.isLegal(None, tokensList[0]):
+            return False
+        
+        for i in range(len(tokensList) - 1):
+            if not cls.isLegal(tokensList[i], tokensList[i+1]):
                 return False
-            tokenPrecedent = tokenCourant
         # Le dernier Token est il valable en tant que dernier token ?
-        if not cls.isLegal(tokenPrecedent, None):
+        if not cls.isLegal(tokensList[-1], None):
             return False
         return True
 
@@ -275,7 +289,7 @@ class ExpressionParser:
         """
         regex = TokenVariable.regex()
         nomVariable = nomVariable.strip()
-        if nomVariable in ("if", "else", "elif", "else", "while", "print", "input", "and", "or", "not"):
+        if nomVariable in TokenVariable.RESERVED_NAMES:
             return False
         return re.match(r"^(\s*{})+\s*$".format(regex), nomVariable) != None
 
@@ -299,7 +313,7 @@ class ExpressionParser:
         return re.match(r"^(\s*{})+\s*$".format(regex), expression) != None
 
     @classmethod
-    def __buildTokensList(cls, expression:str) -> List[Token]:
+    def _buildTokensList(cls, expression:str) -> List[Token]:
         """Transforme une expression en une liste de tokens représentant chacun un item de l'expression.
 
         :param expression: expression à tester
@@ -319,10 +333,10 @@ class ExpressionParser:
                     newToken = TokenType(item)
                     tokensList.append(newToken)
                     break
-        return cls.__consolidAddSub(tokensList)
+        return cls._consolidAddSub(tokensList)
 
     @classmethod
-    def __consolidAddSub(cls, tokensList:List[Token]) -> List[Token]:
+    def _consolidAddSub(cls, tokensList:List[Token]) -> List[Token]:
         """Cherche les + et les - pour lever l'ambiguité sur leur arité : un - ou un + peut être unaire ou binaire.
 
         - À la détection, tous les - et + sont compris comme binaires par défaut,
@@ -367,13 +381,13 @@ class ExpressionParser:
         return tokensList
 
     @classmethod
-    def buildExpression(cls, originalExpression:str) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]:
+    def buildExpression(cls, originalExpression:str) -> expModule.ExpressionType:
         """À partir d'une expression sous forme d'une chaîne de texte, produit l'arbre représentant cette expression et retourne la racine de cet arbre.
 
         :param originalExpression: expression à analyser
         :type originalExpression: str
         :return: racine de l'arbre
-        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]
+        :rtype: expModule.ExpressionType
         :raises: ExpressionError si l'expression ne match pas l'expression régulière ou si les parenthèses ne sont pas convenablement équilibrées, ou si l'expression contient un enchaînement non valable, comme +).
         """
 
@@ -381,32 +395,16 @@ class ExpressionParser:
         if not cls.strIsExpression(expression):
             raise ExpressionError("{} : Expression incorrecte.".format(originalExpression))
         if not cls.testBrackets(expression):
-            raise ExpressionError(f"{originalExpression} : Les parenthèses ne sont pas équilibrées.")
-        tokensList = cls.__buildTokensList(expression)
-        if not cls.__tokensListIsLegal(tokensList):
-            raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
-        reversePolishTokensList = cls.__buildReversePolishNotation(tokensList)
-        rootNodeTree = cls.__buildTree(reversePolishTokensList)
+            raise ExpressionError("{} : Les parenthèses ne sont pas équilibrées.".format(originalExpression))
+        tokensList = cls._buildTokensList(expression)
+
+        if not cls._tokensListIsLegal(tokensList):
+            raise ExpressionError("{} : Erreur. Vérifiez.".format(originalExpression))
+        reversePolishTokensList = cls._buildReversePolishNotation(tokensList)
+
+        rootNodeTree = cls._buildTree(reversePolishTokensList)
         if rootNodeTree is None:
-            raise ExpressionError(f"{originalExpression} : Erreur. Vérifiez.")
+            raise ExpressionError("{} : Erreur. Vérifiez.".format(originalExpression))
         return rootNodeTree
 
-if __name__=="__main__":
-    for strExpression in [
-      "-2 + x",
-      "(x < 10 or y < 100)",
-      "((3*x)+ (5 +-y))",
-      "+ 6 -4*x / 3",
-      "x<4 and y>3*x",
-      "(2 < 4) * (3+x)",
-      "(2+x) and (x-1)",
-      "45^x",
-      "x"
-    ]:
-        print("Test de :",strExpression)
-        try:
-            oExpression = ExpressionParser.buildExpression(strExpression)
-        except Exception as e:
-            print(e)
-        else:
-            print(oExpression)
+
