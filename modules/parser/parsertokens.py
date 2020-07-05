@@ -5,17 +5,17 @@
 """
 
 from typing import List, Union
+from abc import ABC, ABCMeta, abstractmethod
+import re
 
 #from errors import *
-#from litteral import Litteral
-#from variable import Variable
-#from arithmeticexpressionnodes import *
-#from comparaisonexpressionnodes import *
-#from logicexpressionnodes import *
-import re
-#from abc import ABC, ABCMeta, abstractmethod
-from logicexpressionnodes import *
-from operators import Operator, Operators
+from modules.primitives.litteral import Litteral
+from modules.primitives.variable import Variable
+from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
+from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
+from modules.expressionnodes.logicexpressionnodes import LogicExpressionNode
+import modules.expressionnodes.common as expModule
+from modules.primitives.operators import Operator, Operators
 
 class Token(metaclass=ABCMeta):
     """Classe abstraite qui ne devrait pas être instanciée
@@ -133,37 +133,20 @@ class TokenBinaryOperator(Token):
         """
         return self._operator.priority
 
-    def toNode(self, operandsList:List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode]]) -> Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]:
+    def toNode(self, operandsList:List[expModule.ExpressionType]) -> Union[expModule.OptExpressionType]:
         """Conversion en objet noeud
 
         :param operandsList: opérandes enfants
-        :type operandsList: List[Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]]
+        :type operandsList: List[expModule.ExpressionType]
         :return: noeud binaire expression correspondant
-        :rtype: Union[ArithmeticExpressionNode, ComparaisonExpressionNode, LogicExpressionNode, None]
+        :rtype: Union[expModule.OptExpressionType]
         """
         if len(operandsList) <2:
             return None
         operand2 = operandsList.pop()
         operand1 = operandsList.pop()
 
-        if self._operator.isLogic:
-            if not isinstance(operand2, (LogicExpressionNode, ComparaisonExpressionNode)):
-                return None
-            if not isinstance(operand1, (LogicExpressionNode, ComparaisonExpressionNode)):
-                return None
-            if self._operator == Operators.LOGICAND.value:
-                return AndNode(operand1, operand2)
-            if self._operator == Operators.LOGICOR.value:
-                return OrNode(operand1, operand2)
-            return None
-        if not isinstance(operand2, ArithmeticExpressionNode):
-            return None
-        if not isinstance(operand1, ArithmeticExpressionNode):
-            return None
-
-        if self._operator.isComparaison:
-            return ComparaisonExpressionNode(self._operator, operand1, operand2)
-        return BinaryArithmeticNode(self._operator, operand1, operand2)
+        return expModule.operandNode(self._operator, operand1, operand2)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -241,29 +224,7 @@ class TokenUnaryOperator(Token):
 
         un - unaire sur un littéral est aussitôt convertit en l'opposé de ce littéral
         """
-        if len(operandsList) == 0:
-            return None
-        operand = operandsList.pop()
-        # Le cas NEG sur litteral devrait se contenter de prendre l'opposé du littéral
-        if self._operator == Operators.NEG.value and isinstance(operand, ValueNode) and isinstance(operand.value, Litteral):
-            negLitt = operand.value.negClone()
-            return ValueNode(negLitt)
-
-        if self._operator == Operators.LOGICNOT.value:
-            if not isinstance(operand, (LogicExpressionNode, ComparaisonExpressionNode)):
-                return None
-            return NotNode(operand)
-
-        if not isinstance(operand, ArithmeticExpressionNode):
-            return None
-
-        if self._operator == Operators.NEG.value:
-            return NegNode(operand)
-
-        if self._operator == Operators.INVERSE.value:
-            return InverseNode(operand)
-
-        return None
+        return expModule.operandNode(self._operator, *operandsList)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -341,9 +302,8 @@ class TokenVariable(Token):
         :return: noeud valeur correspondant
         :rtype: ValueNode
         """
-        nomVariable = self._name
-        variableObject = Variable(nomVariable)
-        return ValueNode(variableObject)
+        variableObject = Variable(self._name)
+        return expModule.valueNode(variableObject)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -394,7 +354,7 @@ class TokenNumber(Token):
         :rtype: ValueNode
         """
         litteralObject = Litteral(self._value)
-        return ValueNode(litteralObject)
+        return expModule.valueNode(litteralObject)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -420,7 +380,7 @@ class TokenParenthesis(Token):
 
     @classmethod
     def regex(cls):
-        return "\(|\)"
+        return r"\(|\)"
 
     def isOpening(self) -> bool:
         """
@@ -450,6 +410,3 @@ class TokenParenthesis(Token):
             return "("
         return ")"
 
-if __name__=="__main__":
-    import doctest
-    doctest.testmod()
