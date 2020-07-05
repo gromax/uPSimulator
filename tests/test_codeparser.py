@@ -1,9 +1,9 @@
 """
 .. module:: tests.test_codeparser
-:synopsis: Test du module codeparser
+:synopsis: Test du module parser.code
 """
 
-from modules.parser.codeparser import CodeParser
+from modules.parser.code import CodeParser
 from modules.errors import ParseError
 
 import unittest
