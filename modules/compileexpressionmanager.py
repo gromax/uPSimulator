@@ -11,15 +11,15 @@
 
 from typing import Union, List, Optional, Tuple
 
-from primitives.errors import CompilationError
-from primitives.variable import Variable
-from primitives.litteral import Litteral
-from primitives.label import Label
-from primitives.operators import Operator, Operators
-from primitives.register import Register, RegisterBank, RegistersStack, TempMemoryStack
-from primitives.actionsfifo import ActionsFIFO
+from modules.errors import CompilationError
+from modules.primitives.variable import Variable
+from modules.primitives.litteral import Litteral
+from modules.primitives.label import Label
+from modules.primitives.operators import Operator, Operators
+from modules.primitives.register import Register, RegisterBank, RegistersStack, TempMemoryStack
+from modules.primitives.actionsfifo import ActionsFIFO
 
-from processorengine import ProcessorEngine
+from modules.engine.processorengine import ProcessorEngine
 
 
 
@@ -326,25 +326,3 @@ class CompileExpressionManager:
         :rtype: int
         """
         return self._getTopStackRegister()
-
-
-if __name__=="__main__":
-    from processor12bits import Processor12Bits
-    from expressionparser import ExpressionParser
-    listExpressions = [
-        "5*(2*x+4)-x*y",
-        "(((2+4)*(4+1)) - ((2+4)*(4+1))) * (((2+4)*(4+1)) - ((2+4)*(4+1)))",
-        "3*x > 4"
-    ]
-    engine = Processor12Bits()
-    cem = CompileExpressionManager(engine, -1)
-    litteralSize = engine.litteralMaxSize
-    for strExpression in listExpressions:
-        print(strExpression)
-        exp = ExpressionParser.buildExpression(strExpression)
-        fifo = exp.getFIFO(litteralSize)
-        print(fifo.inlineStr())
-        actions = cem.compile(fifo)
-        print(actions.inlineStr())
-        print()
-
