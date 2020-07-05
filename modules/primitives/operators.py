@@ -83,6 +83,7 @@ class Operators:
   SWAP    : Operator = Operator(2, False, ""   ,"swap", False, False, False, 0)
   MOVE    : Operator = Operator(1, False, ""   ,"move", False, False, False, 0)
   HALT    : Operator = Operator(0, False, ""   ,"halt", False, False, False, 0)
+  NOP     : Operator = Operator(0, False, ""   ,"nop", False, False, False, 0)
   GOTO    : Operator = Operator(1, False, ""   ,"goto", False, False, False, 0)
   LOAD    : Operator = Operator(1, False, ""   ,"load", False, False, False, 0)
   STORE   : Operator = Operator(1, False, ""   ,"store", False, False, False, 0)
@@ -115,6 +116,7 @@ class Operators:
       cls.SWAP,
       cls.MOVE,
       cls.HALT,
+      cls.NOP,
       cls.GOTO,
       cls.LOAD,
       cls.STORE,
@@ -125,8 +127,8 @@ class Operators:
 
   @classmethod
   def expressionBinaryOps(cls) -> List[Operator]:
-    return [op for op in cls.list() if op.regex != "" and op.arity == 2]
+    return [op for op in cls.list() if op.arity == 2]
   
   @classmethod
   def expressionUnaryOps(cls) -> List[Operator]:
-    return [op for op in cls.list() if op.regex != "" and op.arity == 1]
+    return [op for op in cls.list() if op.arity == 1]
