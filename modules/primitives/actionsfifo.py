@@ -9,7 +9,7 @@ from modules.primitives.variable import Variable
 from modules.primitives.litteral import Litteral
 from modules.primitives.label import Label
 from modules.primitives.operators import Operator
-from modules.primitives.register import Register, RegisterBank, RegistersStack, TempMemoryStack
+from modules.primitives.register import Register
 
 
 ActionType = Union[Operator, Variable, Litteral, Register, Label]
@@ -22,10 +22,6 @@ class ActionsFIFO:
     def append(self, *actions:ActionType) -> 'ActionsFIFO':
         self._actions = self._actions + actions
         return self
-
-    def reset(self):
-        if len(self._actions) > 0:
-            self._actions  = tuple()
 
     def concat(self, actionfile:'ActionsFIFO'):
         self._actions = self._actions + actionfile._actions
