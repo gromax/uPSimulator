@@ -4,14 +4,14 @@
 """
 from typing import List, Optional, Union, cast
 
-from primitives.linkedlistnode import LinkedList, LinkedListNode
-from primitives.operators import Operator
-from primitives.label import Label
-from primitives.variable import Variable
+from modules.primitives.linkedlistnode import LinkedList, LinkedListNode
+from modules.primitives.operators import Operator
+from modules.primitives.label import Label
+from modules.primitives.variable import Variable
 
-from arithmeticexpressionnodes import ArithmeticExpressionNode
-from comparaisonexpressionnodes import ComparaisonExpressionNode
-from logicexpressionnodes import LogicExpressionNode, NotNode, AndNode, OrNode
+from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
+from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
+from modules.expressionnodes.logicexpressionnodes import LogicExpressionNode, NotNode, AndNode, OrNode
 
 class StructureNodeList(LinkedList):
     def linearize(self, csl:List[str]) -> None:
@@ -79,8 +79,8 @@ class StructureNodeList(LinkedList):
         :return: version texte
         :rtype: str
         """
-        childrenList = self
-        childrenStrList = [ str(node) for node in childrenList ]
+        childrenStrList = [ str(node) for node in self ]
+
         return "\n".join(childrenStrList)
 
     def tabulatedStr(self):
@@ -616,66 +616,3 @@ class JumpNode(StructureNode):
 
         return self._condition
 
-if __name__=="__main__":
-    from expressionparser import ExpressionParser as EP
-
-    varX = Variable('x')
-    varY = Variable('y')
-
-    initialisationX = AffectationNode(
-        1,
-        varX,
-        cast(ArithmeticExpressionNode, EP.buildExpression('0'))
-    )
-
-    initialisationY = AffectationNode(
-        2,
-        varY,
-        cast(ArithmeticExpressionNode, EP.buildExpression('0'))
-    )
-
-    affectationX = AffectationNode(
-        4,
-        varX,
-        cast(ArithmeticExpressionNode, EP.buildExpression('x+1'))
-    )
-
-    affectationY = AffectationNode(
-        5,
-        varY,
-        cast(ArithmeticExpressionNode, EP.buildExpression('y+x'))
-    )
-
-    whileItem = WhileNode(
-        3,
-        cast(LogicExpressionNode, EP.buildExpression('x < 10 or y < 100')),
-        [affectationX, affectationY]
-    )
-
-    affichageFinal = PrintNode(
-        6,
-        cast(ArithmeticExpressionNode, EP.buildExpression('y'))
-    )
-
-#     print("Avant linéarisation...")
-#     print()
-#     structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
-#     print(structureList)
-#     print()
-#     print("Après linéarisation avec (< et == étant les tests pris en charge)...")
-#     print()
-#     structureList.linearize(["<","=="])
-#     print(structureList)
-
-
-    print()
-
-    from codeparser import CodeParser
-    code = CodeParser.parse(filename = "example2.code")
-    structureList = StructureNodeList(cast(List[LinkedListNode], code))
-    print("Avant linéarisation...")
-    print(structureList)
-    structureList.linearize([">","<","=="])
-    print("Après linéarisation avec  (>, < et == étant les tests pris en charge)...")
-    print()
-    print(structureList)
