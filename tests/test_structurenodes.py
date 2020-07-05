@@ -3,8 +3,8 @@
 :synopsis: Test du module structurenodes
 """
 
-from modules.structuresnodes import StructureNode, AffectationNode, WhileNode, PrintNode, StructureNodeList
-from modules.parser.expressionparser import ExpressionParser as EP
+from modules.structuresnodes import StructureNode, TransfertNode, WhileNode, StructureNodeList
+from modules.parser.expression import ExpressionParser as EP
 from modules.primitives.variable import Variable
 from modules.primitives.operators import Operators
 
@@ -13,7 +13,7 @@ import unittest
 class SingleItem(unittest.TestCase):
     def test1(self):
         varX = Variable('x')
-        initialisationX = AffectationNode(
+        initialisationX = TransfertNode(
             1,
             varX,
             EP.buildExpression('0')
@@ -22,7 +22,7 @@ class SingleItem(unittest.TestCase):
 
     def test2(self):
         varY = Variable('y')
-        initialisationY = AffectationNode(
+        initialisationY = TransfertNode(
             2,
             varY,
             EP.buildExpression('0')
@@ -31,7 +31,7 @@ class SingleItem(unittest.TestCase):
 
     def test3(self):
         varX = Variable('x')
-        affectationX = AffectationNode(
+        affectationX = TransfertNode(
             4,
             varX,
             EP.buildExpression('x+1')
@@ -40,7 +40,7 @@ class SingleItem(unittest.TestCase):
 
     def test4(self):
         varY = Variable('y')
-        affectationY = AffectationNode(
+        affectationY = TransfertNode(
             5,
             varY,
             EP.buildExpression('y+x')
@@ -50,12 +50,12 @@ class SingleItem(unittest.TestCase):
     def test5(self):
         varX = Variable('x')
         varY = Variable('y')
-        affectationX = AffectationNode(
+        affectationX = TransfertNode(
             4,
             varX,
             EP.buildExpression('x+1')
         )
-        affectationY = AffectationNode(
+        affectationY = TransfertNode(
             5,
             varY,
             EP.buildExpression('y+x')
@@ -74,8 +74,9 @@ class SingleItem(unittest.TestCase):
         self.assertEqual(str(whileItem), good)
     
     def test6(self):
-        affichageFinal = PrintNode(
+        affichageFinal = TransfertNode(
             6,
+            None,
             EP.buildExpression('y')
         )
         self.assertEqual(str(affichageFinal), "	@y → Affichage")
@@ -85,22 +86,22 @@ class LinearizationTest(unittest.TestCase):
     def test1(self):
         varX = Variable('x')
         varY = Variable('y')
-        initialisationX = AffectationNode(
+        initialisationX = TransfertNode(
             1,
             varX,
             EP.buildExpression('0')
         )
-        initialisationY = AffectationNode(
+        initialisationY = TransfertNode(
             2,
             varY,
             EP.buildExpression('0')
         )
-        affectationX = AffectationNode(
+        affectationX = TransfertNode(
             4,
             varX,
             EP.buildExpression('x+1')
         )
-        affectationY = AffectationNode(
+        affectationY = TransfertNode(
             5,
             varY,
             EP.buildExpression('y+x')
@@ -110,8 +111,9 @@ class LinearizationTest(unittest.TestCase):
             EP.buildExpression('x < 10 or y < 100'),
             [affectationX, affectationY]
         )
-        affichageFinal = PrintNode(
+        affichageFinal = TransfertNode(
             6,
+            None,
             EP.buildExpression('y')
         )
         structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
@@ -128,22 +130,22 @@ class LinearizationTest(unittest.TestCase):
     def test2(self):
         varX = Variable('x')
         varY = Variable('y')
-        initialisationX = AffectationNode(
+        initialisationX = TransfertNode(
             1,
             varX,
             EP.buildExpression('0')
         )
-        initialisationY = AffectationNode(
+        initialisationY = TransfertNode(
             2,
             varY,
             EP.buildExpression('0')
         )
-        affectationX = AffectationNode(
+        affectationX = TransfertNode(
             4,
             varX,
             EP.buildExpression('x+1')
         )
-        affectationY = AffectationNode(
+        affectationY = TransfertNode(
             5,
             varY,
             EP.buildExpression('y+x')
@@ -153,8 +155,9 @@ class LinearizationTest(unittest.TestCase):
             EP.buildExpression('x < 10 or y < 100'),
             [affectationX, affectationY]
         )
-        affichageFinal = PrintNode(
+        affichageFinal = TransfertNode(
             6,
+            None,
             EP.buildExpression('y')
         )
         structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
