@@ -281,6 +281,3 @@ class ProcessorEngine(metaclass=ABCMeta):
         return self._data_bits
 
 
-if __name__=="__main__":
-    import doctest
-    doctest.testmod()

@@ -212,6 +212,4 @@ class TempMemoryStack:
         self._registers.append(r)
         return r
 
-if __name__=="__main__":
-    pass
 

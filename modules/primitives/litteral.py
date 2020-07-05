@@ -95,6 +95,3 @@ class Litteral:
         """
         return "#"+str(self._value)
 
-if __name__=="__main__":
-    import doctest
-    doctest.testmod()

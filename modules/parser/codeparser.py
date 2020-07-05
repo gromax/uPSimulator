@@ -1,5 +1,5 @@
 """
-.. module:: codeparser
+.. module:: modules.parser.codeparser
 :synopsis: gestion du parse de l'ensemble du programme d'origine
 """
 
@@ -332,97 +332,5 @@ class CodeParser: # Définition classe
 
 
 
-
-
-if __name__=="__main__":
-    # parses individuels
-
-    print("Parse de lignes individuelles :")
-    listExemples = [
-      '    while ( x < y) : #comment',
-      'if (A==B):',
-      'print(x)  #comment',
-      'A = 15',
-      'A = A + 1  #comment',
-      'variable = input()',
-      '    x=x+1',
-      'if x < 10 or y < 100:'
-    ]
-
-
-    for i,exemple in enumerate(listExemples):
-        print("exemple {} : {}".format(i, exemple))
-        try:
-            lp = CodeParser._parseLine(exemple, i)
-        except Exception as e:
-            print(e)
-        else:
-            print(lp)
-    print()
-
-    print("Exemples pour des programmes complets :")
-    examplesFileName = ["example.code", "example2.code"]
-    for fileName in examplesFileName:
-        code = CodeParser.parse(filename = fileName)
-        print(fileName)
-        print()
-        for l in code:
-            print(str(l))
-        print()
-
-    test_code = '''
-x = 0
-if x > 0:
-    x = x - 1
-elif x == 0 :
-    x = x + 1
-'''
-
-    test_code = '''
-x = 0
-if x > 0:
-    x = x - 1
-else :
-    x = x + 1
-'''
-
-
-    print("exemple de code :")
-    print(test_code)
-    print()
-    code = CodeParser.parse(code = test_code)
-    for l in code:
-        print(str(l))
-
-    print()
-    print("Autre exemple de code :")
-    test_code = '''
-x = 0
-if x > 0:
-    if x == 2:
-        x = x - 1
-elif x == 0 :
-    x = x + 1
-  print(x)
-'''
-
-    print(test_code)
-    print()
-    try:
-        code = CodeParser.parse(code = test_code)
-    except Exception as e:
-        print(e)
-    else:
-        for l in code:
-            print(l)
-    print()
-
-    # test programme vide
-    print("test programme vide :")
-    test_code = ''
-    print()
-    code = CodeParser.parse(code = test_code)
-    for l in code:
-        print(l)
 
 
