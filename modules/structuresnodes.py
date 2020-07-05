@@ -5,13 +5,13 @@
 from typing import List, Optional, Union, cast
 
 from modules.primitives.linkedlistnode import LinkedList, LinkedListNode
-from modules.primitives.operators import Operator
+from modules.primitives.operators import Operator, Operators
 from modules.primitives.label import Label
 from modules.primitives.variable import Variable
 
-from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
-from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
-from modules.expressionnodes.logicexpressionnodes import LogicExpressionNode, NotNode, AndNode, OrNode
+from modules.expressionnodes.arithmetic import ArithmeticExpressionNode
+from modules.expressionnodes.comparaison import ComparaisonExpressionNode
+from modules.expressionnodes.logic import LogicExpressionNode, NotNode, AndNode, OrNode
 
 class StructureNodeList(LinkedList):
     def linearize(self, csl:List[str]) -> None:
@@ -20,7 +20,7 @@ class StructureNodeList(LinkedList):
         :param csl: liste des comparaisons permises par le processeur utilisé
         :type csl: List[str]
         """
-        haltNode = SimpleNode("halt")
+        haltNode = SimpleNode(Operators.HALT)
         self.append(haltNode)
         self._linearizeRecursive(csl)
         # une fois ceci fait, on supprime les jump qui pointeraient vers le noeud suivant et les dummies
@@ -62,7 +62,7 @@ class StructureNodeList(LinkedList):
     def _deleteDummies(self):
         """Recherche les dummy
         """
-        dummiesList:List['StructureNode'] = [node for node in self if isinstance(node, SimpleNode) and node.snType == "dummy"]
+        dummiesList:List['StructureNode'] = [node for node in self if isinstance(node, SimpleNode) and (node.operator is None)]
         for node in dummiesList:
             self.delete(node)
 
@@ -103,7 +103,7 @@ class StructureNodeList(LinkedList):
         if nodeToDel._next == self._head and len(jumpsToMod) > 0:
             # nodeToDel en dernier et jumps à brancher sur lui
             # -> insertion d'un node dummy
-            dummy = SimpleNode("dummy")
+            dummy = SimpleNode(None)
             self.append(dummy)
         newCibleJumps = cast(StructureNode, nodeToDel._next) # qui existe toujours
         for j in jumpsToMod:
@@ -159,20 +159,20 @@ class StructureNode(LinkedListNode):
         return self._lineNumber
 
 class SimpleNode(StructureNode):
-    _snType:str = "nop"
-    def __init__(self, snType:str=""):
+    _operator:Optional[Operator] = None
+    def __init__(self, operator:Optional[Operator]):
         super().__init__()
-        if snType in ("halt", "dummy"):
-            self._snType = snType
+        if (not operator is None) and operator.arity == 0:
+            self._operator = operator
 
     @property
-    def snType(self) -> str:
+    def operator(self) -> Optional[Operator]:
       """Accesseur
 
-      :return: snType
+      :return: operator
       :rtype: str
       """
-      return self._snType
+      return self._operator
 
     def __str__(self):
         """Transtypage -> str
@@ -180,7 +180,9 @@ class SimpleNode(StructureNode):
         :return: chaîne par défaut, 'noeud de structure'
         :rtype: str
         """
-        return "{}\t{}".format(self.labelToStr(), self._snType)
+        if self._operator is None:
+            return "{}\t{}".format(self.labelToStr(), "dummy")
+        return "{}\t{}".format(self.labelToStr(), self._operator)
 
 class IfNode(StructureNode):
     _children: "StructureNodeList"
@@ -296,7 +298,7 @@ class IfNode(StructureNode):
         # pointerait sur L._head au lieu d'un véritable _next
         # on ajoute donc un élément dummy à la suite pour prévenir
         # cette situation (gênante pour le saut)
-        dummy = SimpleNode("dummy")
+        dummy = SimpleNode(None)
         self.insertRight(dummy)
 
         self._children._linearizeRecursive(csl)
@@ -361,7 +363,7 @@ class IfElseNode(IfNode):
         # pointerait sur L._head au lieu d'un véritable _next
         # on ajoute donc un élément dummy à la suite pour prévenir
         # cette situation (gênante pour le saut)
-        dummy = SimpleNode("dummy")
+        dummy = SimpleNode(None)
         self.insertRight(dummy)
 
         self._children._linearizeRecursive(csl)
@@ -420,14 +422,14 @@ class WhileNode(IfNode):
         # pointerait sur L._head au lieu d'un véritable _next
         # on ajoute donc un élément dummy à la suite pour prévenir
         # cette situation (gênante pour le saut)
-        self.insertRight(SimpleNode("dummy"))
+        self.insertRight(SimpleNode(None))
 
         self._children._linearizeRecursive(csl)
         cibleWhile = self._children.head
         dummy:Optional[SimpleNode] = None
         # il est indispensable que la liste children soit non vide
         if cibleWhile is None:
-            dummy = SimpleNode("dummy")
+            dummy = SimpleNode(None)
             self._children.append(dummy)
             cibleWhile = dummy
 
@@ -449,44 +451,49 @@ class WhileNode(IfNode):
         output = listForCondition
         output.append(self._children)
         output.append(sautRetour)
-        if isinstance(dummy, SimpleNode):
+        if not dummy is None:
             output.delete(dummy)
 
         return output
 
-class AffectationNode(StructureNode):
-    _expression: ArithmeticExpressionNode
-    def __init__(self, lineNumber:int, variableCible:Variable, expression:ArithmeticExpressionNode):
-        """Noeud représentant une affectation de forme variable <- expression
+class TransfertNode(StructureNode):
+    _cible     : Optional[Variable]
+    _expression: Optional[ArithmeticExpressionNode]
+    def __init__(self, lineNumber:int, variableCible:Optional[Variable], expression:Optional[ArithmeticExpressionNode]):
+        """Noeud représentant un transfert de forme variable <- expression
+        en l'absence de variable, c'est un transfert vers l'écran
+        en l'absence d'expression, c'est un input()
 
         :param lineNumber: numéro de ligne dans le programme d'origine
         :type lineNumber: int
         :param variableCible: variable qui sera affectée
-        :type variableCible: Variable
+        :type variableCible: Optional[Variable]
         :param expression: expression arithmétique dont le résultat est affecté à la variable
-        :type expression: ArithmeticExpressionNode
+        :type expression: Optional[ArithmeticExpressionNode]
         """
+        assert not ((variableCible is None) and (expression is None))
         super().__init__()
+        
         self._lineNumber = lineNumber
-        self._cible = variableCible
+        self._cible      = variableCible
         self._expression = expression
 
     @property
-    def expression(self) -> ArithmeticExpressionNode:
+    def expression(self) -> Optional[ArithmeticExpressionNode]:
         """Accesseur : retourne l'expression dont le résultat doit être affecté à la variable cible.
 
         :return: expression arithmétique dont le résultat doit être affecté à la variable cible.
-        :rtype: ArithmeticExpressionNode
+        :rtype: Optional[ArithmeticExpressionNode]
         """
 
         return self._expression
 
     @property
-    def cible(self) -> Variable:
+    def cible(self) -> Optional[Variable]:
         """Accesseur : retourne la variable cible de l'affectation.
 
         :return: variable cible.
-        :rtype: Variable
+        :rtype: Optional[Variable]
         """
         return self._cible
 
@@ -496,69 +503,16 @@ class AffectationNode(StructureNode):
         :return: noeud en chaîne de caractères
         :rtype: str
         """
-        return '{}\t{} {} {}'.format(self.labelToStr(), self._cible, chr(0x2190), self._expression)
+        if self._cible is None:
+            # affichage
+            assert not self._expression is None
+            return "{}\t{} {} Affichage".format(self.labelToStr(), self._expression, chr(0x2192))
+        if self._expression is None:
+            # input
+            assert not self._cible is None
+            return "{}\t{} {} Input".format(self.labelToStr(), self._cible, chr(0x2190))
+        return "{}\t{} {} {}".format(self.labelToStr(), self._cible, chr(0x2190), self._expression)
 
-class InputNode(StructureNode):
-    _cible: Variable
-    def __init__(self, lineNumber:int, variableCible:Variable):
-        """Noeud input précisant une variable devant stocké le résultat du input
-
-        :param lineNumber: numéro de ligne dans le programme d'origine
-        :type lineNumber: int
-        :param variableCible: variable qui sera affectée
-        :type variableCible: Variable
-        """
-        super().__init__()
-        self._lineNumber = lineNumber
-        self._cible = variableCible
-
-    @property
-    def cible(self) -> Variable:
-        """Accesseur : retourne la variable cible du input.
-
-        :return: variable cible.
-        :rtype: Variable
-        """
-        return self._cible
-
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: noeud en chaîne de caractères
-        :rtype: str
-        """
-        return "{}\t{} {} Input".format(self.labelToStr(), self._cible, chr(0x2190))
-
-class PrintNode(StructureNode):
-    _expression:ArithmeticExpressionNode
-    def __init__(self, lineNumber:int, expression:ArithmeticExpressionNode):
-        """Noeud représentant un print, permettant d'afficher le résultat d'une expression arithmétique
-
-        :param lineNumber: numéro de ligne dans le programme d'origine
-        :type lineNumber: int
-        :param expression: expression arithmétique dont le résultat est affecté à la variable
-        :type expression: ArithmeticExpressionNode
-        """
-        super().__init__()
-        self._lineNumber = lineNumber
-        self._expression = expression
-
-    @property
-    def expression(self) -> ArithmeticExpressionNode:
-        """Accesseur : retourne l'expression dont le résultat doit être affiché.
-
-        :return: expression arithmétique dont le résultat doit être affiché.
-        :rtype: ArithmeticExpressionNode
-        """
-        return self._expression
-
-    def __str__(self) -> str:
-        """Transtypage -> str
-
-        :return: noeud en chaîne de caractères
-        :rtype: str
-        """
-        return "{}\t{} {} Affichage".format(self.labelToStr(), self._expression, chr(0x2192))
 
 class JumpNode(StructureNode):
     _cible: 'StructureNode'
