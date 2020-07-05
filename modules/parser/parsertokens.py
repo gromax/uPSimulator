@@ -84,7 +84,7 @@ class Token(metaclass=ABCMeta):
         return 0
 
 class TokenBinaryOperator(Token):
-    _operators:List[Operator] = [op.value for op in Operators if op.value.arity == 2]
+    _operators:List[Operator] = Operators.expressionBinaryOps()
     def __init__(self,operator:Operator):
         """Constructeur
 
@@ -97,7 +97,7 @@ class TokenBinaryOperator(Token):
                 self._operator = op
                 return
         # par défaut on retourne un +
-        self._operator = Operators.ADD.value
+        self._operator = Operators.ADD
 
     @property
     def operator(self) -> Operator:
@@ -163,7 +163,7 @@ class TokenBinaryOperator(Token):
         return str(self._operator)
 
 class TokenUnaryOperator(Token):
-    _operators:List[Operator] = [op.value for op in Operators if op.value.arity == 1]
+    _operators:List[Operator] = Operators.expressionUnaryOps()
 
     @staticmethod
     def makeFromOperator(operator:Operator) -> 'TokenUnaryOperator':
@@ -182,7 +182,7 @@ class TokenUnaryOperator(Token):
                 self._operator = op
                 return
         # par défaut on retourne un ~
-        self._operator = Operators.INVERSE.value
+        self._operator = Operators.INVERSE
 
     @property
     def operator(self) -> str:

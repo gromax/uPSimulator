@@ -158,7 +158,7 @@ class LinearizationTest(unittest.TestCase):
             EP.buildExpression('y')
         )
         structureList = StructureNodeList([initialisationX, initialisationY, whileItem, affichageFinal])
-        structureList.linearize([Operators.INF.value, Operators.EQ.value])
+        structureList.linearize([Operators.INF, Operators.EQ])
         good = "\n".join([
             "	@x ← #0",
             "	@y ← #0",

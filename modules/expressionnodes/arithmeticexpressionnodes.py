@@ -70,14 +70,14 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
             return BinaryArithmeticNode(operator, operands[0], operands[1])
 
         
-        if operator == Operators.NEG.value:
+        if operator == Operators.NEG:
             operand = operands[0]
             if isinstance(operand, ValueNode) and isinstance(operand.value, Litteral):
                 negLitt = operand.value.negClone()
                 return ValueNode(negLitt)
             return NegNode(operand)
 
-        if operator == Operators.INVERSE.value:
+        if operator == Operators.INVERSE:
             return InverseNode(operands[0])
 
         return None
@@ -120,7 +120,7 @@ class NegNode(ArithmeticExpressionNode):
         """
         self._operand = operand
         zero = ValueNode(Litteral(0))
-        self._replacement_binary_sub = BinaryArithmeticNode(Operators.MINUS.value, zero, self._operand)
+        self._replacement_binary_sub = BinaryArithmeticNode(Operators.MINUS, zero, self._operand)
 
     def cost(self, litteralMaxSize:int = 0) -> int:
         """
@@ -162,7 +162,7 @@ class NegNode(ArithmeticExpressionNode):
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
-        return self._operand.getFIFO().append(Operators.NEG.value)
+        return self._operand.getFIFO().append(Operators.NEG)
 
 
 class InverseNode(ArithmeticExpressionNode):
@@ -218,7 +218,7 @@ class InverseNode(ArithmeticExpressionNode):
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
-        return self._operand.getFIFO().append(Operators.INVERSE.value)
+        return self._operand.getFIFO().append(Operators.INVERSE)
 
 class BinaryArithmeticNode(ArithmeticExpressionNode):
     """Noeud pour opération arithmétique binaire parmi +, -, *, /, &, |, ^
@@ -315,7 +315,7 @@ class BinaryArithmeticNode(ArithmeticExpressionNode):
             fifo = self._operand2.getFIFO().concat(self._operand1.getFIFO())
             if self._operator.isCommutatif:
                 return fifo.append(self._operator)
-            return fifo.append(Operators.SWAP.value, self._operator)
+            return fifo.append(Operators.SWAP, self._operator)
         return self._operand1.getFIFO().concat(self._operand2.getFIFO()).append(self._operator)
 
 class ValueNode(ArithmeticExpressionNode):

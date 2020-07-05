@@ -62,11 +62,11 @@ class LogicExpressionNode(metaclass=ABCMeta):
         for operand in operands:
             if not isinstance(operand, (LogicExpressionNode, ComparaisonExpressionNode)):
                 return None
-        if operator == Operators.LOGICNOT.value:
+        if operator == Operators.LOGICNOT:
             return NotNode(operands[0])
-        if operator == Operators.LOGICAND.value:
+        if operator == Operators.LOGICAND:
             return AndNode(operands[0], operands[1])
-        if operator == Operators.LOGICOR.value:
+        if operator == Operators.LOGICOR:
             return OrNode(operands[0], operands[1])
         return None
 

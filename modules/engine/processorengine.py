@@ -74,7 +74,7 @@ class ProcessorEngine(metaclass=ABCMeta):
         :return: vrai s'il en possède un
         :rtype: bool
         """
-        return Operators.NEG.value in self._commands
+        return Operators.NEG in self._commands
 
     def hasOperator(self, operator:Operator) -> bool:
         """Le modèle de processeur possède-t-il l'opérateur demandé ?

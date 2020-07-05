@@ -2,7 +2,8 @@
 .. module:: operators
 :synopsis: définit les symboles liés au différents opérateurs et leurs propriétés
 """
-from enum import Enum
+
+from typing import List
 
 class Operator:
   _arity        :int
@@ -59,17 +60,17 @@ class Operator:
   def __str__(self) -> str:
     return self._symbol
 
-class Operators(Enum):
-  ADD     : Operator = Operator(2, True , "\+" , "+"  , True , False, False, 5)
-  MINUS   : Operator = Operator(2, False, "\-" , "-"  , True , False, False, 5)
-  MULT    : Operator = Operator(2, True , "\*" , "*"  , True , False, False, 7)
-  DIV     : Operator = Operator(2, False, "\/" , "/"  , True , False, False, 7)
+class Operators:
+  ADD     : Operator = Operator(2, True , r"\+" , "+"  , True , False, False, 5)
+  MINUS   : Operator = Operator(2, False, r"\-" , "-"  , True , False, False, 5)
+  MULT    : Operator = Operator(2, True , r"\*" , "*"  , True , False, False, 7)
+  DIV     : Operator = Operator(2, False, r"\/" , "/"  , True , False, False, 7)
   MOD     : Operator = Operator(2, False, "%"  , "%"  , True , False, False, 8)
   NEG     : Operator = Operator(1, False, ""   , "-"  , True , False, False, 6)
-  OR      : Operator = Operator(2, True , "\|" , "|"  , True , False, False, 6)
+  OR      : Operator = Operator(2, True , r"\|" , "|"  , True , False, False, 6)
   AND     : Operator = Operator(2, True , "&"  , "&"  , True , False, False, 7)
-  XOR     : Operator = Operator(2, True , "\^" , "^"  , True , False, False, 7)
-  INVERSE : Operator = Operator(1, False, "\~" , "~"  , True , False, False, 6)
+  XOR     : Operator = Operator(2, True , r"\^" , "^"  , True , False, False, 7)
+  INVERSE : Operator = Operator(1, False, r"\~" , "~"  , True , False, False, 6)
   SUP     : Operator = Operator(2, False, ">"  , ">"  , False, True , False, 4)
   SUPOREQ : Operator = Operator(2, False, ">=" , ">=" , False, True , False, 4)
   INF     : Operator = Operator(2, False, "<"  , "<"  , False, True , False, 4)
@@ -89,3 +90,43 @@ class Operators(Enum):
   PRINT   : Operator = Operator(1, False, ""   ,"print", False, False, False, 0)
   INPUT   : Operator = Operator(1, False, ""   ,"input", False, False, False, 0)
 
+  @classmethod
+  def list(cls) -> List[Operator]:
+    return [
+      cls.ADD,
+      cls.MINUS,
+      cls.MULT,
+      cls.DIV,
+      cls.MOD,
+      cls.NEG,
+      cls.OR,
+      cls.AND,
+      cls.XOR,
+      cls.INVERSE,
+      cls.SUP,
+      cls.SUPOREQ,
+      cls.EQ,
+      cls.INF,
+      cls.INFOREQ,
+      cls.NOTEQ,
+      cls.LOGICOR,
+      cls.LOGICAND,
+      cls.LOGICNOT,
+      cls.SWAP,
+      cls.MOVE,
+      cls.HALT,
+      cls.GOTO,
+      cls.LOAD,
+      cls.STORE,
+      cls.CMP,
+      cls.PRINT,
+      cls.INPUT
+    ]
+
+  @classmethod
+  def expressionBinaryOps(cls) -> List[Operator]:
+    return [op for op in cls.list() if op.regex != "" and op.arity == 2]
+  
+  @classmethod
+  def expressionUnaryOps(cls) -> List[Operator]:
+    return [op for op in cls.list() if op.regex != "" and op.arity == 1]

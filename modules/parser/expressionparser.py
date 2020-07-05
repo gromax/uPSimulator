@@ -339,7 +339,7 @@ class ExpressionParser:
         :return: La liste des tokens avec les - et + corrigés le cas échéant
         :rtype: list[Token]
         """
-        pmOperators = (Operators.ADD.value, Operators.MINUS.value)
+        pmOperators = (Operators.ADD, Operators.MINUS)
         indice = 0
         while indice < len(tokensList):
             token = tokensList[indice]
@@ -350,14 +350,14 @@ class ExpressionParser:
 
             if isinstance(token,TokenBinaryOperator) and token.operator in pmOperators and not ExpressionParser.isLegal(tokenPrecedent, token):
                 # Ce + ou - doit être rectifié car il ne devrait pas se trouver à la suite de ce qui précède
-                if token.operator == Operators.ADD.value:
+                if token.operator == Operators.ADD:
                     # Dans le cas d'un +, il suffit de le supprimer
                     del tokensList[indice]
                     # inutile de passer au suivant
                 else:
                     # l'opérateur est - et c'est un cas d'opération unaire
                     # on l'interprète comme neg
-                    tokenNeg = TokenUnaryOperator.makeFromOperator(Operators.NEG.value)
+                    tokenNeg = TokenUnaryOperator.makeFromOperator(Operators.NEG)
                     del tokensList[indice]
                     tokensList.insert(indice,tokenNeg)
                     # inutile de passer au suivant

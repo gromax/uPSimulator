@@ -24,47 +24,47 @@ class ComparaisonExpressionNode:
     @staticmethod
     def negateOperator(operator:Operator) -> Operator:
         assert operator.isComparaison
-        if operator == Operators.INF.value:
-            return Operators.SUPOREQ.value
-        if operator == Operators.SUP.value:
-            return Operators.INFOREQ.value
-        if operator == Operators.INFOREQ.value:
-            return Operators.SUP.value
-        if operator == Operators.SUPOREQ.value:
-            return Operators.INF.value
-        if operator == Operators.EQ.value:
-            return Operators.NOTEQ.value
-        return Operators.EQ.value
+        if operator == Operators.INF:
+            return Operators.SUPOREQ
+        if operator == Operators.SUP:
+            return Operators.INFOREQ
+        if operator == Operators.INFOREQ:
+            return Operators.SUP
+        if operator == Operators.SUPOREQ:
+            return Operators.INF
+        if operator == Operators.EQ:
+            return Operators.NOTEQ
+        return Operators.EQ
 
     @staticmethod
     def mirroredOperator(operator:Operator) -> Operator:
         assert operator.isComparaison
-        if operator == Operators.INF.value:
-            return Operators.SUP.value
-        if operator == Operators.SUP.value:
-            return Operators.INF.value
-        if operator == Operators.INFOREQ.value:
-            return Operators.SUPOREQ.value
-        if operator == Operators.SUPOREQ.value:
-            return Operators.INFOREQ.value
-        if operator == Operators.EQ.value:
-            return Operators.EQ.value
-        return Operators.NOTEQ.value
+        if operator == Operators.INF:
+            return Operators.SUP
+        if operator == Operators.SUP:
+            return Operators.INF
+        if operator == Operators.INFOREQ:
+            return Operators.SUPOREQ
+        if operator == Operators.SUPOREQ:
+            return Operators.INFOREQ
+        if operator == Operators.EQ:
+            return Operators.EQ
+        return Operators.NOTEQ
 
     @staticmethod
     def negateMirroredOperator(operator:Operator) -> Operator:
         assert operator.isComparaison
-        if operator == Operators.INF.value:
-            return Operators.INFOREQ.value
-        if operator == Operators.SUP.value:
-            return Operators.SUPOREQ.value
-        if operator == Operators.INFOREQ.value:
-            return Operators.INF.value
-        if operator == Operators.SUPOREQ.value:
-            return Operators.SUP.value
-        if operator == Operators.EQ.value:
-            return Operators.NOTEQ.value
-        return Operators.EQ.value
+        if operator == Operators.INF:
+            return Operators.INFOREQ
+        if operator == Operators.SUP:
+            return Operators.SUPOREQ
+        if operator == Operators.INFOREQ:
+            return Operators.INF
+        if operator == Operators.SUPOREQ:
+            return Operators.SUP
+        if operator == Operators.EQ:
+            return Operators.NOTEQ
+        return Operators.EQ
 
     @staticmethod
     def operandsToNode(operator:Operator, *operands:Any) -> Optional['ComparaisonExpressionNode']:
@@ -228,7 +228,7 @@ class ComparaisonExpressionNode:
             fifo = self._operand2.getFIFO().concat(self._operand1.getFIFO())
             if self._operator.isCommutatif:
                 return fifo.append(self._operator)
-            return fifo.append(Operators.SWAP.value, self._operator)
+            return fifo.append(Operators.SWAP, self._operator)
         return self._operand1.getFIFO().concat(self._operand2.getFIFO()).append(self._operator)
 
     def clone(self) -> 'ComparaisonExpressionNode':
