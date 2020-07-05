@@ -1,11 +1,11 @@
 """
-.. module:: arithmeticexpressionnodes
+.. module:: modules.expressionnodes.arithmeticexpressionnodes
 :synopsis: définition des noeuds de calcul intervenant dans les expressions arithmétiques.
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any
 from abc import ABC, ABCMeta, abstractmethod
 
 from modules.primitives.operators import Operator, Operators
@@ -49,6 +49,52 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
         :rtype: ActionsFIFO
         """
         return ActionsFIFO()
+
+    @staticmethod
+    def operandsToNode(operator:Operator, *operands:Any) -> Optional['ArithmeticExpressionNode']:
+        """Crée un noeud de type adapté
+
+        :param operator: opérateur, *, /, ...
+        :type operator: Operator
+        :param operands: opérands dont le type sera vérifié
+        :type operands: Any
+        :return: noeud d'expression logique ou None en cas d'échec
+        :rtype: Optionnal[ArithmeticExpressionNode]
+        """
+        if (not operator.isArithmetic) or (operator.arity != len(operands)):
+            return None
+        for operand in operands:
+            if not isinstance(operand, ArithmeticExpressionNode):
+                return None
+        if len(operands) == 2:
+            return BinaryArithmeticNode(operator, operands[0], operands[1])
+
+        
+        if operator == Operators.NEG.value:
+            operand = operands[0]
+            if isinstance(operand, ValueNode) and isinstance(operand.value, Litteral):
+                negLitt = operand.value.negClone()
+                return ValueNode(negLitt)
+            return NegNode(operand)
+
+        if operator == Operators.INVERSE.value:
+            return InverseNode(operands[0])
+
+        return None
+    
+    @staticmethod
+    def toValueNode(value:Any) -> Optional['ArithmericExpressionNode']:
+        """Crée un noeud de valeur
+
+        :param value: valeur à créer
+        :type operator: Any
+        :return: noeud d'expression logique ou None en cas d'échec
+        :rtype: Optionnal[LogicExpressionNode]
+        """
+        if isinstance(value, Variable) or isinstance(value, Litteral):
+            return ValueNode(value)
+        return None
+
 
     def cost(self, litteralMaxSize:int = 0) -> int:
         """
@@ -342,7 +388,3 @@ class ValueNode(ArithmeticExpressionNode):
         :rtype: ActionsFIFO
         """
         return ActionsFIFO().append(self._value)
-
-if __name__=="__main__":
-    import doctest
-    doctest.testmod()

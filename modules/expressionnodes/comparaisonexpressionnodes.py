@@ -1,11 +1,11 @@
 """
-.. module:: comparaisonexpressionodes
+.. module:: modules.expressionnodes.comparaisonexpressionodes
 :synopsis: définition des noeuds de comparaison intervenant dans les expressions logiques : not, and, or.
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import List, Union
+from typing import List, Union, Optional, Any
 
 from modules.errors import AttributesError
 
@@ -66,6 +66,26 @@ class ComparaisonExpressionNode:
             return Operators.NOTEQ.value
         return Operators.EQ.value
 
+    @staticmethod
+    def operandsToNode(operator:Operator, *operands:Any) -> Optional['ComparaisonExpressionNode']:
+        """Crée un noeud de type adapté
+
+        :param operator: opérateur, <=, ==, ...
+        :type operator: Operator
+        :param operands: opérands dont le type sera vérifié
+        :type operands: Any
+        :return: noeud d'expression logique ou None en cas d'échec
+        :rtype: Optionnal[ArithmeticExpressionNode]
+        """
+        if (not operator.isComparaison) or (operator.arity != len(operands)):
+            return None
+        for operand in operands:
+            if not isinstance(operand, ArithmeticExpressionNode):
+                return None
+        if len(operands) == 2:
+            return ComparaisonExpressionNode(operator, operands[0], operands[1])
+        
+        return None
 
     def __init__(self, operator:Operator, operand1:ArithmeticExpressionNode, operand2:ArithmeticExpressionNode):
         """Constructeur
@@ -104,7 +124,7 @@ class ComparaisonExpressionNode:
         oComp._inversed = not self._inversed
         return oComp
 
-    def adjustConditionClone(self,csl:List[Operator]) -> 'ComparaisonExpressionNode':
+    def adjustConditionClone(self, csl:List[Operator]) -> 'ComparaisonExpressionNode':
         """Ajustement des opérateurs de tests en fonction des symboles de comparaison disponibles
 
         :param csl: symboles de comparaison disponibles
@@ -155,7 +175,7 @@ class ComparaisonExpressionNode:
             compNode._inversed = not self._inversed
             return compNode
 
-        raise AttributesError(f"Aucun opérateur pour {self._operator} dans le modèle de processeur.")
+        raise AttributesError("Aucun opérateur pour {} dans le modèle de processeur.".format(self._operator))
 
     @property
     def inversed(self):
@@ -223,7 +243,3 @@ class ComparaisonExpressionNode:
         oComp._inversed = self._inversed
         return oComp
 
-
-if __name__=="__main__":
-    import doctest
-    doctest.testmod()

@@ -1,13 +1,14 @@
 """
-.. module:: logicexpressionnodes
+.. module:: modules.expressionsnodes.logicexpressionnodes
     :synopsis: définition des noeuds logiques intervenant dans les expressions logiques : not, and, or
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import Union, Tuple
+from typing import Union, Tuple, Any, Optional
 from abc import ABC, ABCMeta, abstractmethod
 
+from modules.primitives.operators import Operator, Operators
 from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
 
 class LogicExpressionNode(metaclass=ABCMeta):
@@ -44,6 +45,31 @@ class LogicExpressionNode(metaclass=ABCMeta):
 
         .. note:: L'aborescence enfant est également clonée.
         """
+    
+    @staticmethod
+    def operandsToNode(operator:Operator, *operands:Any) -> Optional['LogicExpressionNode']:
+        """Crée un noeud de type adapté
+
+        :param operator: opérateur, or, and ou not
+        :type operator: Operator
+        :param operands: opérands dont le type sera vérifié
+        :type operands: Any
+        :return: noeud d'expression logique ou None en cas d'échec
+        :rtype: Optionnal[LogicExpressionNode]
+        """
+        if (not operator.isLogic) or (operator.arity != len(operands)):
+            return None
+        for operand in operands:
+            if not isinstance(operand, (LogicExpressionNode, ComparaisonExpressionNode)):
+                return None
+        if operator == Operators.LOGICNOT.value:
+            return NotNode(operands[0])
+        if operator == Operators.LOGICAND.value:
+            return AndNode(operands[0], operands[1])
+        if operator == Operators.LOGICOR.value:
+            return OrNode(operands[0], operands[1])
+        return None
+
 
 class NotNode(LogicExpressionNode):
     _operand: Union['LogicExpressionNode', 'ComparaisonExpressionNode']
@@ -233,6 +259,3 @@ class OrNode(LogicExpressionNode):
         """
         return (self._operand1, self._operand2)
 
-if __name__=="__main__":
-    import doctest
-    doctest.testmod()
