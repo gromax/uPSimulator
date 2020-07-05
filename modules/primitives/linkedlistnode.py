@@ -10,12 +10,12 @@ class LinkedList:
     def __init__(self, items:List["LinkedListNode"]):
         if len(items) == 0:
             return
-        assert len(set(items)) == len(items), "La liste contient des doublons."
         self._head = items[0]
+        assert self._head.isAlone, "Le noeud <{}> ajouté appartient à une autre chaîne.".format(self._head)
         lastInserted = self._head
         for item in items[1:]:
-            lastInserted._next = item
-            item._prev = lastInserted
+            assert item.isAlone, "Le noeud <{}> ajouté appartient à une autre chaîne.".format(item)
+            lastInserted.connectRight(item)
             lastInserted = item
         lastInserted._next = self._head
         self._head._prev = lastInserted
@@ -46,9 +46,7 @@ class LinkedList:
         return count
 
     def __iter__(self) -> Iterator:
-        if self._head is None:
-            return iter([])
-        return self._head
+        return iter(self._toList())
 
     def delete(self, nodeToDel:"LinkedListNode") -> bool:
         """supprime l'élément node
@@ -60,22 +58,15 @@ class LinkedList:
         """
         if self._head is None:
             return False
-        if self._head == nodeToDel and self._head._next == self._head:
-            # seul élément de la liste
+        if not self.has(nodeToDel):
+            return False
+        if nodeToDel.isAlone:
             self._head = None
             return True
-        node = self._head
-        while node != nodeToDel and node._next != self._head:
-            node = node._next
-        if node != nodeToDel:
-            return False
-        nodeNext = nodeToDel._next
-        nodeToDel._prev._next = nodeToDel._next
-        nodeToDel._next._prev = nodeToDel._prev
-        nodeToDel._next = nodeToDel
-        nodeToDel._prev = nodeToDel
+        nextNode = nodeToDel.nextNode
+        nodeToDel.deconnect()
         if self._head == nodeToDel:
-            self._head = nodeNext
+            self._head = nextNode
         return True
 
     def has(self, nodeToSearch:"LinkedListNode") -> bool:
@@ -110,8 +101,8 @@ class LinkedList:
         self.delete(nodeToReplace)
         return self
 
-    '''
-    def toList(self) -> List['LinkedListNode']:
+
+    def _toList(self) -> List['LinkedListNode']:
         """Produit une liste des items enfants
 
         :return: liste des noeuds
@@ -125,7 +116,6 @@ class LinkedList:
             node = node._next
             outputList.append(node)
         return outputList
-    '''
 
     def append(self, listToAppend:Union['LinkedListNode', 'LinkedList']) -> None:
         """ajoute le contenu de listToAppend à la suite, listToAppend s'en trouve vidée
@@ -146,13 +136,14 @@ class LinkedList:
 class LinkedListNode:
     _next: "LinkedListNode"
     _prev: "LinkedListNode"
+    _initial: bool # le noeud est le premier
     def __init__(self):
         self._next = self
         self._prev = self
-        pass
+        self._initial = True
 
     @property
-    def next(self) -> "LinkedListNode":
+    def nextNode(self) -> "LinkedListNode":
         """Accesseur
 
         :return: noeud suivant
@@ -160,10 +151,21 @@ class LinkedListNode:
         """
         return self._next
 
-    def __next__(self) -> "LinkedListNode":
-        if self._next == self: 
-            raise StopIteration 
-        return self._next
+    @property
+    def isHead(self) -> bool:
+        """Prédicat
+        :return: le noeud est la tête d'une chaîne
+        :rtype: bool
+        """
+        return self._initial or self._next == self
+
+    @property
+    def isAlone(self) -> bool:
+        """Prédicat
+        :return: le noeud est seul dans sa chaîne
+        :rtype: bool
+        """
+        return self._initial and (self._next == self)
 
     def __str__(self) -> str:
         """Transtypage str
@@ -171,6 +173,36 @@ class LinkedListNode:
         :rtype: str
         """
         return "<LinkedListNode>"
+
+    def connectRight(self, toConnect:Optional["LinkedListNode"]):
+        """Connecte un noeud sur la droite
+
+        :param toConnect: noeud à connecté
+        :type toConnect: Optional[LinkedListNode]
+        """
+        if toConnect is None:
+            return
+        toConnect._initial = False
+        self._next._prev =  toConnect._prev
+        toConnect._prev._next = self._next
+        toConnect._prev = self
+        self._next = toConnect
+
+    def deconnect(self):
+        """Débranche le noeud de ses voisins"""
+
+        if self._next == self:
+            # rien à faire
+            return
+        if self._initial:
+            self._next._initial = True
+        nodeNext = self._next
+        nodePrev = self._prev
+        nodePrev._next = nodeNext
+        nodeNext._prev = nodePrev
+        self._next = self
+        self._prev = self
+        self._initial = True
 
     def insertRight(self, toInsert:Union["LinkedList", "LinkedListNode"]) -> "LinkedListNode":
         """Insert un noeud ou tout une chaîne à droite
@@ -185,12 +217,7 @@ class LinkedListNode:
             toInsert._head = None
         else:
             nodeToInsert = toInsert
-        if nodeToInsert is None:
-            return self
-        self._next._prev =  nodeToInsert._prev
-        nodeToInsert._prev._next = self._next
-        nodeToInsert._prev = self
-        self._next = nodeToInsert
+        self.connectRight(nodeToInsert)
         return self
 
     def insertLeft(self, toInsert:Union["LinkedList", "LinkedListNode"]) -> "LinkedListNode":
@@ -213,5 +240,10 @@ class LinkedListNode:
         currentPrev = self._prev
         self._prev = nodeToInsert._prev
         nodeToInsert._prev = currentPrev
+        if self._initial:
+            self._initial = False
+            nodeToInsert._initial = True
+        else:
+            nodeToInsert._initial = False
         return nodeToInsert
 
