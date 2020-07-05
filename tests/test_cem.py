@@ -5,7 +5,7 @@
 
 from modules.engine.processor12bits import Processor12Bits
 from modules.engine.processor16bits import Processor16Bits
-from modules.parser.expressionparser import ExpressionParser
+from modules.parser.expression import ExpressionParser
 from modules.compileexpressionmanager import CompileExpressionManager
 from modules.primitives.register import RegistersManager
 
