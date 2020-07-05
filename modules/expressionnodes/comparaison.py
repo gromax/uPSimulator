@@ -12,7 +12,7 @@ from modules.errors import AttributesError
 from modules.primitives.operators import Operator, Operators
 from modules.primitives.actionsfifo import ActionsFIFO
 
-from modules.expressionnodes.arithmeticexpressionnodes import ArithmeticExpressionNode
+from modules.expressionnodes.arithmetic import ArithmeticExpressionNode
 
 
 class ComparaisonExpressionNode:
@@ -110,9 +110,9 @@ class ComparaisonExpressionNode:
         :rtype: ComparaisonExpressionNode
 
         :Example:
-            >>> from arithmeticexpressionnodes import ValueNode
-            >>> from variable import Variable
-            >>> from litteral import Litteral
+            >>> from modules.expressionnodes.arithmetic import ValueNode
+            >>> from modules.primitives.variable import Variable
+            >>> from modules.primitives.litteral import Litteral
             >>> oLitteral = ValueNode(Litteral(4))
             >>> oVariable = ValueNode(Variable('x'))
             >>> oComp = ComparaisonExpressionNode('>', oLitteral, oVariable)
@@ -134,9 +134,9 @@ class ComparaisonExpressionNode:
         :raises: AttributesErrors si aucun opérateur ne convient
 
         :Example:
-            >>> from arithmeticexpressionnodes import ValueNode
-            >>> from variable import Variable
-            >>> from litteral import Litteral
+            >>> from modules.expressionnodes.arithmetic import ValueNode
+            >>> from modules.primitives.variable import Variable
+            >>> from modules.primitives.litteral import Litteral
             >>> oLitteral = ValueNode(Litteral(4))
             >>> oVariable = ValueNode(Variable('x'))
             >>> oComp = ComparaisonExpressionNode('>', oLitteral, oVariable)
@@ -144,9 +144,9 @@ class ComparaisonExpressionNode:
             >>> str(oComp2)
             '(@x < #4)'
 
-            >>> from arithmeticexpressionnodes import ValueNode
-            >>> from variable import Variable
-            >>> from litteral import Litteral
+            >>> from modules.expressionnodes.arithmetic import ValueNode
+            >>> from modules.primitives.variable import Variable
+            >>> from modules.primitives.litteral import Litteral
             >>> oLitteral = ValueNode(Litteral(4))
             >>> oVariable = ValueNode(Variable('x'))
             >>> oComp = ComparaisonExpressionNode('>=', oLitteral, oVariable)
@@ -202,9 +202,9 @@ class ComparaisonExpressionNode:
         :rtype: str
 
         :Example:
-            >>> from arithmeticexpressionnodes import ValueNode
-            >>> from variable import Variable
-            >>> from litteral import Litteral
+            >>> from modules.expressionnodes.arithmetic import ValueNode
+            >>> from modules.primitives.variable import Variable
+            >>> from modules.primitives.litteral import Litteral
             >>> oLitteral = ValueNode(Litteral(1))
             >>> oVariable = ValueNode(Variable('x'))
             >>> oComp = ComparaisonExpressionNode('<', oLitteral, oVariable)

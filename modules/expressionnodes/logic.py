@@ -1,5 +1,5 @@
 """
-.. module:: modules.expressionsnodes.logicexpressionnodes
+.. module:: modules.expressionsnodes.logic
     :synopsis: définition des noeuds logiques intervenant dans les expressions logiques : not, and, or
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
@@ -9,7 +9,7 @@ from typing import Union, Tuple, Any, Optional
 from abc import ABC, ABCMeta, abstractmethod
 
 from modules.primitives.operators import Operator, Operators
-from modules.expressionnodes.comparaisonexpressionnodes import ComparaisonExpressionNode
+from modules.expressionnodes.comparaison import ComparaisonExpressionNode
 
 class LogicExpressionNode(metaclass=ABCMeta):
     @abstractmethod
@@ -96,9 +96,9 @@ class NotNode(LogicExpressionNode):
         .. note:: Un clone est systèmatiquement créé
 
         :Example:
-            >>> from arithmeticexpressionnodes import ValueNode
-            >>> from variable import Variable
-            >>> from litteral import Litteral
+            >>> from modules.expressionnodes.arithmetic import ValueNode
+            >>> from modules.primitives.variable import Variable
+            >>> from modules.primitives.litteral import Litteral
             >>> oLitteral = ValueNode(Litteral(1))
             >>> oVariable = ValueNode(Variable('x'))
             >>> oComp = ComparaisonExpressionNode('<', oLitteral, oVariable)
@@ -119,9 +119,9 @@ class NotNode(LogicExpressionNode):
         .. note:: L'expression est entièrement parenthèsée.
 
         :Example:
-            >>> from arithmeticexpressionnodes import ValueNode
-            >>> from variable import Variable
-            >>> from litteral import Litteral
+            >>> from modules.expressionnodes.arithmetic import ValueNode
+            >>> from modules.primitives.variable import Variable
+            >>> from modules.primitives.litteral import Litteral
             >>> oLitteral = ValueNode(Litteral(1))
             >>> oVariable = ValueNode(Variable('x'))
             >>> oComp = ComparaisonExpressionNode('<', oLitteral, oVariable)

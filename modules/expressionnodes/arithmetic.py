@@ -1,5 +1,5 @@
 """
-.. module:: modules.expressionnodes.arithmeticexpressionnodes
+.. module:: modules.expressionnodes.arithmetic
 :synopsis: définition des noeuds de calcul intervenant dans les expressions arithmétiques.
 
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
@@ -93,6 +93,10 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
         """
         if isinstance(value, Variable) or isinstance(value, Litteral):
             return ValueNode(value)
+        if isinstance(value, int):
+            return ValueNode(Litteral(value))
+        if isinstance(value, str):
+            return ValueNode(Variable(value))
         return None
 
 
