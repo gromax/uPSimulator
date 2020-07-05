@@ -7,6 +7,7 @@ from modules.engine.processor12bits import Processor12Bits
 from modules.engine.processor16bits import Processor16Bits
 from modules.parser.expressionparser import ExpressionParser
 from modules.compileexpressionmanager import CompileExpressionManager
+from modules.primitives.register import RegistersManager
 
 import unittest
 
@@ -14,10 +15,13 @@ class LineTest(unittest.TestCase):
     def test1(self):
         strExpression = "5*(2*x+4)-x*y"
         engine = Processor12Bits()
-        litteralSize = engine.litteralMaxSize
-        cem = CompileExpressionManager(engine, -1)
+        regManager = RegistersManager(engine.registersNumber())
+        cem = CompileExpressionManager(engine, regManager)
+
         parsed = ExpressionParser.buildExpression(strExpression)
-        fifo = parsed.getFIFO(litteralSize)
+        fifo = parsed.getFIFO(engine.litteralMaxSize)
+        
+        
         actions = cem.compile(fifo)
         
         good = "\n".join([
@@ -39,10 +43,11 @@ class LineTest(unittest.TestCase):
     def test2(self):
         strExpression = "(((2+4)*(4+1)) - ((2+4)*(4+1))) * (((2+4)*(4+1)) - ((2+4)*(4+1)))"
         engine = Processor12Bits()
-        litteralSize = engine.litteralMaxSize
-        cem = CompileExpressionManager(engine, -1)
+        regManager = RegistersManager(engine.registersNumber())
+
+        cem = CompileExpressionManager(engine, regManager)
         parsed = ExpressionParser.buildExpression(strExpression)
-        fifo = parsed.getFIFO(litteralSize)
+        fifo = parsed.getFIFO(engine.litteralMaxSize)
         actions = cem.compile(fifo)
         
         good = "\n".join([
@@ -87,10 +92,11 @@ class LineTest(unittest.TestCase):
     def test3(self):
         strExpression = "3*x > 4"
         engine = Processor12Bits()
-        litteralSize = engine.litteralMaxSize
-        cem = CompileExpressionManager(engine, -1)
+        regManager = RegistersManager(engine.registersNumber())
+
+        cem = CompileExpressionManager(engine, regManager)
         parsed = ExpressionParser.buildExpression(strExpression)
-        fifo = parsed.getFIFO(litteralSize)
+        fifo = parsed.getFIFO(engine.litteralMaxSize)
         actions = cem.compile(fifo)
         
         good = "\n".join([
