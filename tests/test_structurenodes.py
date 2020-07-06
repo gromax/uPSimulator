@@ -1,6 +1,6 @@
 """
 .. module:: tests.test_structurenodes
-:synopsis: Test du module structurenodes
+:synopsis: Test de modules.structuresnodes
 """
 
 from modules.structuresnodes import StructureNode, TransfertNode, WhileNode, StructureNodeList
