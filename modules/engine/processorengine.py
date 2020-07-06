@@ -7,8 +7,10 @@ from typing import Union, List, Dict, Optional, Tuple, Sequence
 from typing_extensions import TypedDict
 from abc import ABC, ABCMeta, abstractmethod
 
+from modules.errors import CompilationError
 from modules.primitives.litteral import Litteral
 from modules.primitives.operators import Operator, Operators
+from modules.primitives.actionsfifo import ActionsFIFO, ActionType
 
 Commands = TypedDict('Commands', {
     'opcode': str,
@@ -68,38 +70,6 @@ class ProcessorEngine(metaclass=ABCMeta):
         """
         return self._freeUalOutput
 
-    def hasNEG(self) -> bool:
-        """Le modèle de processeur possède-t-il un - unaire ?
-
-        :return: vrai s'il en possède un
-        :rtype: bool
-        """
-        return Operators.NEG in self._commands
-
-    def hasOperator(self, operator:Operator) -> bool:
-        """Le modèle de processeur possède-t-il l'opérateur demandé ?
-
-        :param operator: nom de l'opérateur
-        :type operator: Operator
-        :return: Vrai s'il le possède
-        :rtype: bool
-        """
-        return operator in self._commands
-
-    def getAsmCommand(self, operator:Operator) -> str:
-        """Renvoie le nom de commande assembleur de la commande demandée. ``''`` si introuvable.
-
-        :param operator: nom de la commande
-        :type operator: Operator
-        :return: commande assembleur
-        :rtype: str
-        """
-
-        if not operator in self._commands:
-            return ""
-        itemAttribute = self._commands[operator]
-        return itemAttribute["asm"]
-
     def getOpcode(self, operator:Operator) -> str:
         """Renvoie l'opcode de la commande demandée. ``''`` si introuvable.
 
@@ -113,19 +83,6 @@ class ProcessorEngine(metaclass=ABCMeta):
             return ""
         itemAttribute = self._commands[operator]
         return itemAttribute["opcode"]
-
-    def getLitteralAsmCommand(self, operator:Operator) -> str:
-        """Renvoie le nom de commande assembleur de la commande demandée, dans sa version acceptant un littéral. ``''`` si introuvable.
-
-        :param operator: nom de la commande
-        :type operator: Operator
-        :return: commande assembleur
-        :rtype: str
-        """
-        if not operator in self._litteralsCommands:
-            return ""
-        itemAttribute = self._litteralsCommands[operator]
-        return itemAttribute["asm"]
 
     def getLitteralOpcode(self, operator:Operator) -> str:
         """Renvoie l'opcode de la commande demandée dans sa version acceptant un littéral. ``''`` si introuvable.
@@ -279,5 +236,58 @@ class ProcessorEngine(metaclass=ABCMeta):
         :rtype: int
         """
         return self._data_bits
+    
+    @abstractmethod
+    def getArithmeticAsmCode(self, operator:Operator, operands:List[ActionType]) -> str:
+        """
+        :param operator: Opérateur arithmétique
+        :type operateor: Operator
+        :param operands: Opérandes
+        :type operands: List[ActionType]
+        :return: commande assembleur
+        :rtype: str
+        """
+        return ""
+
+    @abstractmethod
+    def getCommandAsmCode(self, operator:Operator, operands:List[ActionType]) -> str:
+        """
+        :param operator: Opérateur arithmétique
+        :type operateor: Operator
+        :param operands: Opérandes
+        :type operands: List[ActionType]
+        :return: commande assembleur
+        :rtype: str
+        """
+        return ""
+
+    def getAsmCode(self, actions:ActionsFIFO) -> str:
+        """
+        :param actionsList: file des actions produite par la compilation
+        :type actionsList: ActionsFIFO
+        :return: code asm
+        :rtyp: str
+        :raises: CompilationError
+        """
+        lines: List[str] = []
+        currentActionItems:List[ActionType] = []
+        while not actions.empty:
+            lastItem = actions.pop()
+            if isinstance(lastItem, Operator):
+                if lastItem.isArithmetic:
+                    lines.append(self.getArithmeticAsmCode(lastItem, currentActionItems))
+                    currentActionItems = []
+                    continue
+                if lastItem.isCommand:
+                    lines.append(self.getCommandAsmCode(lastItem, currentActionItems))
+                    currentActionItems = []
+                    continue
+                if not lastItem.isComparaison:
+                    # tout autre cas, c'est un opérateur logique ou autre, c'est une erreur
+                    raise CompilationError("Commande {} inattendue.".format(lastItem), {"lineNumber":actions.lineNumber})
+            currentActionItems.append(lastItem)
+        if len(currentActionItems) > 0:
+            raise CompilationError("La séquence devrait terminer par un opérateur.", {"lineNumber":actions.lineNumber})
+        return "\n".join(lines)
 
 
