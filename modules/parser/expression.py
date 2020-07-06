@@ -232,7 +232,6 @@ class ExpressionParser:
           False
         """
 
-        print([str(t) for t in tokensList])
         if len(tokensList) == 0:
             return True
 
