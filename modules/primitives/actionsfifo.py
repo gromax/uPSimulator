@@ -62,16 +62,25 @@ class ActionsFIFO:
             if isinstance(item, Operator):
                 lines.append(" ".join(currentLine))
                 currentLine = []
-        if not self._label is None:
-            lines[0] = str(self._label) + "\t" + lines[0]
-        else:
-            lines[0] = "\t" + lines[0]
-        for i in range(1,len(lines)):
-            lines[i] = "\t" + lines[i]
-        return "\n".join(lines)
+        return "\n".join(self.prependStrLabel(lines))
 
     def inlineStr(self) -> str:
         return ", ".join([str(item) for item in self._actions])
+
+    def prependStrLabel(self, lines:List[str]) -> List[str]:
+        """
+        :param lines: liste de chaînes
+        :params type: List[str]
+        :return: Chaînes augmentées d'une tabulation avec l'éventuel label en première ligne
+        :rtype: str
+        """
+        if len(lines) == 0:
+            return []
+        if self._label is None:
+            strFirstLine = "\t" + lines[0]
+        else:
+            strFirstLine = str(self._label) + "\t" + lines[0]
+        return [strFirstLine] + ["\t" + line for line in lines[1:]]
 
     @property
     def empty(self):
