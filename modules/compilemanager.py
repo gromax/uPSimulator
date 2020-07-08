@@ -74,7 +74,7 @@ class CompilationManager:
         if isinstance(node, TransfertNode):
             expression = node.expression
             if not expression is None:
-                fifo = expression.getFIFO(self._engine.litteralMaxSize)
+                fifo = expression.getFIFO(self._engine.litteralDomain)
                 cem = CompileExpressionManager(self._engine, registers)
                 actionsItem = cem.compile(fifo)
                 resultRegister = registers.pop()
@@ -95,7 +95,7 @@ class CompilationManager:
             if condition is None:
                 actionsItem = ActionsFIFO()
             else:
-                fifo = condition.getFIFO(self._engine.litteralMaxSize)
+                fifo = condition.getFIFO(self._engine.litteralDomain)
                 cem = CompileExpressionManager(self._engine, registers)
                 actionsItem = cem.compile(fifo)
             actionsItem.append(labelCible, Operators.GOTO)
