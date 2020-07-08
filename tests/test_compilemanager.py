@@ -10,6 +10,7 @@ from modules.primitives.variable import Variable
 from modules.structuresnodes import TransfertNode, WhileNode
 from modules.parser.expression import ExpressionParser as EP
 from modules.engine.processor16bits import Processor16Bits
+from modules.engine.processor12bits import Processor12Bits
 from modules.compilemanager import CompilationManager as CM
 from modules.parser.code import CodeParser as CP
 
@@ -63,6 +64,58 @@ class MyTest(unittest.TestCase):
         self.assertEqual(strGlobal, good)
 
     def test2(self):
+        self.maxDiff = None
+        varX = Variable('x')
+        varY = Variable('y')
+
+        affectationX = TransfertNode(4, varX, EP.buildExpression('-3*x+1')) # mypy: ignore
+        affectationY = TransfertNode(5, varY, EP.buildExpression('y+x')) # mypy: ignore
+        structuredList = [
+            TransfertNode(1, varX, EP.buildExpression('0')),
+            TransfertNode(2, varY, EP.buildExpression('0')),
+            WhileNode(3, EP.buildExpression('x < 10 or y < 100'), [affectationX, affectationY]),
+            TransfertNode(6, None, EP.buildExpression('y'))
+        ]
+
+        engine = Processor12Bits()
+        cm = CM(engine, structuredList)
+        actionsList = cm.compile()
+        strGlobal = "\n".join([str(item) for item in actionsList])
+
+        good = "\n".join([
+            "	@#0 r3 load",
+            "	r3 @x store",
+            "	@#0 r3 load",
+            "	r3 @y store",
+            "Lab2	@x r3 load",
+            "	@#10 r2 load",
+            "	r3 r2 <",
+            "	Lab1 goto",
+            "	@y r3 load",
+            "	@#100 r2 load",
+            "	r3 r2 <",
+            "	Lab1 goto",
+            "	Lab3 goto",
+            "Lab1	@x r3 load",
+            "	@#3 r2 load",
+            "	r3 r2 r3 *",
+            "	r3 r3 -",
+            "	@#1 r2 load",
+            "	r3 r2 r3 +",
+            "	r3 @x store",
+            "	@y r3 load",
+            "	@x r2 load",
+            "	r3 r2 r3 +",
+            "	r3 @y store",
+            "	Lab2 goto",
+            "Lab3	@y r3 load",
+            "	r3 print",
+            "	halt"
+        ])
+        self.assertEqual(strGlobal, good)
+
+
+    def test3(self):
         code = CP.parse(filename = "example2.code")
         engine = Processor16Bits()
         cm = CM(engine, code)
