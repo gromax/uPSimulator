@@ -17,6 +17,21 @@ class Variable:
         self._name = nom
         self._value = value
 
+    @classmethod
+    def fromInt(cls, value:int) -> 'Variable':
+        """
+        Crée une variable destinée à contenir un littéral
+        :param value: valeur du littéral
+        :type value: int
+        :return: objet variable créé
+        :rtype: Variable
+        """
+        if value < 0:
+            name = "#m{}".format(abs(value))
+        else:
+            name = "#{}".format(value)
+        return Variable(name, value)
+
     @property
     def name(self) -> str:
         """Retourne le nom de la variable
