@@ -5,7 +5,7 @@
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import List, Union, Optional, Any
+from typing import List, Union, Optional, Any, Tuple
 
 from modules.errors import AttributesError
 
@@ -215,21 +215,21 @@ class ComparaisonExpressionNode:
             return 'not ({} {} {})'.format(self._operand1, self._operator, self._operand2)
         return '({} {} {})'.format(self._operand1, self._operator, self._operand2)
 
-    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+    def getFIFO(self, litteralDomain:Tuple[int,int]) -> ActionsFIFO:
         """Produit une file de type polonaise inversée de façon à donner
         l'ordre de calcul le plus efficace
 
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
-        if self._operand2.cost(litteralMaxSize) > self._operand1.cost(litteralMaxSize):
-            fifo = self._operand2.getFIFO().concat(self._operand1.getFIFO())
+        if self._operand2.cost(litteralDomain) > self._operand1.cost(litteralDomain):
+            fifo = self._operand2.getFIFO(litteralDomain).concat(self._operand1.getFIFO(litteralDomain))
             if self._operator.isCommutatif:
                 return fifo.append(self._operator)
             return fifo.append(Operators.SWAP, self._operator)
-        return self._operand1.getFIFO().concat(self._operand2.getFIFO()).append(self._operator)
+        return self._operand1.getFIFO(litteralDomain).concat(self._operand2.getFIFO(litteralDomain)).append(self._operator)
 
     def clone(self) -> 'ComparaisonExpressionNode':
         """Produit un clone de l'objet avec son arborescence

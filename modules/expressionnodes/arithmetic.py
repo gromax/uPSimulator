@@ -5,7 +5,7 @@
 .. note:: Les noeuds ne sont jamais modifiés. toute modification entraîne la création de clones.
 """
 
-from typing import Optional, List, Union, Any
+from typing import Optional, List, Union, Any, Tuple
 from abc import ABC, ABCMeta, abstractmethod
 
 from modules.primitives.operators import Operator, Operators
@@ -39,12 +39,12 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
         return self
 
     @abstractmethod
-    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+    def getFIFO(self, litteralDomain:Tuple[int,int]) -> ActionsFIFO:
         """Produit une file de type polonaise inversée de façon à donner
         l'ordre de calcul le plus efficace
 
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
@@ -100,11 +100,11 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
         return None
 
 
-    def cost(self, litteralMaxSize:int = 0) -> int:
+    def cost(self, litteralDomain:Tuple[int,int]) -> int:
         """
         Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: Coût en nombre de registres
         :rtype: int
         """
@@ -126,15 +126,15 @@ class NegNode(ArithmeticExpressionNode):
         zero = ValueNode(Litteral(0))
         self._replacement_binary_sub = BinaryArithmeticNode(Operators.MINUS, zero, self._operand)
 
-    def cost(self, litteralMaxSize:int = 0) -> int:
+    def cost(self, litteralDomain:Tuple[int,int]) -> int:
         """
         Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: Coût en nombre de registres
         :rtype: int
         """
-        return self._operand.cost(litteralMaxSize)
+        return self._operand.cost(litteralDomain)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -157,16 +157,16 @@ class NegNode(ArithmeticExpressionNode):
         cloneOperand = self._operand.clone()
         return NegNode(cloneOperand)
 
-    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+    def getFIFO(self, litteralDomain:Tuple[int,int]) -> ActionsFIFO:
         """Produit une file de type polonaise inversée de façon à donner
         l'ordre de calcul le plus efficace
 
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
-        return self._operand.getFIFO().append(Operators.NEG)
+        return self._operand.getFIFO(litteralDomain).append(Operators.NEG)
 
 
 class InverseNode(ArithmeticExpressionNode):
@@ -181,15 +181,15 @@ class InverseNode(ArithmeticExpressionNode):
         """
         self._operand = operand
 
-    def cost(self, litteralMaxSize:int = 0) -> int:
+    def cost(self, litteralDomain:Tuple[int,int]) -> int:
         """
         Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: Coût en nombre de registres
         :rtype: int
         """
-        return self._operand.cost(litteralMaxSize)
+        return self._operand.cost(litteralDomain)
 
     def __str__(self) -> str:
         """Transtypage -> str
@@ -213,16 +213,16 @@ class InverseNode(ArithmeticExpressionNode):
         cloneOperand = self._operand.clone()
         return InverseNode(cloneOperand)
 
-    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+    def getFIFO(self, litteralDomain:Tuple[int,int]) -> ActionsFIFO:
         """Produit une file de type polonaise inversée de façon à donner
         l'ordre de calcul le plus efficace
 
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
-        return self._operand.getFIFO().append(Operators.INVERSE)
+        return self._operand.getFIFO(litteralDomain).append(Operators.INVERSE)
 
 class BinaryArithmeticNode(ArithmeticExpressionNode):
     """Noeud pour opération arithmétique binaire parmi +, -, *, /, &, |, ^
@@ -267,16 +267,16 @@ class BinaryArithmeticNode(ArithmeticExpressionNode):
         self._operand1 = operand2
         self._operand2 = operand1
 
-    def cost(self, litteralMaxSize:int = 0) -> int:
+    def cost(self, litteralDomain:Tuple[int,int]) -> int:
         """
         Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: Coût en nombre de registres
         :rtype: int
         """
-        costOp1 = self._operand1.cost(litteralMaxSize)
-        costOp2 = self._operand2.cost(litteralMaxSize)
+        costOp1 = self._operand1.cost(litteralDomain)
+        costOp2 = self._operand2.cost(litteralDomain)
         return min(max(costOp1, costOp2 + 1), max(costOp1 + 1, costOp2))
 
     def __str__(self) -> str:
@@ -306,21 +306,21 @@ class BinaryArithmeticNode(ArithmeticExpressionNode):
         operator = self._operator
         return BinaryArithmeticNode(operator, cloneOp1, cloneOp2)
 
-    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+    def getFIFO(self, litteralDomain:Tuple[int,int]) -> ActionsFIFO:
         """Produit une file de type polonaise inversée de façon à donner
         l'ordre de calcul le plus efficace
 
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
-        if self._operand2.cost(litteralMaxSize) > self._operand1.cost(litteralMaxSize):
-            fifo = self._operand2.getFIFO().concat(self._operand1.getFIFO())
+        if self._operand2.cost(litteralDomain) > self._operand1.cost(litteralDomain):
+            fifo = self._operand2.getFIFO(litteralDomain).concat(self._operand1.getFIFO(litteralDomain))
             if self._operator.isCommutatif:
                 return fifo.append(self._operator)
             return fifo.append(Operators.SWAP, self._operator)
-        return self._operand1.getFIFO().concat(self._operand2.getFIFO()).append(self._operator)
+        return self._operand1.getFIFO(litteralDomain).concat(self._operand2.getFIFO(litteralDomain)).append(self._operator)
 
 class ValueNode(ArithmeticExpressionNode):
     def __init__(self, value:Union[Litteral, Variable]):
@@ -340,15 +340,15 @@ class ValueNode(ArithmeticExpressionNode):
         """
         return self._value
 
-    def cost(self, litteralMaxSize:int = 0) -> int:
+    def cost(self, litteralDomain:Tuple[int,int]) -> int:
         """
         Coût du calcul en registres. Tient compte d'éventuels calculs sur littéraux faisant gagner des registres.
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: Coût en nombre de registres
         :rtype: int
         """
-        if isinstance(self._value, Litteral) and self._value.bitMinSize() <= litteralMaxSize:
+        if isinstance(self._value, Litteral) and self._value.isBetween(*litteralDomain):
             return 0
         return 1
 
@@ -382,12 +382,12 @@ class ValueNode(ArithmeticExpressionNode):
         """
         return ValueNode(self._value)
 
-    def getFIFO(self, litteralMaxSize:int = 0) -> ActionsFIFO:
+    def getFIFO(self, litteralDomain:Tuple[int,int]) -> ActionsFIFO:
         """Produit une file de type polonaise inversée de façon à donner
         l'ordre de calcul le plus efficace
 
-        :param litteralMaxSize: taille maximale d'un littéral dans une commande. 0 si pas de telles commandes.
-        :type litteralMaxSize: int
+        :param litteralDomain: bornes inf et max des littéraux acceptés dans les opérations
+        :type litteralDomain: Tuple[int,int]
         :return: file de tokens, opérandes ou opérateurs
         :rtype: ActionsFIFO
         """
