@@ -290,7 +290,11 @@ class CompileExpressionManager:
         """
         registreDestination = self._getAvailableRegister()
         if isinstance(value, Litteral):
-            self._actions.append(value, registreDestination, Operators.MOVE)
+            if self._engine.litteralOperatorAvailable(Operators.MOVE, value):
+                self._actions.append(value, registreDestination, Operators.MOVE)
+            else:
+                variableFromLitteral = Variable.fromInt(value.value)
+                self._actions.append(variableFromLitteral, registreDestination, Operators.LOAD)
         else:
             self._actions.append(value, registreDestination, Operators.LOAD)
 
