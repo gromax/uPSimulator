@@ -29,13 +29,22 @@ class Register:
         return "r{}".format(self._rang)
 
     @property
-    def isTemp(self):
+    def isTemp(self) -> bool:
         """Accesseur
         :return: Le registre est élément de mémoire temporaire
         :rtype: bool
         """
 
         return self._isTemp
+
+    @property
+    def rank(self) -> int:
+        """Accesseur
+        :return: rang du registre
+        :rtype: int
+        """
+
+        return self._rang
 
 class RegistersManager:
     _stack: List[Register]
