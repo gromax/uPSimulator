@@ -28,7 +28,7 @@ class ActionsFIFO:
         self._lineNumber = lineNumber
 
     @property
-    def lineNumber(self) -> int:
+    def label(self) -> int:
         """Accesseur
         :return: label s'il existe ou None
         :rtype: Optional[Label]
@@ -36,7 +36,7 @@ class ActionsFIFO:
         return self._label
     
     @property
-    def label(self) -> Optional[Label]:
+    def lineNumber(self) -> Optional[Label]:
         """Accesseur
         :return: numéro de ligne correspondant à la file
         :rtype: int
@@ -97,6 +97,32 @@ class ActionsFIFO:
         if len(self._actions) == 0:
             return None
         return self._actions[0]
+
+    def clone(self) -> 'ActionsFIFO':
+        """
+        :return: clone de la file
+        :rtype: ActionsFIFO
+        """
+        cloneFIFO = ActionsFIFO()
+        cloneFIFO.setLineNumber(self._lineNumber)
+        if not self._label is None:
+            cloneFIFO.setLabel(self._label)
+        cloneFIFO._actions = tuple([item for item in self._actions])
+        return cloneFIFO
+
+
+    def getVariablesStrList(self, alreadyListed:List[str]=[]) -> List[str]:
+        """
+        :param alreadyListed: variables déjà listées par ailleurs
+        :type alreadyListed: List[str]
+        :return: liste des variables présentes dans la file, ajoutées à celles fournies
+        :rtype: List[str]
+        """
+        outList = [it for it in alreadyListed]
+        for item in self._actions:
+            if isinstance(item, Variable) and not str(item) in outList:
+                outList.append(str(item))
+        return outList
 
 
 if __name__=="__main__":
