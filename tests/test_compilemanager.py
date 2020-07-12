@@ -15,6 +15,7 @@ from modules.compilemanager import CompilationManager as CM
 from modules.parser.code import CodeParser as CP
 
 class MyTest(unittest.TestCase):
+    maxDiff = None
     def test1(self):
         varX = Variable('x')
         varY = Variable('y')
@@ -64,7 +65,6 @@ class MyTest(unittest.TestCase):
         self.assertEqual(strGlobal, good)
 
     def test2(self):
-        self.maxDiff = None
         varX = Variable('x')
         varY = Variable('y')
 
@@ -161,5 +161,4 @@ class MyTest(unittest.TestCase):
             "	r7 print",
             "	halt"
         ])
-        print(strGlobal)
         self.assertEqual(strGlobal, good)
