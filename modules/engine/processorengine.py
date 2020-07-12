@@ -3,8 +3,7 @@
    :synopsis: classe définissant les attributs d'un modèle de processeur et fournissant les informations utiles aux outils de compilation
 """
 
-from typing import Union, List, Dict, Optional, Tuple, Sequence
-from typing_extensions import TypedDict
+from typing import Union, List, Dict, Optional, Tuple, Sequence, Any
 from abc import ABC, ABCMeta, abstractmethod
 
 from modules.errors import CompilationError
@@ -14,11 +13,9 @@ from modules.primitives.register import Register
 from modules.primitives.label import Label
 from modules.primitives.operators import Operator, Operators
 from modules.primitives.actionsfifo import ActionsFIFO, ActionType
+from modules.engine.asmgenerator import AsmGenerator
 
-Commands = TypedDict('Commands', {
-    'opcode': str,
-    'asm'   : str
-})
+
 
 
 class ProcessorEngine(metaclass=ABCMeta):
@@ -26,12 +23,10 @@ class ProcessorEngine(metaclass=ABCMeta):
     _register_address_bits :int
     _data_bits             :int
     _freeUalOutput         :bool
-    _litteralArithmeticsCommands: Dict[Operator,Commands]
-    _arithmeticsCommands: Dict[Operator,Commands]
     
-    _litteralsCommands     :Dict[Operator,Commands] = {}
-    _commands              :Dict[Operator,Commands] = {}
-    _litteralDomain        :Tuple[int, int]
+    _asmGenerators       : List[AsmGenerator]
+    _comparaisonOperators: List[Operator]
+    _litteralDomain      :Tuple[int, int]
 
     def __init__(self):
         """Constructeur
@@ -76,7 +71,7 @@ class ProcessorEngine(metaclass=ABCMeta):
         :rtype: bool
         """
         return self._freeUalOutput
-
+    '''
     def getOpcode(self, operator:Operator) -> str:
         """Renvoie l'opcode de la commande demandée. ``''`` si introuvable.
 
@@ -91,6 +86,7 @@ class ProcessorEngine(metaclass=ABCMeta):
         itemAttribute = self._commands[operator]
         return itemAttribute["opcode"]
 
+
     def getLitteralOpcode(self, operator:Operator) -> str:
         """Renvoie l'opcode de la commande demandée dans sa version acceptant un littéral. ``''`` si introuvable.
 
@@ -104,6 +100,7 @@ class ProcessorEngine(metaclass=ABCMeta):
             return ""
         itemAttribute = self._litteralsCommands[operator]
         return itemAttribute["opcode"]
+    '''
 
     def litteralOperatorAvailable(self, operator:Operator, litteral:Litteral) -> bool:
         """Teste si la commande peut s'éxécuter dans une version acceptant un littéral, avec ce littéral en particulier. Il faut que la commande accepte les littéraux et que le codage de ce littéral soit possible dans l'espace laissé par cette commande.
@@ -115,11 +112,8 @@ class ProcessorEngine(metaclass=ABCMeta):
         :return: vrai si la commande est utilisable avec ce littéral
         :rtype: bool
         """
-
-        if not ((operator in self._litteralsCommands) or (operator in self._litteralArithmeticsCommands)):
-            return False
-        minVal, maxVal = self._litteralDomain
-        return litteral.isBetween(minVal, maxVal)
+        # pas de littéral par défaut
+        return False
 
     '''
     def instructionDecode(self, binary:Union[int,str]) -> Tuple[str, Sequence[int], int, int]:
@@ -214,7 +208,7 @@ class ProcessorEngine(metaclass=ABCMeta):
         :rtype: list[Operator]
         """
 
-        return [item for item in self._commands if item.isComparaison]
+        return [item for item in self._comparaisonOperators if item.isComparaison]
 
     @property
     def regBits(self) -> int:
@@ -234,248 +228,177 @@ class ProcessorEngine(metaclass=ABCMeta):
         """
         return self._data_bits
     
-    def _getArithmeticAsmCode(self, operator:Operator, operands:List[ActionType]) -> Union[List[str], str]:
+    # fonctions -> ASM
+    def _operatorToAsm(self, operator:Operator, operands:List[ActionType]) -> List[str]:
         """
-        :param operator: Opérateur arithmétique
-        :type operateor: Operator
-        :param operands: Opérandes
+        :param operator: Opérateur en cours
+        :type operator: Operator 
+        :param operands: opérandes de l'opération en cours
         :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        assert operator.arity == len(operands) - 1, "Nombre d'opérandes [{}] inadapté à l'opétateur {}.".format(len(operands)-1, operator)
-        assert operator.isArithmetic, "Opérateur {} n'est pas arithmétique.".format(operator)
-        destRegister = operands[-1]
-        assert isinstance(destRegister, Register), "La destination n'est pas un registre."
-
-        if operator.arity == 0:
-            assert operator in self._arithmeticsCommands, "Ce modèle de processeur n'a pas de commande arithmétique pour {}.".format(operator)
-            commande = self._arithmeticsCommands[operator]
-            return commande["asm"]
-
-        ops = operands[:-1]       
-        for op in ops[:-1]:
-            assert isinstance(op, Register), "Les premières opérandes de {} doivent être des registres".format(operator)
- 
-        if isinstance(ops[-1], Litteral):
-            # opération sur littéral
-            assert operator in self._litteralArithmeticsCommands, "Ce modèle de processeur n'a pas de variante littérale pour {}.".format(operator)
-            commande = self._litteralArithmeticsCommands[operator]
-            asm = commande["asm"]
-        else:
-            # opération totalement sur registre
-            assert operator in self._arithmeticsCommands, "Ce modèle de processeur n'a pas de commande arithmétique pour {}.".format(operator)
-            commande = self._arithmeticsCommands[operator]
-            asm = commande["asm"]
-
-        strOps = ", ".join([str(op) for op in ops])
-        return "{} {}, {}".format(asm, destRegister, strOps)
-
-
-    def _getCommandAsmCode(self, operator:Operator, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operator: Opérateur arithmétique
-        :type operateor: Operator
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-
-        if operator == Operators.HALT:
-            return self._commands[operator]
-        if operator == Operators.PRINT:
-            assert (len(operands) == 1) and isinstance(operands[0], Register), "Print ne doit avoir qu'un opérande registre"
-            asmCommand = self._commands[operator]
-            register = operands[0]
-            return "{} {}".format(asmCommand, register)
-
-    def _getAsmCode_HALT(self, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        assert Operators.HALT in self._commands, "Le modèle de processeur n'a pas d'instruction pour {}.".format(Operators.HALT)
-        assert len(operands) == 0, "La commande {} n'a pas d'opérandes.".format(Operators.HALT)
-        command = self._commands[Operators.HALT]
-        asmCommand = command["asm"]
-        return asmCommand
-
-    def _getAsmCode_PRINT(self, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        assert Operators.PRINT in self._commands, "Le modèle de processeur n'a pas d'instruction pour {}.".format(Operators.PRINT)
-        assert len(operands) == 1, "La commande {} n'a pas d'opérandes.".format(Operators.PRINT)
-        command = self._commands[Operators.PRINT]
-        asmCommand = command["asm"]
-        register = operands[0]
-        assert isinstance(register, Register), "La commande {} doit avoir une opérande de type Register.".format(Operators.PRINT)
-        return "{} {}".format(asmCommand, register)
-
-    def _getAsmCode_INPUT(self, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        assert Operators.INPUT in self._commands, "Le modèle de processeur n'a pas d'instruction pour {}.".format(Operators.INPUT)
-        assert len(operands) == 1, "La commande {} n'a pas d'opérandes.".format(Operators.INPUT)
-        command = self._commands[Operators.INPUT]
-        asmCommand = command["asm"]
-        variabe = operands[0]
-        assert isinstance(variabe, Variable), "La commande {} doit avoir une opérande de type Variable.".format(Operators.INPUT)
-        return "{} {}".format(asmCommand, variabe)
-
-
-    def _getAsmCode_STORE(self, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        assert Operators.STORE in self._commands, "Le modèle de processeur n'a pas d'instruction pour {}.".format(Operators.STORE)
-        assert len(operands) == 2, "La commande {} a deux opérandes.".format(Operators.STORE)
-        command = self._commands[Operators.STORE]
-        asmCommand = command["asm"]
-        register, variable = operands
-        assert isinstance(variable, Variable), "La commande {} doit avoir une deuxième opérande de type Variable.".format(Operators.STORE)
-        assert isinstance(register, Register), "La commande {} doit avoir une première opérande de type Register.".format(Operators.STORE)
-        return "{} {}, {}".format(asmCommand, register, variable)
-
-    def _getAsmCode_LOAD(self, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        assert Operators.LOAD in self._commands, "Le modèle de processeur n'a pas d'instruction pour {}.".format(Operators.LOAD)
-        assert len(operands) == 2, "La commande {} a deux opérandes.".format(Operators.LOAD)
-        command = self._commands[Operators.LOAD]
-        asmCommand = command["asm"]
-        variable, register = operands
-        assert isinstance(variable, Variable), "La commande {} doit avoir une première opérande de type Variable.".format(Operators.LOAD)
-        assert isinstance(register, Register), "La commande {} doit avoir une deuxième opérande de type Register.".format(Operators.LOAD)
-        return "{} {}, {}".format(asmCommand, register, variable)
-
-    def _getAsmCode_MOVE(self, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        
-        assert len(operands) == 2, "La commande {} a deux opérandes.".format(Operators.MOVE)
-        source, cible = operands        
-        assert isinstance(cible, Register), "La commande {} doit avoir une deuxième opérande de type Register.".format(Operators.MOVE)
-        if isinstance(source, Litteral):
-            assert Operators.MOVE in self._litteralsCommands, "Le modèle de processeur n'a pas d'instruction littérale pour {}.".format(Operators.MOVE)
-            command = self._litteralsCommands[Operators.MOVE]
-        else:
-            assert Operators.MOVE in self._commands, "Le modèle de processeur n'a pas d'instruction pour {}.".format(Operators.MOVE)
-            assert isinstance(source, Register), "La commande {} doit avoir une première opérande de type Register ou Litteral.".format(Operators.MOVE)
-            command = self._commands[Operators.MOVE]
-        asmCommand = command["asm"]
-        return "{} {}, {}".format(asmCommand, cible, source)
-
-    def _getAsmCode_GOTO(self, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        if len(operands) == 1:
-            # cas d'un GOTO direct
-            cible = operands[0]
-            assert Operators.GOTO in self._commands, "Le modèle de processeur n'a pas d'instruction pour {}.".format(Operators.GOTO)
-            assert isinstance(cible, Label), "La commande {} doit avoir une opérande de type Label.".format(Operators.GOTO)
-            command = self._commands[Operators.GOTO]
-            asmCommand = command["asm"]
-            return "{} {}".format(asmCommand, cible)
-        # en cas conditionnel, il faut au moins 3 opérandes : 2 registres + un opérateur de comparaison
-        assert len(operands) == 4, "La commande {} doit avoir avoir 1 ou 4 opérandes.".format(Operators.GOTO)
-        register1, register2, comparator, cible = operands
-        assert isinstance(register1, Register), "La commande {} doit avoir une première opérande de type Register.".format(Operators.GOTO)
-        assert isinstance(register2, Register), "La commande {} doit avoir une deuxième opérande de type Register.".format(Operators.GOTO)
-        assert isinstance(comparator, Operator) and comparator.isComparaison, "La commande {} doit avoir une troisème opérande de type Comparaison.".format(Operators.GOTO)
-        assert isinstance(cible, Label), "La commande {} doit avoir une quatrième opérande de type Label.".format(Operators.GOTO)
-        assert comparator in self._commands, "Le modèle de processeur n'a pas de commande pour la comparaison {}.".format(comparator)
-        comparatorCommand = self._commands[comparator]
-        asmComparator = comparatorCommand["asm"]
-        # par défaut j'utilise CMP
-        assert Operators.CMP in self._commands, "Le modèle de processeur n'a pas de commande pour {}.".format(Operators.CMP)
-        cmpCommand = self._commands[Operators.CMP]
-        asmCMP = cmpCommand["asm"]
-        return [
-            "{} {}, {}".format(asmCMP, register1, register2),
-            "{} {}".format(asmComparator, cible)
-        ]
-
-    
-    def _getAsmCode_OTHER(self, operator:Operator, operands:List[ActionType]) -> Union[List[str], str]:
-        """
-        :param operands: Opérandes
-        :type operands: List[ActionType]
-        :return: commande assembleur
-        :rtype: Union[List[str], str]
-        """
-        return ""
-
-    def getAsmCode(self, actions:ActionsFIFO) -> str:
-        """
-        :param actionsList: file des actions produite par la compilation
-        :type actionsList: ActionsFIFO
         :return: code asm
-        :rtyp: str
+        :rtype: List[str]
+        :raise: CompilationError
+        """
+        for asmGen in self._asmGenerators:
+            if asmGen.operator != operator or not asmGen.sastifyConditions(operands):
+                continue
+            return asmGen.asm(operands)
+        strOperands = ", ".join([str(it) for it in operands])
+        raise CompilationError("Aucun opérateur asm disponible pour la séquence : {} -> [{}]".format(strOperands, operator))
+
+    def _actionToAsm(self, fifo:ActionsFIFO) -> List[str]:
+        """
+        :param fifo: file des actions produite par la compilation
+        :type fifo: ActionsFIFO
+        :return: code asm
+        :rtyp: List[str]
         :raises: CompilationError
         """
-        extension:Union[List[str], str]
+
         lines: List[str] = []
         currentActionItems:List[ActionType] = []
-        while not actions.empty:
-            lastItem = actions.pop()
+        while not fifo.empty:
+            lastItem = fifo.pop()
             if (not isinstance(lastItem, Operator)) or lastItem.isComparaison:
                 currentActionItems.append(lastItem)
                 continue
-            if lastItem.isArithmetic:
-                extension = self._getArithmeticAsmCode(lastItem, currentActionItems)
-            elif lastItem == Operators.HALT:
-                extension = self._getAsmCode_HALT(currentActionItems)
-            elif lastItem == Operators.PRINT:
-                extension = self._getAsmCode_PRINT(currentActionItems)
-            elif lastItem == Operators.INPUT:
-                extension = self._getAsmCode_INPUT(currentActionItems)
-            elif lastItem == Operators.STORE:
-                extension = self._getAsmCode_STORE(currentActionItems)
-            elif lastItem == Operators.LOAD:
-                extension = self._getAsmCode_LOAD(currentActionItems)
-            elif lastItem == Operators.MOVE:
-                extension = self._getAsmCode_MOVE(currentActionItems)
-            elif lastItem == Operators.GOTO:
-                extension = self._getAsmCode_GOTO(currentActionItems)
-            else:
-                extension = self._getAsmCode_OTHER(lastItem, currentActionItems)
-                if extension == "":
-                    raise CompilationError("Commande [{}] inattendue.".format(lastItem), {"lineNumber":actions.lineNumber})
-            if isinstance(extension, list):
-                lines.extend(extension)
-            else:
-                lines.append(extension)
+            lines.extend(self._operatorToAsm(lastItem, currentActionItems))
             currentActionItems = []
 
         if len(currentActionItems) > 0:
-            raise CompilationError("La séquence devrait terminer par un opérateur.", {"lineNumber":actions.lineNumber})
+            raise CompilationError("La séquence devrait terminer par un opérateur.", {"lineNumber":fifo.lineNumber})
 
-        return "\n".join(actions.prependStrLabel(lines))
+        return lines
 
+    def _getVariablesStrList(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]]) -> List[str]:
+        """
+        :param fifos: file d'actions
+        :type fifos: Union[ActionsFIFO, List[ActionsFIFO]]
+        :return: liste des noms de variables
+        :rtype: List[str]
+        """
+        if isinstance(fifos, ActionsFIFO):
+            return fifos.getVariablesStrList()
+        variablesList:List[str] = []
+        for fifo in fifos:
+            variablesList = fifo.getVariablesStrList(variablesList)
+        return variablesList
+
+    def _getVariablesBinary(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]]) -> List[str]:
+        """
+        :param fifos: file d'actions
+        :type fifos: Union[ActionsFIFO, List[ActionsFIFO]]
+        :return: liste des noms de variables
+        :rtype: List[str]
+        """
+        variablesList = self._getVariablesStrList(fifos)
+        return [Variable.binary(name, self.dataBits) for name in variablesList]
+
+    def getAsm(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]], withVariables:bool=False) -> str:
+        """
+        :param fifos: file des actions produite par la compilation
+        :type fifos: ActionsFIFO
+        :param withVariables: Faut-il joindre les variables au code asm
+        :type withVariables: bool
+        :return: code asm
+        :rtype: str
+        :raises: CompilationError
+        """
+        if isinstance(fifos, ActionsFIFO):
+            fifoAsmlines = self._actionToAsm(fifos.clone())
+            outAsm = "\n".join(fifos.prependStrLabel(fifoAsmlines))
+        else:
+            listFifoAsmLines = ["\n".join(fifo.prependStrLabel(self._actionToAsm(fifo.clone()))) for fifo in fifos]
+            outAsm = "\n".join(listFifoAsmLines)
+        if not withVariables:
+            return outAsm
+        variablesAsm = "\n".join([Variable.asm(name) for name in self._getVariablesStrList(fifos)])
+        return "\n".join([outAsm, variablesAsm])
+        
+    # Fonction -> code
+    def _getAdresses(self, fifos:List[ActionsFIFO]) -> Dict[str,int]:
+        """
+        :param fifos: file des actions produite par la compilation
+        :type fifos: ActionsFIFO
+        :param withVariables: Faut-il joindre les variables au code asm
+        :type withVariables: bool
+        :return: liste des labels et variables avec numéro de ligne dans le code
+        :rtyp: Dict[str,int]
+        """
+        # il faut identifier les numéros de ligne qui accueilleront les variables et les labels
+        variablesListWithoutLine = self._getVariablesStrList(fifos)
+        addressList:Dict[str,int] = {}
+        lineCount = 0
+        for act in fifos:
+            if not act.label is None:
+                addressList[str(act.label)] = lineCount
+            asmLines = self._actionToAsm(act.clone())
+            lineCount += len(asmLines)
+        for v in variablesListWithoutLine:
+            addressList[v] = lineCount
+            lineCount += 1
+        return addressList
+
+    def _operatorToBinary(self, operator:Operator, operands:List[ActionType], addressList:Dict[str,int]) -> List[str]:
+        """
+        :param operator: Opérateur en cours
+        :type operator: Operator 
+        :param operands: opérandes de l'opération en cours
+        :type operands: List[ActionType]
+        :param addressList: adresses de variables et labels
+        :type addressList: Dict[str,int]
+        :return: code binaire
+        :rtype: List[str]
+        :raise: CompilationError
+        """
+        for asmGen in self._asmGenerators:
+            if asmGen.operator != operator or not asmGen.sastifyConditions(operands):
+                continue
+            return asmGen.binary(operands,addressList)
+        strOperands = ", ".join([str(it) for it in operands])
+        raise CompilationError("Aucun opérateur asm disponible pour la séquence : {} -> [{}]".format(strOperands, operator))
+
+    def _actionToBinary(self, fifo:ActionsFIFO, addressList:Dict[str,int]) -> List[str]:
+        """
+        :param fifo: file des actions produite par la compilation
+        :type fifo: ActionsFIFO
+        :param addressList: adresses de variables et labels
+        :type addressList: Dict[str,int]
+        :return: code binaire
+        :rtyp: List[str]
+        """
+
+        lines: List[str] = []
+        currentActionItems:List[ActionType] = []
+        while not fifo.empty:
+            lastItem = fifo.pop()
+            if (not isinstance(lastItem, Operator)) or lastItem.isComparaison:
+                currentActionItems.append(lastItem)
+                continue
+            lines.extend(self._operatorToBinary(lastItem, currentActionItems, addressList))
+            currentActionItems = []
+
+        if len(currentActionItems) > 0:
+            raise CompilationError("La séquence devrait terminer par un opérateur.", {"lineNumber":fifo.lineNumber})
+
+        return lines
+
+
+    def getBinary(self, fifos:List[ActionsFIFO]) -> List[str]:
+        """
+        :param fifos: file des actions produite par la compilation
+        :type fifos: List[ActionsFIFO]
+        :param withVariables: Faut-il joindre les variables au code asm
+        :type withVariables: bool
+        :return: code binaire
+        :rtype: List[str]
+        """
+        addressList = self._getAdresses(fifos)
+        outCode = []
+        variablesCode = self._getVariablesBinary(fifos) 
+        for fifo in fifos:
+            outCode.extend(self._actionToBinary(fifo.clone(), addressList))
+        outCode.extend(variablesCode)
+        return outCode
+            
 
