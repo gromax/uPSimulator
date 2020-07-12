@@ -3,19 +3,91 @@
    :synopsis: définition d'un objet contenant une variable mémoire
 """
 
+from typing import Dict
 from modules.errors import CompilationError
 
 class Variable:
-    def __init__(self, nom:str, value:int = 0):
+    _value:int = 0
+    def __init__(self, nom:str):
         """Constructeur de la classe
 
         :param nom: nom de la variable
         :type nom: str
-        :param value: valeur initiale. 0 par défaut
-        :type value: int
         """
         self._name = nom
-        self._value = value
+
+    @staticmethod
+    def toInt(name:str) -> int:
+        """Déduit la valeur à partir du nom préfixé de @
+        :param name: nom de la variable
+        :type name: str
+        :return: valeur initiale de la variable
+        :rtype: int
+        """
+        if len(name) <= 2 or name[1] != "#":
+            return 0
+        signe = 1
+        if name[2] == "m":
+            strValue = name[3:]
+            signe = -1
+        else:
+            strValue = name[2:]
+        return signe * int(strValue)
+
+    @staticmethod
+    def binary(name:str, wordSize:int) -> 'str':
+        """Retourne chaîne de caractère représentant le code CA2 de la variable dont on a le nom préfixé de @
+        pour un mot de taille wordSize bits
+
+        :param name: nom de la variable
+        :type name: str
+        :param wordSize: taille du mot binaire
+        :type wordSize: int
+        :return: code CA2 de la valeur initiale de la variable, sur wordSize bits
+        :rtype: str
+        :raises: CompilationError
+
+        :Example:
+            >>> Variable.binary("@x", 8)
+            '00000000'
+
+            >>> Variable.binary("@#m45", 8)
+            '11010011'
+
+            >>> Variable("@#1000",8).getValueBinary(8)
+            Traceback (most recent call last):
+            ...
+            CompilationError: @#1000 : Variable de valeur trop grande !
+        """
+        value = Variable.toInt(name)
+        if value < 0:
+            # utilise le CA2
+            valueToCode = (~(-value) + 1) & (2**wordSize - 1)
+        else:
+            valueToCode = value
+        outStr = format(valueToCode, '0'+str(wordSize)+'b')
+        if len(outStr) > wordSize or value > 0 and outStr[0] == '1':
+            raise CompilationError("{} : Variable de valeur trop grande !".format(name))
+        return outStr
+
+    @staticmethod
+    def asm(name:str) -> str:
+        """Retourne chaîne de caractère représentant le code asm de la variable dont on a le nom préfixé de @
+
+        :param name: nom de la variable
+        :type name: str
+        :return: code ASM
+        :rtype: str
+
+        :Example:
+            >>> Variable.asm("@x")
+            '@x\t0'
+
+            >>> Variable.asm("@#m45")
+            '@#m45\t45'
+        """
+        value = Variable.toInt(name)
+        return "{}\t{}".format(name, value)
 
     @classmethod
     def fromInt(cls, value:int) -> 'Variable':
@@ -30,7 +102,9 @@ class Variable:
             name = "#m{}".format(abs(value))
         else:
             name = "#{}".format(value)
-        return Variable(name, value)
+        v = Variable(name)
+        v._value = value
+        return v
 
     @property
     def name(self) -> str:
@@ -60,39 +134,7 @@ class Variable:
 
         """
 
-        return "@"+self._name
-
-    def getValueBinary(self, wordSize:int) -> 'str':
-        """Retourne chaîne de caractère représentant le code CA2 de self._value,
-        pour un mot de taille wordSize bits
-
-        :param wordSize: taille du mot binaire
-        :type wordSize: int
-        :return: code CA2 de la valeur initiale de la variable, sur wordSize bits
-        :rtype: str
-
-        :Example:
-            >>> Variable("x",45).getValueBinary(8)
-            '00101101'
-
-            >>> Variable("x",-45).getValueBinary(8)
-            '11010011'
-
-            >>> Variable("x",1000).getValueBinary(8)
-            Traceback (most recent call last):
-            ...
-            errors.CompilationError: @x : Variable de valeur trop grande !
-        """
-
-        if self._value < 0:
-            # utilise le CA2
-            valueToCode = (~(-self._value) + 1) & (2**wordSize - 1)
-        else:
-            valueToCode = self._value
-        outStr = format(valueToCode, '0'+str(wordSize)+'b')
-        if len(outStr) > wordSize or self._value > 0 and outStr[0] == '1':
-            raise CompilationError(f"{self} : Variable de valeur trop grande !")
-        return outStr
+        return "@{}".format(self._name)
 
     @property
     def value(self) -> int:
@@ -105,8 +147,8 @@ class Variable:
             >>> Variable("x").value
             0
 
-            >>> Variable("x",15).value
+            >>> Variable.fromInt(15).value
             15
-
         """
-        return self._value
+        return Variable.toInt(self._name)
+    
