@@ -111,17 +111,17 @@ class ActionsFIFO:
         return cloneFIFO
 
 
-    def getVariablesStrList(self, alreadyListed:List[str]=[]) -> List[str]:
+    def getVariablesList(self, alreadyListed:List[Variable]=[]) -> List[Variable]:
         """
         :param alreadyListed: variables déjà listées par ailleurs
-        :type alreadyListed: List[str]
+        :type alreadyListed: List[Variable]
         :return: liste des variables présentes dans la file, ajoutées à celles fournies
-        :rtype: List[str]
+        :rtype: List[Variable]
         """
         outList = [it for it in alreadyListed]
         for item in self._actions:
-            if isinstance(item, Variable) and not str(item) in outList:
-                outList.append(str(item))
+            if isinstance(item, Variable) and not item in outList:
+                outList.append(item)
         return outList
 
 
