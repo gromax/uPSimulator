@@ -14,9 +14,7 @@ from modules.primitives.label import Label
 from modules.primitives.operators import Operator, Operators
 from modules.primitives.actionsfifo import ActionsFIFO, ActionType
 from modules.engine.asmgenerator import AsmGenerator
-
-
-
+from modules.engine.decode import Decodeur, Decoded, DefaultDecoded
 
 class ProcessorEngine(metaclass=ABCMeta):
     _name                  :str
@@ -24,7 +22,8 @@ class ProcessorEngine(metaclass=ABCMeta):
     _data_bits             :int
     _freeUalOutput         :bool
     
-    _asmGenerators       : List[AsmGenerator]
+    _asmGenerators       : Tuple[AsmGenerator,...]
+    _decodeurs           : Tuple[Decodeur,...]
     _comparaisonOperators: List[Operator]
     _litteralDomain      :Tuple[int, int]
 
@@ -115,69 +114,26 @@ class ProcessorEngine(metaclass=ABCMeta):
         # pas de littéral par défaut
         return False
 
-    '''
-    def instructionDecode(self, binary:Union[int,str]) -> Tuple[str, Sequence[int], int, int]:
+    def instructionDecode(self, binary:Union[int,str]) -> Decoded:
         """Pour une instruction, fait le décodage en renvoyant le descriptif commande, les opérandes registres et un éventuel opérande non registre
 
         :param binary: code binaire
         :type binary: int ou str
-        :result: tuple contenant la commande, les opérandes registres et l'éventuel opérande spéciale (adresse ou littéral), -1 si pas de spéciale, taille en bits de l'éventuel littéral.
-        :rtype: Tuple[str, Tuple[int], int, int]
+        :result: objet contenant l'opérateur et les arguments
+        :rtype: Decoded
 
         """
         if isinstance(binary, int):
             strBinary = format(binary, '0'+str(self._data_bits)+'b')
         else:
             strBinary = binary
-        for name, attr in self._commands.items():
-            opcode = attr["opcode"]
-            if strBinary[:len(opcode)] == opcode:
-                opeBinary = strBinary[len(opcode):]
-                if name == "halt":
-                    return ("halt",(),-1, 0)
-                if name == "nop":
-                    return ("nop", (), -1, 0)
-                if name in ("goto", "!=", "==", "<", "<=", ">=", ">", "input"):
-                    cible = int(opeBinary,2)
-                    return (name, (), cible, len(opeBinary))
-                if name in ("store", "load"):
-                    reg = int(opeBinary[:self._register_address_bits],2)
-                    strCible = opeBinary[self._register_address_bits:]
-                    cible = int(strCible,2)
-                    return (name, (reg,), cible, len(strCible))
-                if name in ("cmp", "move"):
-                    reg1 = int(opeBinary[:self._register_address_bits],2)
-                    reg2 = int(opeBinary[self._register_address_bits:2*self._register_address_bits],2)
-                    return (name, (reg1, reg2), -1, 0)
-                if name == "print":
-                    reg = int(opeBinary[:self._register_address_bits],2)
-                    return ("print", (reg,), -1, 0)
-                opNumber = self.__opNumber[name]
-                regs = tuple([ int(opeBinary[self._register_address_bits*i:self._register_address_bits*(i+1)],2) for i in range(opNumber)])
-                if not self.ualOutputIsFree():
-                    regs = (0,) + regs
-                return (name, regs, -1, 0)
-        for name, attr in self._litteralsCommands.items():
-            opcode = attr["opcode"]
-            if strBinary[:len(opcode)] == opcode:
-                opeBinary = strBinary[len(opcode):]
-                if name == "move":
-                    reg = int(opeBinary[:self._register_address_bits],2)
-                    strLitt = opeBinary[self._register_address_bits:]
-                    litt = int(strLitt,2)
-                    return ("move", (reg,), litt, len(strLitt))
-                opNumber = self.__opNumber[name]
-                regs = tuple([ int(opeBinary[self._register_address_bits*i:self._register_address_bits*(i+1)],2) for i in range(opNumber-1)])
-                strLitteral = opeBinary[self._register_address_bits*opNumber:]
-                litt = int(strLitteral,2)
-                sizeLitt = len(strLitteral)
-                if not self.ualOutputIsFree():
-                    regs = (0,) + regs
-                return (name, regs, litt, sizeLitt)
-        # par défaut, retour halt
-        return ("halt",(),-1, 0)
-    '''
-
+        
+        for decodeurItem in self._decodeurs:
+            if decodeurItem.match(strBinary):
+                return decodeurItem.decode(strBinary)
+        # aucune instruction trouvée
+        return DefaultDecoded
+ 
     @property
     def litteralDomain(self) -> Tuple[int, int]:
         return self._litteralDomain
@@ -270,7 +226,7 @@ class ProcessorEngine(metaclass=ABCMeta):
 
         return lines
 
-    def _getVariablesStrList(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]]) -> List[str]:
+    def _getVariablesList(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]]) -> List[Variable]:
         """
         :param fifos: file d'actions
         :type fifos: Union[ActionsFIFO, List[ActionsFIFO]]
@@ -278,11 +234,22 @@ class ProcessorEngine(metaclass=ABCMeta):
         :rtype: List[str]
         """
         if isinstance(fifos, ActionsFIFO):
-            return fifos.getVariablesStrList()
-        variablesList:List[str] = []
+            return fifos.getVariablesList()
+        variablesList:List[Variable] = []
         for fifo in fifos:
-            variablesList = fifo.getVariablesStrList(variablesList)
+            variablesList = fifo.getVariablesList(variablesList)
         return variablesList
+
+    def _getLabelsList(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]]) -> List[Label]:
+        """
+        :param fifos: file d'actions
+        :type fifos: Union[ActionsFIFO, List[ActionsFIFO]]
+        :return: liste des labels
+        :rtype: List[Label]
+        """
+        if not isinstance(fifos, list):
+            fifos = [fifos]
+        return [fifo.label for fifo in fifos if not fifo.label is None]
 
     def _getVariablesBinary(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]]) -> List[str]:
         """
@@ -291,13 +258,13 @@ class ProcessorEngine(metaclass=ABCMeta):
         :return: liste des noms de variables
         :rtype: List[str]
         """
-        variablesList = self._getVariablesStrList(fifos)
-        return [Variable.binary(name, self.dataBits) for name in variablesList]
+        variablesList = self._getVariablesList(fifos)
+        return [v.binary(self.dataBits) for v in variablesList]
 
     def getAsm(self, fifos:Union[ActionsFIFO, List[ActionsFIFO]], withVariables:bool=False) -> str:
         """
         :param fifos: file des actions produite par la compilation
-        :type fifos: ActionsFIFO
+        :type fifos: Union[ActionsFIFO, List[ActionsFIFO]]
         :param withVariables: Faut-il joindre les variables au code asm
         :type withVariables: bool
         :return: code asm
@@ -312,26 +279,26 @@ class ProcessorEngine(metaclass=ABCMeta):
             outAsm = "\n".join(listFifoAsmLines)
         if not withVariables:
             return outAsm
-        variablesAsm = "\n".join([Variable.asm(name) for name in self._getVariablesStrList(fifos)])
+        variablesAsm = "\n".join([v.asm() for v in self._getVariablesList(fifos)])
         return "\n".join([outAsm, variablesAsm])
         
     # Fonction -> code
-    def _getAdresses(self, fifos:List[ActionsFIFO]) -> Dict[str,int]:
+    def _getAdresses(self, fifos:List[ActionsFIFO]) -> Dict[Union[Label,Variable],int]:
         """
         :param fifos: file des actions produite par la compilation
         :type fifos: ActionsFIFO
         :param withVariables: Faut-il joindre les variables au code asm
         :type withVariables: bool
         :return: liste des labels et variables avec numéro de ligne dans le code
-        :rtyp: Dict[str,int]
+        :rtyp: Dict[Union[Label,Variable],int]
         """
         # il faut identifier les numéros de ligne qui accueilleront les variables et les labels
-        variablesListWithoutLine = self._getVariablesStrList(fifos)
-        addressList:Dict[str,int] = {}
+        variablesListWithoutLine = self._getVariablesList(fifos)
+        addressList:Dict[Union[Label,Variable],int] = {}
         lineCount = 0
         for act in fifos:
             if not act.label is None:
-                addressList[str(act.label)] = lineCount
+                addressList[act.label] = lineCount
             asmLines = self._actionToAsm(act.clone())
             lineCount += len(asmLines)
         for v in variablesListWithoutLine:
@@ -339,14 +306,14 @@ class ProcessorEngine(metaclass=ABCMeta):
             lineCount += 1
         return addressList
 
-    def _operatorToBinary(self, operator:Operator, operands:List[ActionType], addressList:Dict[str,int]) -> List[str]:
+    def _operatorToBinary(self, operator:Operator, operands:List[ActionType], addressList:Dict[Union[Label, Variable],int]) -> List[str]:
         """
         :param operator: Opérateur en cours
         :type operator: Operator 
         :param operands: opérandes de l'opération en cours
         :type operands: List[ActionType]
         :param addressList: adresses de variables et labels
-        :type addressList: Dict[str,int]
+        :type addressList: Dict[Union[Label, Variable],int]
         :return: code binaire
         :rtype: List[str]
         :raise: CompilationError
@@ -358,12 +325,12 @@ class ProcessorEngine(metaclass=ABCMeta):
         strOperands = ", ".join([str(it) for it in operands])
         raise CompilationError("Aucun opérateur asm disponible pour la séquence : {} -> [{}]".format(strOperands, operator))
 
-    def _actionToBinary(self, fifo:ActionsFIFO, addressList:Dict[str,int]) -> List[str]:
+    def _actionToBinary(self, fifo:ActionsFIFO, addressList:Dict[Union[Label,Variable],int]) -> List[str]:
         """
         :param fifo: file des actions produite par la compilation
         :type fifo: ActionsFIFO
         :param addressList: adresses de variables et labels
-        :type addressList: Dict[str,int]
+        :type addressList: Dict[Union[Label,Variable],int]
         :return: code binaire
         :rtyp: List[str]
         """
