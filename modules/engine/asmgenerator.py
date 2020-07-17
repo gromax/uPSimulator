@@ -3,7 +3,7 @@
    :synopsis: classe générant le code assembleur pour une commande élémentaire donnée
 """
 
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Union
 from abc import ABC, ABCMeta, abstractmethod
 
 from modules.primitives.operators import Operator, Operators
@@ -55,12 +55,12 @@ class AsmGenerator(metaclass=ABCMeta):
         return []
     
     @abstractmethod
-    def binary(self, operands:List[ActionType], addressList:Dict[str,int]) -> List[str]:
+    def binary(self, operands:List[ActionType], addressList:Dict[Union[Label, Variable],int]) -> List[str]:
         """
         :param operands: Opérandes
         :type operands: List[ActionType]
         :param addressList: adresses de variables et labels
-        :type addressList: Dict[str,int]
+        :type addressList: Dict[Union[Label, Variable],int]
         :return: code binaire
         :rtype: List[str]
         """
@@ -82,12 +82,12 @@ class AsmGenerator(metaclass=ABCMeta):
                 return False
         return True
 
-    def _operandsToInt(self, operands:List[ActionType], addressList:Dict[str,int]) -> List[int]:
+    def _operandsToInt(self, operands:List[ActionType], addressList:Dict[Union[Label, Variable],int]) -> List[int]:
         """
         :param operands: Opérandes
         :type operands: List[ActionType]
         :param addressList: adresses de variables et labels
-        :type addressList: Dict[str,int]
+        :type addressList: Dict[Union[Label, Variable],int]
         :return: code binaire
         :rtype: List[str]
         """
@@ -97,9 +97,8 @@ class AsmGenerator(metaclass=ABCMeta):
             if isinstance(op,Litteral):
                 intOps.append(op.value)
             elif isinstance(op,(Variable, Label)):
-                opStr = str(op)
-                assert opStr in addressList, "Variable/Label {} n'est pas référencée dans les adresses.".format(op)
-                intOps.append(addressList[opStr])
+                assert op in addressList, "Variable/Label {} n'est pas référencée dans les adresses.".format(op)
+                intOps.append(addressList[op])
             elif isinstance(op, Register):
                 intOps.append(op.rank)
             # tout autre type de variable peut être ignoré
@@ -136,12 +135,12 @@ class AsmGenerator_SINGLE(AsmGenerator):
         assert self.sastifyConditions(operands)
         return [self._asm]
 
-    def binary(self, operands:List[ActionType], addressList:Dict[str,int]) -> List[str]:
+    def binary(self, operands:List[ActionType], addressList:Dict[Union[Label, Variable],int]) -> List[str]:
         """
         :param operands: Opérandes
         :type operands: List[ActionType]
         :param addressList: adresses de variables et labels
-        :type addressList: Dict[str,int]
+        :type addressList: Dict[Union[Label, Variable],int]
         :return: code binaire
         :rtype: List[str]
         """
@@ -175,12 +174,12 @@ class AsmGenerator_TRANSFERT(AsmGenerator):
         opsGoodOrder = [operands[-1]] + operands[:-1]
         return [self._asm + " " + ", ".join([str(op) for op in opsGoodOrder])]
 
-    def binary(self, operands:List[ActionType], addressList:Dict[str,int]) -> List[str]:
+    def binary(self, operands:List[ActionType], addressList:Dict[Union[Label, Variable],int]) -> List[str]:
         """
         :param operands: Opérandes
         :type operands: List[ActionType]
         :param addressList: adresses de variables et labels
-        :type addressList: Dict[str,int]
+        :type addressList: Dict[Union[Label, Variable],int]
         :return: code binaire
         :rtype: List[str]
         """
@@ -244,12 +243,12 @@ class AsmGenerator_CONDITIONAL_GOTO(AsmGenerator):
             "{} {}".format(self._asmForGoto, cible)
         ]
 
-    def binary(self, operands:List[ActionType], addressList:Dict[str,int]) -> List[str]:
+    def binary(self, operands:List[ActionType], addressList:Dict[Union[Label, Variable],int]) -> List[str]:
         """
         :param operands: Opérandes
         :type operands: List[ActionType]
         :param addressList: adresses de variables et labels
-        :type addressList: Dict[str,int]
+        :type addressList: Dict[Union[Label, Variable],int]
         :return: code binaire
         :rtype: List[str]
         """
