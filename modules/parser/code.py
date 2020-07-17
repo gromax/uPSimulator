@@ -6,6 +6,7 @@
 from typing import List, Optional
 import re
 
+from modules.primitives.variable import Variable
 from modules.parser.lineparser import ParsedLine, ParsedLine_Elif, ParsedLine_If, ParsedLine_While, ParsedLine_Else, ParsedLine_Print, ParsedLine_Affectation, ParsedLine_Input
 from modules.structuresnodes import StructureNode, WhileNode, IfElseNode, IfNode, TransfertNode
 from modules.errors import ParseError
@@ -55,6 +56,8 @@ class CodeParser: # Définition classe
         :return: liste de noeuds représentant le programme
         :rtype: List[StructureNode]
         """
+        # on réinitialise le manager des variables
+        Variable.resetVariableManager()
 
         listParsedLines: List[ParsedLine] = []
         for index, line in enumerate(lignesCode):
