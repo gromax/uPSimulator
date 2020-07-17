@@ -3,91 +3,27 @@
    :synopsis: définition d'un objet contenant une variable mémoire
 """
 
-from typing import Dict
+from typing import Dict, Optional
 from modules.errors import CompilationError
 
 class Variable:
     _value:int = 0
-    def __init__(self, nom:str):
-        """Constructeur de la classe
+    _variableManager:Optional['VariableManager'] = None
 
-        :param nom: nom de la variable
-        :type nom: str
-        """
-        self._name = nom
-
-    @staticmethod
-    def toInt(name:str) -> int:
-        """Déduit la valeur à partir du nom préfixé de @
-        :param name: nom de la variable
-        :type name: str
-        :return: valeur initiale de la variable
-        :rtype: int
-        """
-        if len(name) <= 2 or name[1] != "#":
-            return 0
-        signe = 1
-        if name[2] == "m":
-            strValue = name[3:]
-            signe = -1
-        else:
-            strValue = name[2:]
-        return signe * int(strValue)
-
-    @staticmethod
-    def binary(name:str, wordSize:int) -> 'str':
-        """Retourne chaîne de caractère représentant le code CA2 de la variable dont on a le nom préfixé de @
-        pour un mot de taille wordSize bits
-
-        :param name: nom de la variable
-        :type name: str
-        :param wordSize: taille du mot binaire
-        :type wordSize: int
-        :return: code CA2 de la valeur initiale de la variable, sur wordSize bits
-        :rtype: str
-        :raises: CompilationError
-
-        :Example:
-            >>> Variable.binary("@x", 8)
-            '00000000'
-
-            >>> Variable.binary("@#m45", 8)
-            '11010011'
-
-            >>> Variable("@#1000",8).getValueBinary(8)
-            Traceback (most recent call last):
-            ...
-            CompilationError: @#1000 : Variable de valeur trop grande !
-        """
-        value = Variable.toInt(name)
-        if value < 0:
-            # utilise le CA2
-            valueToCode = (~(-value) + 1) & (2**wordSize - 1)
-        else:
-            valueToCode = value
-        outStr = format(valueToCode, '0'+str(wordSize)+'b')
-        if len(outStr) > wordSize or value > 0 and outStr[0] == '1':
-            raise CompilationError("{} : Variable de valeur trop grande !".format(name))
-        return outStr
-
-    @staticmethod
-    def asm(name:str) -> str:
-        """Retourne chaîne de caractère représentant le code asm de la variable dont on a le nom préfixé de @
-
-        :param name: nom de la variable
-        :type name: str
-        :return: code ASM
-        :rtype: str
-
-        :Example:
-            >>> Variable.asm("@x")
-            '@x\t0'
-
-            >>> Variable.asm("@#m45")
-            '@#m45\t45'
-        """
-        value = Variable.toInt(name)
-        return "{}\t{}".format(name, value)
+    @classmethod
+    def getVariableManager(cls) -> 'VariableManager':
+        if cls._variableManager is None:
+            cls._variableManager = VariableManager()
+        return cls._variableManager
+    
+    @classmethod
+    def resetVariableManager(cls) -> 'VariableManager':
+        cls._variableManager = None
+        return cls.getVariableManager()
+    
+    @classmethod
+    def add(cls, name) -> 'Variable':
+        return cls.getVariableManager().add(name)
 
     @classmethod
     def fromInt(cls, value:int) -> 'Variable':
@@ -102,9 +38,80 @@ class Variable:
             name = "#m{}".format(abs(value))
         else:
             name = "#{}".format(value)
-        v = Variable(name)
+        v = Variable.add(name)
         v._value = value
         return v
+
+    def __init__(self, nom:str):
+        """Constructeur de la classe
+
+        :param nom: nom de la variable
+        :type nom: str
+        """
+        self._name = nom
+
+    def _isLitteral(self) -> bool:
+        """Prédicat
+        :return: cette variable contient un littéral de valeur fixe
+        :rtype: bool
+        """
+        return self._name[0] == "#"
+
+    def setInitialValue(self, value:int):
+        """Affecte une valeur initiale
+        
+        :param: valeur initiale
+        :type: int
+        """
+        assert not self._isLitteral()
+        self._value = value
+
+    def binary(self, wordSize:int) -> 'str':
+        """Retourne chaîne de caractère représentant le code CA2 de la variable
+        pour un mot de taille wordSize bits
+
+        :param wordSize: taille du mot binaire
+        :type wordSize: int
+        :return: code CA2 de la valeur initiale de la variable, sur wordSize bits
+        :rtype: str
+        :raises: CompilationError
+
+        :Example:
+            >>> Variable("x").binary(8)
+            '00000000'
+
+            >>> Variable.fromInt(45).binary(8)
+            '11010011'
+
+            >>> Variable.fromInt(1000,8)
+            Traceback (most recent call last):
+            ...
+            CompilationError: @#1000 : Variable de valeur trop grande !
+        """
+        if self._value < 0:
+            # utilise le CA2
+            valueToCode = (~(- self._value) + 1) & (2**wordSize - 1)
+        else:
+            valueToCode = self._value
+        outStr = format(valueToCode, '0'+str(wordSize)+'b')
+        if len(outStr) > wordSize or self._value > 0 and outStr[0] == '1':
+            raise CompilationError("{} : Variable de valeur trop grande !".format(self))
+        return outStr
+
+    def asm(self) -> str:
+        """Retourne chaîne de caractère représentant le code asm de la variable
+
+        :return: code ASM
+        :rtype: str
+
+        :Example:
+            >>> Variable("x").asm()
+            '@x\t0'
+
+            >>> Variable.fromInt(45).asm()
+            '@#m45\t45'
+        """
+        return "{}\t{}".format(self, self._value)
 
     @property
     def name(self) -> str:
@@ -150,5 +157,21 @@ class Variable:
             >>> Variable.fromInt(15).value
             15
         """
-        return Variable.toInt(self._name)
+        return self._value
+
+
+class VariableManager:
+    _list:Dict[str,Variable]
+    def __init__(self):
+        self._list = {}
     
+    def add(self, name:str) -> Variable:
+        """Ajoute si nécessaire la variable correspondante
+
+        :param nom: nom de la variable
+        :type nom: str
+        """
+        if not name in self._list:
+            self._list[name] = Variable(name)
+        return self._list[name]
+
