@@ -83,22 +83,16 @@ class ArithmeticExpressionNode(metaclass=ABCMeta):
         return None
     
     @staticmethod
-    def toValueNode(value:Any) -> Optional['ArithmericExpressionNode']:
+    def toValueNode(value:Union[Variable, Litteral]) -> 'ArithmericExpressionNode':
         """Crée un noeud de valeur
 
-        :param value: valeur à créer
-        :type operator: Any
+        :param value: valeur à créer, variable ou littéral
+        :type operator: Union[Variable, Litteral]
         :return: noeud d'expression logique ou None en cas d'échec
         :rtype: Optionnal[LogicExpressionNode]
         """
-        if isinstance(value, Variable) or isinstance(value, Litteral):
-            return ValueNode(value)
-        if isinstance(value, int):
-            return ValueNode(Litteral(value))
-        if isinstance(value, str):
-            return ValueNode(Variable(value))
-        return None
-
+        assert isinstance(value, (Variable, Litteral))
+        return ValueNode(value)
 
     def cost(self, litteralDomain:Tuple[int,int]) -> int:
         """
