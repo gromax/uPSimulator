@@ -348,7 +348,7 @@ class ParsedLine_Input(ParsedLine):
 
         if not ExpressionParser.strIsVariableName(variableName):
             raise ParseError("La variable <{}> est incorrecte.".format(variableName), {"lineNumber":lineNumber})
-        return ParsedLine_Input(lineNumber, indentation, Variable(variableName))
+        return ParsedLine_Input(lineNumber, indentation, Variable.add(variableName))
 
 
     def _parentLineToStr(self) -> str:
@@ -407,7 +407,7 @@ class ParsedLine_Affectation(ParsedLine):
         expr = ExpressionParser.buildExpression(expressionStr)
         if not isinstance(expr, ArithmeticExpressionNode):
             raise ParseError("L'expression <{}> est incorrecte.".format(expr), {"lineNumber":lineNumber})
-        return ParsedLine_Affectation(lineNumber, indentation, Variable(variableName), expr)
+        return ParsedLine_Affectation(lineNumber, indentation, Variable.add(variableName), expr)
 
     def _parentLineToStr(self) -> str:
         """Transtypage -> str
