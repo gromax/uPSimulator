@@ -9,6 +9,9 @@ from modules.expressionnodes.logic import LogicExpressionNode
 from modules.expressionnodes.arithmetic import ArithmeticExpressionNode
 from modules.expressionnodes.comparaison import ComparaisonExpressionNode
 from modules.primitives.operators import Operator
+from modules.primitives.variable import Variable
+from modules.primitives.litteral import Litteral
+
 
 ExpressionType = Union[LogicExpressionNode, ComparaisonExpressionNode, ArithmeticExpressionNode]
 OptExpressionType = Union[LogicExpressionNode, ComparaisonExpressionNode, ArithmeticExpressionNode, None]
@@ -31,11 +34,11 @@ def operandNode(operator:Operator, *operands:Any) -> OptExpressionType:
         return ComparaisonExpressionNode.operandsToNode(operator, *operands)
     return None   
 
-def valueNode(value:Any) -> OptExpressionType:
+def valueNode(value:Union[Variable, Litteral]) -> OptExpressionType:
     """Crée un noeud de valeur
 
-    :param value: valeur à créer
-    :type operator: Any
+    :param value: valeur à créer, variable ou littéral
+    :type operator: Union[Variable, Litteral]
     :return: noeud d'expression logique ou None en cas d'échec
     :rtype: Optionnal[LogicExpressionNode]
     """
