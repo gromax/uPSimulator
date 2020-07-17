@@ -206,7 +206,7 @@ class TokenUnaryOperator(Token):
 
 class TokenVariable(Token):
     RESERVED_NAMES = ("while", "if", "else", "elif") + tuple([op.symbol for op in Operators.list()])
-
+    _name : str
     def __init__(self, name):
         """Constructeur
 
@@ -245,10 +245,10 @@ class TokenVariable(Token):
         return "[a-zA-Z][a-zA-Z_0-9]*"
 
     @property
-    def value(self) -> str:
+    def name(self) -> str:
         """Accesseur
 
-        :return: expression
+        :return: name
         :rtype: str
 
         :Example:
