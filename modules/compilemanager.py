@@ -50,7 +50,13 @@ class CompilationManager:
 
     def compile(self) -> List[ActionsFIFO]:
         registers = RegistersManager(self._engine.registersNumber())
-        return [self._compileNode(node, registers) for node in self._linearList]
+        listActionsFifos = [self._compileNode(node, registers) for node in self._linearList]
+        # à ce stade, les labels sont définitifs et un numéro peut leur être alloué
+        Label.initFreeIndex()
+        for item in listActionsFifos:
+            if not item.label is None:
+                item.label.initIndex()
+        return listActionsFifos
 
     def __str__(self) -> str:
         """Transtypage -> str
