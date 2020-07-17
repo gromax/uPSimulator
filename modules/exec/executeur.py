@@ -1,5 +1,5 @@
 """
-.. module:: executeur
+.. module:: modules.execution.executeur
 :synopsis: classe chargée de l'exécution du code binaire
     Reçoit le modèle de processeur et l'objet contenant le code assembleur
     exécute le code pas à pas en utilisant les composants définis dans
@@ -7,8 +7,8 @@
 """
 
 from typing import List, Tuple, Union, Sequence, Optional
-from processorengine import ProcessorEngine
-from executeurcomponents import BufferComponent, ScreenComponent, RegisterComponent, RegisterGroup, UalComponent, MemoryComponent, DataValue
+from modules.engine.processorengine import ProcessorEngine
+from modules.exec.components import BufferComponent, ScreenComponent, RegisterComponent, RegisterGroup, UalComponent, MemoryComponent, DataValue
 
 class Executeur:
     """Classe d'exécution d'un code binaire. Initialisé avec :
@@ -464,7 +464,7 @@ class Executeur:
 if __name__ == '__main__':
     from processor16bits import Processor16Bits
     from processor12bits import Processor12Bits
-    from codeparser import CodeParser
+    from modules.parser.code import CodeParser
     from compilemanager import CompilationManager
     engine = Processor16Bits()
 

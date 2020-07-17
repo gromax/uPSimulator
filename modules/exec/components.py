@@ -1,5 +1,5 @@
 """
-.. module:: executeurcomponents
+.. module:: modules.exec.executeurcomponents
 :synopsis: Classes définissant le fonctionnement des organes de l'exécuteur.
     Mémoire, registres, UAL, écran...
 """
