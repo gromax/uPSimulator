@@ -8,6 +8,8 @@ from typing import List
 import re
 
 from modules.primitives.operators import Operators
+from modules.primitives.variable import Variable
+from modules.primitives.litteral import Litteral
 from modules.errors import ExpressionError
 
 import modules.expressionnodes.common as expModule
@@ -183,10 +185,13 @@ class ExpressionParser:
 
         operandsList:List[expModule.ExpressionType] = []
         for token in polishTokensList:
-            if isinstance(token,TokenVariable) or isinstance(token,TokenNumber):
-                node = expModule.valueNode(token.value)
-                if node is None:
-                    return None
+            if isinstance(token,TokenVariable):
+                v = Variable.add(token.name)
+                node = expModule.valueNode(v)
+                operandsList.append(node)
+            elif isinstance(token,TokenNumber):
+                l = Litteral(token.value)
+                node = expModule.valueNode(l)
                 operandsList.append(node)
             elif isinstance(token,TokenUnaryOperator):
                 assert len(operandsList) > 0, "Pas assez d'opérandes."
